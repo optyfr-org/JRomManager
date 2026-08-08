@@ -817,13 +817,6 @@ public class ProfileViewerController implements Initializable {
             return;
         }
         
-        // Additional security check: verify the executable name contains "mame"
-        final String fileName = mame.getFile().getName().toLowerCase();
-        if (!fileName.contains("mame")) {
-            Dialogs.showAlert("The configured executable does not appear to be a MAME binary: " + mame.getFile().getName());
-            return;
-        }
-        
         final var args = new ArrayList<String>();
         if (ware instanceof Software) {
             getMameArgsSofware(ware, profile, mame, args);

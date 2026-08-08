@@ -191,15 +191,6 @@ public final class ProfileNFOMame implements Serializable {
                 return false;
             }
             
-            // Validate the filename contains "mame" (case-insensitive) to ensure it's a MAME-related executable
-            // This prevents execution of arbitrary programs while allowing legitimate MAME variants
-            // (mame, mame64, sdlmame, mameui, etc.)
-            final var fileName = canonicalFile.getName().toLowerCase();
-            if (!fileName.contains("mame")) {
-                Log.warn(() -> String.format("Executable file name does not contain 'mame': %s", canonicalFile.getAbsolutePath()));
-                return false;
-            }
-            
             return true;
         } catch (IOException e) {
             Log.err("Failed to validate MAME executable path", e);
