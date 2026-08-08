@@ -330,7 +330,6 @@ public class UploadServlet extends HttpServlet {
      * subtree. The abstract {@code fileparent} is resolved through {@link PathAbstractor} and compared against the real reports cache
      * root {@code session.getUser().getSettings().getWorkPath().resolve("reports")}, so only the actual cache directory is blocked.
      * User-owned directories whose abstract names happen to contain "reports" are not affected.
-     * </p>
      *
      * @param ws the active web session
      * @param pathAbstractor the path abstractor for resolving {@code fileparent}
