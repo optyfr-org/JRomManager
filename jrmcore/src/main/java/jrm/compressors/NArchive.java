@@ -595,9 +595,13 @@ abstract class NArchive extends NArchiveBase {
         }
 
         // Check for absolute paths (Unix-style or Windows-style)
-        if (normalizedEntry.startsWith("/") || normalizedEntry.startsWith("\\\\") ||
-            (normalizedEntry.length() > 1 && normalizedEntry.charAt(1) == ':')) {
+        final var hasWindowsDriveRoot = normalizedEntry.length() > 2
+            && Character.isLetter(normalizedEntry.charAt(0))
+            && normalizedEntry.charAt(1) == ':'
+            && normalizedEntry.charAt(2) == '/';
+        if (normalizedEntry.startsWith("/") || normalizedEntry.startsWith("//") || hasWindowsDriveRoot) {
             throw new IOException("Entry path cannot be absolute: " + normalizedEntry);
+        }
         }
 
         // Normalize the entry path and resolve it against the temp directory
