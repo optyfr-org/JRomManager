@@ -46,9 +46,10 @@ public final class DeserializationFilter {
      * 
      * The filter allows:
      * <ul>
-     * <li>Java standard library classes (java.lang.*, java.util.*, java.math.*)</li>
-     * <li>Primitive arrays and String/Object arrays</li>
+     * <li>Java standard library classes (java.lang.*, java.util.*, java.math.*, java.time.*, and java.io.File)</li>
+     * <li>Primitive arrays and arrays of allowed classes</li>
      * <li>Application classes from jrm.* packages</li>
+     * <li>TorrentZip status classes from jtrrntzip.*</li>
      * </ul>
      * 
      * The filter rejects:
@@ -78,25 +79,7 @@ public final class DeserializationFilter {
             
             String className = serialClass.getName();
             
-            // Allow JDK base classes needed for collections and basic types
-            if (className.startsWith("java.lang.") ||
-                className.startsWith("java.util.") ||
-                className.startsWith("java.math.") ||
-                className.equals("[B") || // byte array
-                className.equals("[I") || // int array
-                className.equals("[J") || // long array
-                className.equals("[S") || // short array
-                className.equals("[C") || // char array
-                className.equals("[F") || // float array
-                className.equals("[D") || // double array
-                className.equals("[Z") || // boolean array
-                className.equals("[Ljava.lang.String;") || // String array
-                className.equals("[Ljava.lang.Object;")) { // Object array
-                return ObjectInputFilter.Status.ALLOWED;
-            }
-            
-            // Allow only application-specific classes from jrm package and subpackages
-            if (className.startsWith("jrm.")) {
+            if (isAllowedClassName(className)) {
                 return ObjectInputFilter.Status.ALLOWED;
             }
             
@@ -104,5 +87,54 @@ public final class DeserializationFilter {
             Log.warn(() -> "Deserialization rejected for untrusted class: " + className);
             return ObjectInputFilter.Status.REJECTED;
         };
+    }
+    
+    /**
+     * Determines whether a class name (including array types) is allowed to be deserialized.
+     * For reference arrays, the component type is checked against the allowlist.
+     * 
+     * @param className the fully qualified class name produced by {@link Class#getName()}
+     * @return {@code true} if the class is allowed, {@code false} otherwise
+     */
+    private static boolean isAllowedClassName(String className) {
+        // Strip array prefix(es) and check the underlying component type
+        while (className.startsWith("[")) { //$NON-NLS-1$
+            if (className.length() < 2) {
+                return false;
+            }
+            final char type = className.charAt(1);
+            if (type == 'L') {
+                // Object reference array: remove the leading "[L" and trailing ";"
+                className = className.substring(2, className.length() - 1);
+                break;
+            }
+            if (type == '[') {
+                // Multi-dimensional array: continue peeling
+                className = className.substring(1);
+            } else {
+                // Primitive array
+                return true;
+            }
+        }
+        return isAllowedNonArrayClassName(className);
+    }
+    
+    /**
+     * Determines whether a non-array class name is allowed to be deserialized.
+     * 
+     * @param className the fully qualified class name (without array prefix)
+     * @return {@code true} if the class is allowed, {@code false} otherwise
+     */
+    private static boolean isAllowedNonArrayClassName(String className) {
+        // Allow JDK base classes needed for collections, basic types, file paths, and timestamps
+        return className.startsWith("java.lang.") || //$NON-NLS-1$
+            className.startsWith("java.util.") || //$NON-NLS-1$
+            className.startsWith("java.math.") || //$NON-NLS-1$
+            className.startsWith("java.time.") || //$NON-NLS-1$
+            className.equals("java.io.File") || //$NON-NLS-1$
+            // Allow application-specific classes from jrm package and subpackages
+            className.startsWith("jrm.") || //$NON-NLS-1$
+            // Allow torrentzip status types used in container caches
+            className.startsWith("jtrrntzip."); //$NON-NLS-1$
     }
 }
