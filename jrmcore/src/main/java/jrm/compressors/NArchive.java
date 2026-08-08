@@ -585,27 +585,30 @@ abstract class NArchive extends NArchiveBase {
         if (entry == null || entry.isEmpty()) {
             throw new IOException("Entry path cannot be null or empty");
         }
-        
+
+        // Normalize Windows separators to forward slashes for cross-platform compatibility
+        final var normalizedEntry = entry.replace('\\', '/');
+
         // Check for null bytes
-        if (entry.contains("\0")) {
-            throw new IOException("Entry path contains null byte: " + entry);
+        if (normalizedEntry.contains("\0")) {
+            throw new IOException("Entry path contains null byte: " + normalizedEntry);
         }
-        
+
         // Check for absolute paths (Unix-style or Windows-style)
-        if (entry.startsWith("/") || entry.startsWith("\\\\") || 
-            (entry.length() > 1 && entry.charAt(1) == ':')) {
-            throw new IOException("Entry path cannot be absolute: " + entry);
+        if (normalizedEntry.startsWith("/") || normalizedEntry.startsWith("\\\\") ||
+            (normalizedEntry.length() > 1 && normalizedEntry.charAt(1) == ':')) {
+            throw new IOException("Entry path cannot be absolute: " + normalizedEntry);
         }
-        
+
         // Normalize the entry path and resolve it against the temp directory
         final var tempDirPath = getTempDir().toPath().toAbsolutePath().normalize();
-        final var entryPath = tempDirPath.resolve(entry).normalize();
-        
+        final var entryPath = tempDirPath.resolve(normalizedEntry).normalize();
+
         // Verify the resolved path is still within the temp directory
         if (!entryPath.startsWith(tempDirPath)) {
-            throw new IOException("Entry path escapes temporary directory: " + entry);
+            throw new IOException("Entry path escapes temporary directory: " + normalizedEntry);
         }
-        
+
         // Return the relative path from temp directory
         return tempDirPath.relativize(entryPath).toString();
     }
