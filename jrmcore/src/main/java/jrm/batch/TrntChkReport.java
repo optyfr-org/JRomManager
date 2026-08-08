@@ -385,7 +385,6 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
      * This method applies strict deserialization filtering to prevent arbitrary code execution
      * via malicious serialized objects. Only classes explicitly allowlisted for report
      * serialization are permitted during deserialization.
-     * </p>
      *
      * @param session the active user session
      * @param file the file from which to load the report
