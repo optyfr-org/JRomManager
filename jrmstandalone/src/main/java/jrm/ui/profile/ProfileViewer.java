@@ -649,15 +649,6 @@ public class ProfileViewer extends JDialog {
             return;
         }
         
-        // Additional security check: verify the executable name contains "mame"
-        final String fileName = mame.getFile().getName().toLowerCase();
-        if (!fileName.contains("mame")) {
-            JOptionPane.showMessageDialog(ProfileViewer.this, 
-                    "The configured executable does not appear to be a MAME binary: " + mame.getFile().getName(), 
-                    Messages.getString("ProfileViewer.Exception"), JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
         String[] args = null;
         if (ware instanceof Software) {
             args = getMameArgsSofware(ware, profile, mame, args);
