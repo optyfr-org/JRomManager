@@ -199,6 +199,7 @@ public class UploadServlet extends HttpServlet {
      * <ul>
      * <li>Extracts and decodes filename and parent directory from HTTP headers</li>
      * <li>Verifies the target directory is writable according to the user's session</li>
+     * <li>Blocks uploads to the cache directory to prevent cache poisoning attacks</li>
      * <li>Confirms the destination directory exists on the filesystem</li>
      * <li>Checks that sufficient disk space is available for the file</li>
      * <li>Validates the file path is syntactically correct</li>
@@ -218,6 +219,19 @@ public class UploadServlet extends HttpServlet {
             final String filename = sanitizeHeader(req.getHeader("x-file-name"));
             final String fileparent = sanitizeHeader(req.getHeader("x-file-parent"));
             validateUploadHeaders(filename, fileparent);
+            
+            // Block uploads to cache directory to prevent cache poisoning
+            // Normalize path separators and check for cache directory
+            final String normalizedParent = fileparent.replace("\\", "/");
+            if (normalizedParent.equals("%work/cache") || 
+                normalizedParent.startsWith("%work/cache/") ||
+                normalizedParent.contains("/cache/") ||
+                normalizedParent.endsWith("/cache")) {
+                result.status = 11;
+                result.extstatus = "Uploads to cache directory are not allowed";
+                return;
+            }
+            
             if (pathAbstractor.isWriteable(fileparent)) {
                 final var filesize = getXFileSize(req);
                 final var dest = pathAbstractor.getAbsolutePath(fileparent);
@@ -320,6 +334,7 @@ public class UploadServlet extends HttpServlet {
      * <ul>
      * <li>Extracts and decodes filename and parent directory from HTTP headers</li>
      * <li>Validates the target directory is writable</li>
+     * <li>Blocks uploads to the cache directory to prevent cache poisoning attacks</li>
      * <li>Creates any necessary parent directories for the target file</li>
      * <li>Streams the request body to the target file on disk</li>
      * <li>Verifies the uploaded file size matches the expected size</li>
@@ -343,6 +358,20 @@ public class UploadServlet extends HttpServlet {
                 final String filename = sanitizeHeader(req.getHeader("x-file-name"));
                 final String fileparent = sanitizeHeader(req.getHeader("x-file-parent"));
                 validateFilenameComponent(filename);
+                
+                // Block uploads to cache directory to prevent cache poisoning
+                // Normalize path separators and check for cache directory
+                final String normalizedParent = fileparent.replace("\\", "/");
+                if (normalizedParent.equals("%work/cache") || 
+                    normalizedParent.startsWith("%work/cache/") ||
+                    normalizedParent.contains("/cache/") ||
+                    normalizedParent.endsWith("/cache")) {
+                    result.status = 11;
+                    result.extstatus = "Uploads to cache directory are not allowed";
+                    resp.getWriter().write(new Gson().toJson(result));
+                    return;
+                }
+                
                 if (pathAbstractor.isWriteable(fileparent)) {
                     final var dest = pathAbstractor.getAbsolutePath(fileparent).normalize().toAbsolutePath();
                     final var filepath = dest.resolve(filename).normalize().toAbsolutePath();
