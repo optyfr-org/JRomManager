@@ -634,6 +634,30 @@ public class ProfileViewer extends JDialog {
      */
     private void launchMame(final Anyware ware, final Profile profile) throws HeadlessException {
         final ProfileNFOMame mame = profile.getNfo().getMame();
+        
+        // Validate MAME executable before launching to prevent arbitrary program execution
+        if (mame.getFile() == null) {
+            JOptionPane.showMessageDialog(ProfileViewer.this, "MAME executable is not configured for this profile.", 
+                    Messages.getString("ProfileViewer.Exception"), JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        if (!mame.getFile().exists() || !mame.getFile().canExecute()) {
+            JOptionPane.showMessageDialog(ProfileViewer.this, 
+                    "MAME executable does not exist or is not executable: " + mame.getFile().getAbsolutePath(), 
+                    Messages.getString("ProfileViewer.Exception"), JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // Additional security check: verify the executable name contains "mame"
+        final String fileName = mame.getFile().getName().toLowerCase();
+        if (!fileName.contains("mame")) {
+            JOptionPane.showMessageDialog(ProfileViewer.this, 
+                    "The configured executable does not appear to be a MAME binary: " + mame.getFile().getName(), 
+                    Messages.getString("ProfileViewer.Exception"), JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
         String[] args = null;
         if (ware instanceof Software) {
             args = getMameArgsSofware(ware, profile, mame, args);

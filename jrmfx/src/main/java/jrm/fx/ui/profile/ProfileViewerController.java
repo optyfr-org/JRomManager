@@ -805,6 +805,25 @@ public class ProfileViewerController implements Initializable {
      */
     private void launchMame(final Anyware ware, final Profile profile) throws HeadlessException {
         final ProfileNFOMame mame = profile.getNfo().getMame();
+        
+        // Validate MAME executable before launching to prevent arbitrary program execution
+        if (mame.getFile() == null) {
+            Dialogs.showError("MAME executable is not configured for this profile.");
+            return;
+        }
+        
+        if (!mame.getFile().exists() || !mame.getFile().canExecute()) {
+            Dialogs.showError("MAME executable does not exist or is not executable: " + mame.getFile().getAbsolutePath());
+            return;
+        }
+        
+        // Additional security check: verify the executable name contains "mame"
+        final String fileName = mame.getFile().getName().toLowerCase();
+        if (!fileName.contains("mame")) {
+            Dialogs.showError("The configured executable does not appear to be a MAME binary: " + mame.getFile().getName());
+            return;
+        }
+        
         final var args = new ArrayList<String>();
         if (ware instanceof Software) {
             getMameArgsSofware(ware, profile, mame, args);

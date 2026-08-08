@@ -143,11 +143,84 @@ public final class ProfileNFOMame implements Serializable {
      */
     private void readObject(final java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
         final ObjectInputStream.GetField fields = stream.readFields();
-        file = (File) fields.get(FILE_STR, null); // $NON-NLS-1$
+        final File deserializedFile = (File) fields.get(FILE_STR, null); // $NON-NLS-1$
+        
+        // Validate the deserialized MAME executable path to prevent arbitrary program execution
+        if (deserializedFile != null && !isValidMameExecutable(deserializedFile)) {
+            Log.warn(() -> String.format("Rejected potentially malicious MAME executable path from deserialized profile metadata: %s", deserializedFile.getAbsolutePath()));
+            file = null;
+            modified = 0L;
+            sl = false;
+            fileroms = null;
+            filesl = null;
+            return;
+        }
+        
+        file = deserializedFile;
         modified = Optional.ofNullable((Long) fields.get(MODIFIED_STR, (Long) 0L)).orElse(0L); // $NON-NLS-1$
         sl = fields.get(SL_STR, false); // $NON-NLS-1$
         fileroms = (File) fields.get(FILEROMS_STR, null); // $NON-NLS-1$
         filesl = (File) fields.get(FILESL_STR, null); // $NON-NLS-1$
+    }
+    
+    /**
+     * Validates that a file path represents a legitimate MAME executable.
+     * This method performs security checks to prevent arbitrary program execution
+     * from untrusted deserialized profile metadata.
+     * 
+     * @param executableFile the file to validate
+     * @return {@code true} if the file appears to be a valid MAME executable; {@code false} otherwise
+     */
+    private static boolean isValidMameExecutable(final File executableFile) {
+        if (executableFile == null) {
+            return false;
+        }
+        
+        try {
+            // Normalize the path to prevent directory traversal attacks
+            final var canonicalPath = executableFile.getCanonicalPath();
+            final var canonicalFile = new File(canonicalPath);
+            
+            // Check if the file exists and is a regular file (not a directory or special file)
+            if (!canonicalFile.exists() || !canonicalFile.isFile()) {
+                return false;
+            }
+            
+            // Check if the file is executable
+            if (!canonicalFile.canExecute()) {
+                return false;
+            }
+            
+            // Validate the filename contains "mame" (case-insensitive) to ensure it's a MAME-related executable
+            // This prevents execution of arbitrary programs while allowing legitimate MAME variants
+            // (mame, mame64, sdlmame, mameui, etc.)
+            final var fileName = canonicalFile.getName().toLowerCase();
+            if (!fileName.contains("mame")) {
+                Log.warn(() -> String.format("Executable file name does not contain 'mame': %s", canonicalFile.getAbsolutePath()));
+                return false;
+            }
+            
+            // Additional check: ensure the path doesn't contain suspicious patterns
+            // that might indicate an attempt to execute system utilities or other programs
+            final var suspiciousPatterns = new String[] {
+                "/bin/", "/usr/bin/", "/sbin/", "/usr/sbin/",
+                "\\windows\\", "\\system32\\", "\\syswow64\\",
+                "cmd.exe", "powershell", "bash", "sh", "python", "perl", "ruby"
+            };
+            
+            final var lowerPath = canonicalPath.toLowerCase();
+            for (final var pattern : suspiciousPatterns) {
+                if (lowerPath.contains(pattern.toLowerCase())) {
+                    Log.warn(() -> String.format("Executable path contains suspicious pattern '%s': %s", pattern, canonicalPath));
+                    return false;
+                }
+            }
+            
+            return true;
+        } catch (IOException e) {
+            Log.err("Failed to validate MAME executable path", e);
+            return false;
+        }
     }
 
     /**
