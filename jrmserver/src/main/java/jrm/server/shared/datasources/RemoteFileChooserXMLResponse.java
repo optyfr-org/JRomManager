@@ -309,8 +309,8 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
             options = new Options(operation.getData(CONTEXT));
         Path parent = getParent(operation);
         String name = operation.getData("Name");
-        Path entry = parent.resolve(name);
-        if (name != null && Files.isDirectory(parent) && !Files.exists(entry)) {
+        Path entry = validateResolvedPath(parent, name);
+        if (entry != null && name != null && Files.isDirectory(parent) && !Files.exists(entry)) {
             try {
                 Files.createDirectory(entry);
                 writeResponseSingle(parent, entry);
@@ -361,9 +361,9 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
         Path parent = getParent(operation);
         String name = operation.getData("Name");
         String oldname = operation.oldValues.get("Name");
-        Path entry = parent.resolve(name);
-        Path oldentry = parent.resolve(oldname);
-        if (name != null && oldname != null && Files.isDirectory(parent) && Files.exists(oldentry) && !Files.exists(entry)) {
+        Path entry = validateResolvedPath(parent, name);
+        Path oldentry = validateResolvedPath(parent, oldname);
+        if (entry != null && oldentry != null && name != null && oldname != null && Files.isDirectory(parent) && Files.exists(oldentry) && !Files.exists(entry)) {
             try {
                 Files.move(oldentry, entry);
                 writeResponseSingle(parent, entry);
@@ -387,8 +387,8 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
             options = new Options(operation.getData(CONTEXT));
         Path parent = getParent(operation);
         String name = operation.getData("Name");
-        Path entry = parent.resolve(name);
-        if (name != null && Files.exists(entry)) {
+        Path entry = validateResolvedPath(parent, name);
+        if (entry != null && name != null && Files.exists(entry)) {
             try {
                 try (final var stream = Files.walk(entry)) {
                     stream.map(Path::toFile).sorted(Comparator.reverseOrder()).forEach(File::delete); // recursive dir delete
@@ -544,6 +544,40 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
                 parent = parent.getParent();
         }
         return parent;
+    }
+
+    /**
+     * Validates that a resolved path remains within the parent directory boundary.
+     * This method prevents path traversal attacks by ensuring that the resolved path,
+     * after normalization, starts with the parent directory path.
+     *
+     * @param parent the parent directory that should contain the resolved path
+     * @param name the name or relative path to resolve against the parent
+     * 
+     * @return the validated resolved path, or null if the path attempts to escape the parent directory
+     */
+    private Path validateResolvedPath(Path parent, String name) {
+        if (name == null || name.isEmpty()) {
+            return null;
+        }
+        try {
+            // Normalize the parent path to establish the security boundary
+            Path normalizedParent = parent.toAbsolutePath().normalize();
+            
+            // Resolve the name against the parent and normalize the result
+            Path resolvedPath = normalizedParent.resolve(name).normalize();
+            
+            // Verify the resolved path stays within the parent directory
+            if (!resolvedPath.startsWith(normalizedParent)) {
+                Log.err("Path traversal attempt detected: " + name + " escapes parent directory");
+                return null;
+            }
+            
+            return resolvedPath;
+        } catch (Exception e) {
+            Log.err("Error validating path: " + e.getMessage(), e);
+            return null;
+        }
     }
 
     /**
