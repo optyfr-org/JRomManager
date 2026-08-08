@@ -18,7 +18,6 @@ import jrm.misc.Log;
  * This filter whitelists only expected JRM application classes and standard Java classes, rejecting all others.
  * This mitigates deserialization vulnerabilities where attackers could upload malicious serialized objects
  * to cache directories and trigger their deserialization.
- * </p>
  * 
  * @author optyfr
  * 
@@ -44,7 +43,6 @@ public final class DeserializationFilter {
      * <li>Primitive arrays and arrays of allowed classes</li>
      * </ul>
      * All other classes are rejected and logged.
-     * </p>
      * 
      * @return an ObjectInputFilter that accepts only safe classes
      */
