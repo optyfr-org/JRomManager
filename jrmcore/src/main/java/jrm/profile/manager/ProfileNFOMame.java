@@ -200,22 +200,6 @@ public final class ProfileNFOMame implements Serializable {
                 return false;
             }
             
-            // Additional check: ensure the path doesn't contain suspicious patterns
-            // that might indicate an attempt to execute system utilities or other programs
-            final var suspiciousPatterns = new String[] {
-                "/bin/", "/usr/bin/", "/sbin/", "/usr/sbin/",
-                "\\windows\\", "\\system32\\", "\\syswow64\\",
-                "cmd.exe", "powershell", "bash", "sh", "python", "perl", "ruby"
-            };
-            
-            final var lowerPath = canonicalPath.toLowerCase();
-            for (final var pattern : suspiciousPatterns) {
-                if (lowerPath.contains(pattern.toLowerCase())) {
-                    Log.warn(() -> String.format("Executable path contains suspicious pattern '%s': %s", pattern, canonicalPath));
-                    return false;
-                }
-            }
-            
             return true;
         } catch (IOException e) {
             Log.err("Failed to validate MAME executable path", e);
