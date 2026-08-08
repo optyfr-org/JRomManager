@@ -39,7 +39,9 @@ public final class DeserializationFilter {
      * The filter allows:
      * <ul>
      * <li>JRM application classes (jrm.profile.*, jrm.misc.*, jrm.aui.*, jrm.batch.*)</li>
-     * <li>Standard Java collection and utility classes (java.util.*, java.lang.*, java.math.*)</li>
+     * <li>Standard Java collection and utility classes (java.util.*, java.lang.*, java.math.*, java.time.*)</li>
+     * <li>{@link java.io.File} and arrays of {@link java.io.File} used by persisted metadata and cache objects</li>
+     * <li>Third-party types legitimately stored in serialized JRM graphs, such as {@code jtrrntzip.*}</li>
      * <li>Primitive arrays and arrays of allowed classes</li>
      * </ul>
      * All other classes are rejected and logged.
@@ -68,6 +70,8 @@ public final class DeserializationFilter {
                 className.startsWith("java.lang.") ||
                 className.startsWith("java.math.") ||
                 className.startsWith("java.time.") ||
+                className.equals("java.io.File") || // physical paths persisted in metadata and cache objects
+                className.equals("[Ljava.io.File;") || // arrays of files
                 className.equals("[B") || // byte array
                 className.equals("[C") || // char array
                 className.equals("[I") || // int array
@@ -85,6 +89,12 @@ public final class DeserializationFilter {
                 className.startsWith("[Ljrm.misc.") || // arrays of misc classes
                 className.startsWith("[Ljrm.aui.") || // arrays of aui classes
                 className.startsWith("[Ljrm.batch.")) { // arrays of batch classes
+                return ObjectInputFilter.Status.ALLOWED;
+            }
+            
+            // Allow third-party types legitimately stored in serialized JRM object graphs
+            if (className.startsWith("jtrrntzip.") ||
+                className.startsWith("[Ljtrrntzip.")) { // arrays of third-party types
                 return ObjectInputFilter.Status.ALLOWED;
             }
             
