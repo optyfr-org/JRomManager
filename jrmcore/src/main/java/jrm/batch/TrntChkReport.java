@@ -37,6 +37,15 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
     private static final long serialVersionUID = 4L;
 
     /**
+     * Maximum object graph depth allowed when deserializing a torrent-check report.
+     * <p>
+     * {@link TorrentChecker#checkBlocksFile} nests one {@link Child} per torrent piece, so the depth limit must be high enough
+     * to accommodate large torrents without rejecting legitimate reports.
+     * </p>
+     */
+    private static final int MAX_DESERIALIZATION_DEPTH = 1_000_000;
+
+    /**
      * the atomic counter for generating unique IDs for Child nodes (not serialized)
      */
     private transient AtomicLong uidCnt = new AtomicLong();
@@ -389,8 +398,9 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
      */
     public static TrntChkReport load(final Session session, final File file) {
         try (final ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ReportIntf.getReportFile(session, file))))) {
-            // Apply deserialization filter to prevent arbitrary code execution
-            ois.setObjectInputFilter(DeserializationFilter.createFilter());
+            // Apply deserialization filter to prevent arbitrary code execution.
+            // Torrent-check reports can be deeply nested (one Child per piece), so use a format-specific depth limit.
+            ois.setObjectInputFilter(DeserializationFilter.createFilter(MAX_DESERIALIZATION_DEPTH));
             final TrntChkReport report = (TrntChkReport) ois.readObject();
             report.file = file;
             report.fileModified = ReportIntf.getReportFile(session, file).lastModified();

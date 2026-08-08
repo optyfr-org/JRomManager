@@ -128,4 +128,41 @@ class DeserializationFilterTest {
                 .isInstanceOf(IOException.class)
                 .hasMessageContaining("REJECTED"); //$NON-NLS-1$
     }
+
+    /**
+     * Verifies that the custom depth limit overload accepts deeper graphs than the default limit.
+     *
+     * @throws Exception if the round-trip fails
+     */
+    @Test
+    @DisplayName("should allow custom depth limit to exceed the default")
+    void shouldAllowCustomDepthLimit() throws Exception {
+        // Build a chain deeper than the default limit of 100.
+        DeepNode<Integer> original = null;
+        for (int i = 150; i >= 1; i--) {
+            original = new DeepNode<>(i, original);
+        }
+        final var bytes = serialize(original);
+
+        try (final var ois = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
+            ois.setObjectInputFilter(DeserializationFilter.createFilter(200));
+            @SuppressWarnings("unchecked")
+            final DeepNode<Integer> restored = (DeepNode<Integer>) ois.readObject();
+            assertThat(restored).usingRecursiveComparison().isEqualTo(original);
+        }
+    }
+
+    /**
+     * Serializable recursive node used to exercise the depth limit.
+     */
+    private static final class DeepNode<T> implements Serializable {
+        private static final long serialVersionUID = 1L;
+        private final T value;
+        private final DeepNode<T> child;
+
+        DeepNode(T value, DeepNode<T> child) {
+            this.value = value;
+            this.child = child;
+        }
+    }
 }

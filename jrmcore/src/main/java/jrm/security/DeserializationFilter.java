@@ -40,9 +40,11 @@ public final class DeserializationFilter {
     }
     
     /**
-     * Creates a deserialization filter that only allows safe classes from this application.
-     * This prevents arbitrary code execution via malicious serialized objects by implementing
-     * an allowlist of permitted classes and rejecting all others.
+     * Creates a deserialization filter with the default depth limit.
+     * <p>
+     * This prevents arbitrary code execution via malicious serialized objects by implementing an allowlist of permitted classes
+     * and rejecting all others.
+     * </p>
      * 
      * The filter allows:
      * <ul>
@@ -59,16 +61,33 @@ public final class DeserializationFilter {
      * <li>Objects exceeding depth or array size limits (DoS prevention)</li>
      * </ul>
      * 
-     * @return ObjectInputFilter configured with allowlist of safe classes
+     * @return ObjectInputFilter configured with allowlist of safe classes and the default depth limit
+     * 
+     * @see #createFilter(int)
      */
     public static ObjectInputFilter createFilter() {
+        return createFilter(MAX_DEPTH);
+    }
+    
+    /**
+     * Creates a deserialization filter with a caller-specific depth limit.
+     * <p>
+     * Different persisted formats can legitimately have very different object-graph depths (for example, torrent-check reports
+     * nest one {@code TrntChkReport.Child} per piece). Persisted formats that need a higher limit can call this overload
+     * instead of the default.
+     * </p>
+     * 
+     * @param maxDepth the maximum object graph depth to allow before rejecting the stream
+     * @return ObjectInputFilter configured with allowlist of safe classes and the supplied depth limit
+     */
+    public static ObjectInputFilter createFilter(final int maxDepth) {
         return filterInfo -> {
             Class<?> serialClass = filterInfo.serialClass();
             
             // Reject if depth or array size exceeds reasonable limits (DoS prevention)
-            if (filterInfo.depth() > MAX_DEPTH || filterInfo.arrayLength() > MAX_ARRAY_LENGTH) {
+            if (filterInfo.depth() > maxDepth || filterInfo.arrayLength() > MAX_ARRAY_LENGTH) {
                 Log.warn(() -> String.format("Deserialization rejected: depth=%d (max=%d), arrayLength=%d (max=%d)",
-                    filterInfo.depth(), MAX_DEPTH, filterInfo.arrayLength(), MAX_ARRAY_LENGTH));
+                    filterInfo.depth(), maxDepth, filterInfo.arrayLength(), MAX_ARRAY_LENGTH));
                 return ObjectInputFilter.Status.REJECTED;
             }
             
