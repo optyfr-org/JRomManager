@@ -415,8 +415,9 @@ abstract class NArchive extends NArchiveBase {
      */
     @Override
     public File extract(final String entry) throws IOException {
-        extract(getTempDir(), entry);
-        final var result = new File(getTempDir(), entry);
+        final var validatedEntry = validateAndNormalizeEntry(entry);
+        extract(getTempDir(), validatedEntry);
+        final var result = new File(getTempDir(), validatedEntry);
         if (result.exists())
             return result;
         return null;
@@ -436,8 +437,9 @@ abstract class NArchive extends NArchiveBase {
      */
     @Override
     public InputStream extractStdOut(final String entry) throws IOException {
-        extract(getTempDir(), entry);
-        return new FileInputStream(new File(getTempDir(), entry));
+        final var validatedEntry = validateAndNormalizeEntry(entry);
+        extract(getTempDir(), validatedEntry);
+        return new FileInputStream(new File(getTempDir(), validatedEntry));
     }
 
     /**
@@ -458,33 +460,35 @@ abstract class NArchive extends NArchiveBase {
     public int add(final File baseDir, final String entry) throws IOException {
         if (readonly)
             return -1;
+        final var validatedEntry = validateAndNormalizeEntry(entry);
         if (baseDir.isFile())
-            FileUtils.copyFile(baseDir, new File(getTempDir(), entry));
+            FileUtils.copyFile(baseDir, new File(getTempDir(), validatedEntry));
         else if (!baseDir.equals(getTempDir()))
-            FileUtils.copyFile(new File(baseDir, entry), new File(getTempDir(), entry));
-        getToAdd().add(entry);
+            FileUtils.copyFile(new File(baseDir, entry), new File(getTempDir(), validatedEntry));
+        getToAdd().add(validatedEntry);
         return 0;
     }
 
     /**
      * Adds a file entry to the archive using an InputStream as the source. This method checks if the archive is in read-only mode,
-     * and if so, it returns -1 to indicate that the operation is not allowed. Otherwise, it copies the input stream to a file in
-     * the temporary directory with the specified entry name, adds the entry name to the list of entries to be added to the archive,
-     * and returns 0 to indicate success.
+     * and if so, it returns -1 to indicate that the operation is not allowed. Otherwise, it validates the entry path to prevent
+     * path traversal attacks, copies the input stream to a file in the temporary directory with the specified entry name, adds the
+     * entry name to the list of entries to be added to the archive, and returns 0 to indicate success.
      * 
      * @param src the InputStream containing the data for the new entry
      * @param entry the name of the entry to be added (including path within the archive)
      * 
      * @return 0 if the entry was successfully added, or -1 if the archive is in read-only mode
      * 
-     * @throws IOException if an error occurs while writing the input stream to a file
+     * @throws IOException if an error occurs while writing the input stream to a file or if the entry path is invalid
      */
     @Override
     public int addStdIn(final InputStream src, final String entry) throws IOException {
         if (readonly)
             return -1;
-        FileUtils.copyInputStreamToFile(src, new File(getTempDir(), entry));
-        getToAdd().add(entry);
+        final var validatedEntry = validateAndNormalizeEntry(entry);
+        FileUtils.copyInputStreamToFile(src, new File(getTempDir(), validatedEntry));
+        getToAdd().add(validatedEntry);
         return 0;
     }
 
@@ -560,5 +564,49 @@ abstract class NArchive extends NArchiveBase {
         if (File.separatorChar == '/')
             return entry.replace('\\', '/');
         return entry.replace('/', '\\');
+    }
+
+    /**
+     * Validates and normalizes an entry path to prevent path traversal attacks.
+     * This method ensures that the entry path:
+     * <ul>
+     * <li>Does not represent an absolute path</li>
+     * <li>Does not escape the temporary directory using ".." segments</li>
+     * <li>Does not contain null bytes or other dangerous characters</li>
+     * </ul>
+     * 
+     * @param entry the entry path to validate and normalize
+     * 
+     * @return the validated and normalized entry path
+     * 
+     * @throws IOException if the entry path is invalid or represents a path traversal attempt
+     */
+    private String validateAndNormalizeEntry(final String entry) throws IOException {
+        if (entry == null || entry.isEmpty()) {
+            throw new IOException("Entry path cannot be null or empty");
+        }
+        
+        // Check for null bytes
+        if (entry.contains("\0")) {
+            throw new IOException("Entry path contains null byte: " + entry);
+        }
+        
+        // Check for absolute paths (Unix-style or Windows-style)
+        if (entry.startsWith("/") || entry.startsWith("\\\\") || 
+            (entry.length() > 1 && entry.charAt(1) == ':')) {
+            throw new IOException("Entry path cannot be absolute: " + entry);
+        }
+        
+        // Normalize the entry path and resolve it against the temp directory
+        final var tempDirPath = getTempDir().toPath().toAbsolutePath().normalize();
+        final var entryPath = tempDirPath.resolve(entry).normalize();
+        
+        // Verify the resolved path is still within the temp directory
+        if (!entryPath.startsWith(tempDirPath)) {
+            throw new IOException("Entry path escapes temporary directory: " + entry);
+        }
+        
+        // Return the relative path from temp directory
+        return tempDirPath.relativize(entryPath).toString();
     }
 }
