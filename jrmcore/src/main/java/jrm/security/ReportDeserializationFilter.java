@@ -8,7 +8,6 @@ import java.util.Set;
  * <p>
  * This filter implements a strict allowlist of classes that are permitted during deserialization of cached report files.
  * It protects against deserialization attacks by rejecting any classes not explicitly approved for report serialization.
- * </p>
  * <p>
  * The filter allows:
  * <ul>
@@ -18,7 +17,6 @@ import java.util.Set;
  * <li>Enum types</li>
  * </ul>
  * All other classes are rejected to prevent gadget chain exploitation.
- * </p>
  *
  * @author JRM Security Team
  * 
@@ -30,7 +28,6 @@ public final class ReportDeserializationFilter implements ObjectInputFilter {
      * Set of allowed class name prefixes for deserialization.
      * <p>
      * These prefixes cover the legitimate classes used in report serialization while blocking potentially dangerous classes.
-     * </p>
      */
     private static final Set<String> ALLOWED_PREFIXES = Set.of(
         "jrm.profile.report.",
@@ -56,7 +53,6 @@ public final class ReportDeserializationFilter implements ObjectInputFilter {
      * Set of explicitly allowed collection and utility classes.
      * <p>
      * These are standard Java classes commonly used in serialization that are considered safe.
-     * </p>
      */
     private static final Set<String> ALLOWED_CLASSES = Set.of(
         "java.util.ArrayList",
