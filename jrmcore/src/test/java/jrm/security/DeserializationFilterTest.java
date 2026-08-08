@@ -193,14 +193,11 @@ class DeserializationFilterTest {
     @DisplayName("TrntChkReport should round-trip under the filter")
     void trntChkReportShouldRoundTripUnderTheFilter(@TempDir final Path tempDir) throws Exception {
         final var report = new TrntChkReport(tempDir.resolve("test.torrent").toFile());
-        final var root = addTrntChkReportChild(report, "root");
+        final TrntChkReport.Child root = (TrntChkReport.Child) addTrntChkReportChild(report, "root");
         setTrntChkReportChildStatus(root, TrntChkReport.Status.OK);
-        final var parent = addTrntChkReportChild(report, "parent");
-        final Method setLength = parent.getClass().getDeclaredMethod("getData");
-        setLength.setAccessible(true);
-        final Object parentData = setLength.invoke(parent);
-        parentData.getClass().getDeclaredMethod("setLength", Long.class).invoke(parentData, 123L);
-        final var child = addTrntChkReportChild(parent, "child");
+        final TrntChkReport.Child parent = (TrntChkReport.Child) addTrntChkReportChild(report, "parent");
+        parent.getData().setLength(123L);
+        final TrntChkReport.Child child = (TrntChkReport.Child) addTrntChkReportChild(parent, "child");
         setTrntChkReportChildStatus(child, TrntChkReport.Status.MISSING);
 
         final TrntChkReport loaded = roundTrip(report);
