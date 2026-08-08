@@ -49,6 +49,7 @@ import jrm.misc.Log;
 import jrm.misc.SettingsEnum;
 import jrm.profile.Profile;
 import jrm.profile.data.Anyware;
+import jrm.security.DeserializationFilter;
 import jrm.security.Session;
 import lombok.Getter;
 import one.util.streamex.IntStreamEx;
@@ -1052,6 +1053,8 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
      */
     public static Report load(final Session session, final File file) {
         try (final ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ReportIntf.getReportFile(session, file))))) {
+            // Apply deserialization filter to prevent arbitrary code execution
+            ois.setObjectInputFilter(DeserializationFilter.createFilter());
             Report report = (Report) ois.readObject();
             report.file = file;
             report.fileModified = ReportIntf.getReportFile(session, file).lastModified();

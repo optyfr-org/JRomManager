@@ -69,6 +69,7 @@ import jrm.profile.data.FakeDirectory;
 import jrm.profile.data.Rom;
 import jrm.profile.scan.options.FormatOptions;
 import jrm.profile.scan.options.FormatOptions.Ext;
+import jrm.security.DeserializationFilter;
 import jrm.security.PathAbstractor;
 import jrm.security.Session;
 import jtrrntzip.DummyLogCallback;
@@ -1716,6 +1717,8 @@ public final class DirScan extends PathAbstractor {
     private Map<String, Container> load(final File file, Set<Options> options) {
         final var cachefile = getCacheFile(session, file, options);
         try (final var ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(cachefile)))) {
+            // Apply deserialization filter to prevent arbitrary code execution
+            ois.setObjectInputFilter(DeserializationFilter.createFilter());
             handler.clearInfos();
             handler.setProgress(String.format(Messages.getString("DirScan.LoadingScanCache"), getRelativePath(file.toPath())), 0); //$NON-NLS-1$
             return (Map<String, Container>) ois.readObject();

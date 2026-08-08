@@ -44,6 +44,7 @@ import org.xml.sax.helpers.DefaultHandler;
 
 import jrm.aui.status.StatusRendererFactory;
 import jrm.misc.Log;
+import jrm.security.DeserializationFilter;
 import jrm.security.Session;
 
 import lombok.Getter;
@@ -253,6 +254,8 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
         if (filenfo.lastModified() >= file.lastModified()) // $NON-NLS-1$
         {
             try (final var ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(filenfo)))) {
+                // Apply deserialization filter to prevent arbitrary code execution
+                ois.setObjectInputFilter(DeserializationFilter.createFilter());
                 ProfileNFO nfo = (ProfileNFO) ois.readObject();
                 if (nfo.file != null)
                     return nfo;
