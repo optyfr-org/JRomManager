@@ -602,7 +602,6 @@ abstract class NArchive extends NArchiveBase {
         if (normalizedEntry.startsWith("/") || normalizedEntry.startsWith("//") || hasWindowsDriveRoot) {
             throw new IOException("Entry path cannot be absolute: " + normalizedEntry);
         }
-        }
 
         // Normalize the entry path and resolve it against the temp directory
         final var tempDirPath = getTempDir().toPath().toAbsolutePath().normalize();
