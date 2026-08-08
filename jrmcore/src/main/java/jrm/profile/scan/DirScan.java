@@ -16,8 +16,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InvalidClassException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.ObjectStreamClass;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
@@ -1715,14 +1717,88 @@ public final class DirScan extends PathAbstractor {
     @SuppressWarnings("unchecked")
     private Map<String, Container> load(final File file, Set<Options> options) {
         final var cachefile = getCacheFile(session, file, options);
-        try (final var ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(cachefile)))) {
+        try (final var ois = new ValidatingObjectInputStream(new BufferedInputStream(new FileInputStream(cachefile)))) {
             handler.clearInfos();
             handler.setProgress(String.format(Messages.getString("DirScan.LoadingScanCache"), getRelativePath(file.toPath())), 0); //$NON-NLS-1$
             return (Map<String, Container>) ois.readObject();
-        } catch (final Exception _) {
-            // ignore
+        } catch (final Exception e) {
+            Log.err(() -> "Failed to load cache file: " + cachefile.getAbsolutePath(), e);
         }
         return Collections.synchronizedMap(new HashMap<>());
+    }
+    
+    /**
+     * A validating ObjectInputStream that only allows deserialization of specific safe classes.
+     * This prevents arbitrary deserialization attacks by implementing an allowlist of permitted classes.
+     */
+    private static final class ValidatingObjectInputStream extends ObjectInputStream {
+        
+        /**
+         * Set of allowed class name prefixes for deserialization.
+         */
+        private static final Set<String> ALLOWED_CLASSES = Set.of(
+            // Java standard library classes
+            "java.lang.String",
+            "java.lang.Long",
+            "java.lang.Integer",
+            "java.lang.Boolean",
+            "java.lang.Number",
+            "java.lang.Enum",
+            "java.io.File",
+            "java.util.HashMap",
+            "java.util.LinkedHashMap",
+            "java.util.ArrayList",
+            "java.util.Collections$SynchronizedMap",
+            "java.util.Collections$UnmodifiableMap",
+            "java.util.EnumSet",
+            "java.util.RegularEnumSet",
+            "java.util.JumboEnumSet",
+            // Application domain classes
+            "jrm.profile.data.Container",
+            "jrm.profile.data.Archive",
+            "jrm.profile.data.Directory",
+            "jrm.profile.data.FakeDirectory",
+            "jrm.profile.data.Entry",
+            "jrm.profile.data.Rom",
+            "jrm.profile.data.Disk",
+            "jrm.profile.data.Entity",
+            "jrm.profile.data.EntityBase",
+            "jrm.profile.data.NameBase",
+            "jrm.profile.data.Container$Type",
+            "jrm.profile.data.Entry$Type",
+            "jrm.profile.data.Entity$Status",
+            // External library enums
+            "jtrrntzip.TrrntZipStatus"
+        );
+        
+        /**
+         * Constructs a ValidatingObjectInputStream that reads from the specified InputStream.
+         * 
+         * @param in the input stream to read from
+         * @throws IOException if an I/O error occurs while reading stream header
+         */
+        ValidatingObjectInputStream(final InputStream in) throws IOException {
+            super(in);
+        }
+        
+        @Override
+        protected Class<?> resolveClass(final ObjectStreamClass desc) throws IOException, ClassNotFoundException {
+            final String className = desc.getName();
+            
+            // Allow primitive types and arrays
+            if (className.startsWith("[")) {
+                // Array type - validate component type
+                return super.resolveClass(desc);
+            }
+            
+            // Check if the class is in the allowlist
+            if (!ALLOWED_CLASSES.contains(className)) {
+                Log.err(() -> "Blocked deserialization of unauthorized class: " + className);
+                throw new InvalidClassException("Unauthorized deserialization attempt", className);
+            }
+            
+            return super.resolveClass(desc);
+        }
     }
 
     /**
