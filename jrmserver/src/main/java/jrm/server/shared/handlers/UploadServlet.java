@@ -142,7 +142,7 @@ public class UploadServlet extends HttpServlet {
                 val result = new Result();
                 val init = req.getParameter("init");
                 if (init != null && init.equals("1")) {
-                    checkRequest(req, pathAbstractor, result);
+                    checkRequest(req, ws, pathAbstractor, result);
                 } else {
                     result.status = 10;
                     result.extstatus = "init error";
@@ -207,12 +207,13 @@ public class UploadServlet extends HttpServlet {
      * Results are stored in the provided Result object with appropriate status codes.
      * 
      * @param req the HTTP servlet request containing headers x-file-name, x-file-parent, and x-file-size
+     * @param ws the active web session associated with the request
      * @param pathAbstractor the path abstractor for resolving and validating file paths
      * @param result the result object to populate with status code and message
      * 
      * @throws SecurityException if path validation fails due to security restrictions
      */
-    void checkRequest(final HttpServletRequest req, final PathAbstractor pathAbstractor, final Result result) {
+    void checkRequest(final HttpServletRequest req, final WebSession ws, final PathAbstractor pathAbstractor, final Result result) {
         try {
             result.status = 0;
             result.extstatus = "continue...";
@@ -221,7 +222,7 @@ public class UploadServlet extends HttpServlet {
             validateUploadHeaders(filename, fileparent);
             
             // Prevent uploads to the reports cache directory to mitigate cache poisoning attacks
-            if (fileparent.startsWith("%work/reports") || fileparent.contains("/reports/") || fileparent.endsWith("/reports")) {
+            if (isReportsCacheDirectory(ws, pathAbstractor, fileparent)) {
                 result.status = 11;
                 result.extstatus = "Uploads to reports cache directory are not permitted";
                 return;
@@ -323,6 +324,31 @@ public class UploadServlet extends HttpServlet {
     }
 
     /**
+     * Determines whether the requested parent directory resolves to the reports cache directory or any of its descendants.
+     * <p>
+     * This check mitigates cache-poisoning attacks by rejecting uploads whose resolved destination falls inside the reports cache
+     * subtree. The abstract {@code fileparent} is resolved through {@link PathAbstractor} and compared against the real reports cache
+     * root {@code session.getUser().getSettings().getWorkPath().resolve("reports")}, so only the actual cache directory is blocked.
+     * User-owned directories whose abstract names happen to contain "reports" are not affected.
+     * </p>
+     *
+     * @param ws the active web session
+     * @param pathAbstractor the path abstractor for resolving {@code fileparent}
+     * @param fileparent the abstract parent directory path from the request header
+     * 
+     * @return {@code true} if the resolved destination is inside the reports cache subtree
+     */
+    private boolean isReportsCacheDirectory(final WebSession ws, final PathAbstractor pathAbstractor, final String fileparent) {
+        try {
+            final var resolved = pathAbstractor.getAbsolutePath(fileparent).toAbsolutePath().normalize();
+            final var reportsCache = ws.getUser().getSettings().getWorkPath().resolve("reports").toAbsolutePath().normalize(); //$NON-NLS-1$
+            return resolved.startsWith(reportsCache);
+        } catch (final Exception e) { // Let normal path validation report resolution errors
+            return false;
+        }
+    }
+
+    /**
      * Handles HTTP PUT requests for actual file upload and disk writing.
      * <p>
      * This method processes PUT requests to the "/upload/" endpoint to perform the actual file transfer. It:
@@ -355,7 +381,7 @@ public class UploadServlet extends HttpServlet {
                 validateFilenameComponent(filename);
                 
                 // Prevent uploads to the reports cache directory to mitigate cache poisoning attacks
-                if (fileparent.startsWith("%work/reports") || fileparent.contains("/reports/") || fileparent.endsWith("/reports")) {
+                if (isReportsCacheDirectory(ws, pathAbstractor, fileparent)) {
                     result.status = 11;
                     result.extstatus = "Uploads to reports cache directory are not permitted";
                     resp.getWriter().write(new Gson().toJson(result));
