@@ -1049,7 +1049,6 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
      * This method applies strict deserialization filtering to prevent arbitrary code execution
      * via malicious serialized objects. Only classes explicitly allowlisted for report
      * serialization are permitted during deserialization.
-     * </p>
      *
      * @param session the user execution context
      * @param file the original catalog metadata target path
