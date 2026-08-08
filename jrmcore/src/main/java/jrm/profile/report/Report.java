@@ -49,6 +49,7 @@ import jrm.misc.Log;
 import jrm.misc.SettingsEnum;
 import jrm.profile.Profile;
 import jrm.profile.data.Anyware;
+import jrm.security.ReportDeserializationFilter;
 import jrm.security.Session;
 import lombok.Getter;
 import one.util.streamex.IntStreamEx;
@@ -1044,6 +1045,11 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
 
     /**
      * Restores a serialized report database instance from file storage.
+     * <p>
+     * This method applies strict deserialization filtering to prevent arbitrary code execution
+     * via malicious serialized objects. Only classes explicitly allowlisted for report
+     * serialization are permitted during deserialization.
+     * </p>
      *
      * @param session the user execution context
      * @param file the original catalog metadata target path
@@ -1052,6 +1058,8 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
      */
     public static Report load(final Session session, final File file) {
         try (final ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ReportIntf.getReportFile(session, file))))) {
+            // Apply deserialization filter to prevent arbitrary code execution
+            ois.setObjectInputFilter(ReportDeserializationFilter.createFilter());
             Report report = (Report) ois.readObject();
             report.file = file;
             report.fileModified = ReportIntf.getReportFile(session, file).lastModified();
@@ -1059,7 +1067,7 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
             return report;
         } catch (final Exception _) {
             // Returns null when serialized compatibility fails after structural codebase
-            // updates
+            // updates or when deserialization filter rejects malicious content
         }
         return null; // NOSONAR
     }

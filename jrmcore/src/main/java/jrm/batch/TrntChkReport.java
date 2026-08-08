@@ -25,6 +25,7 @@ import jrm.misc.Log;
 import jrm.profile.report.FilterOptions;
 import jrm.profile.report.ReportIntf;
 import jrm.profile.report.Subject;
+import jrm.security.ReportDeserializationFilter;
 import jrm.security.Session;
 import lombok.Getter;
 import lombok.Setter;
@@ -380,6 +381,11 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
     /**
      * Loads a TrntChkReport from the specified file using object deserialization. If an error occurs during the load process, a
      * warning message is logged and {@code null} is returned.
+     * <p>
+     * This method applies strict deserialization filtering to prevent arbitrary code execution
+     * via malicious serialized objects. Only classes explicitly allowlisted for report
+     * serialization are permitted during deserialization.
+     * </p>
      *
      * @param session the active user session
      * @param file the file from which to load the report
@@ -388,6 +394,8 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
      */
     public static TrntChkReport load(final Session session, final File file) {
         try (final ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ReportIntf.getReportFile(session, file))))) {
+            // Apply deserialization filter to prevent arbitrary code execution
+            ois.setObjectInputFilter(ReportDeserializationFilter.createFilter());
             final TrntChkReport report = (TrntChkReport) ois.readObject();
             report.file = file;
             report.fileModified = ReportIntf.getReportFile(session, file).lastModified();
@@ -395,6 +403,7 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
         } catch (final Exception e) {
             Log.warn(e.getMessage());
             // may fail to load because serialized classes did change since last cache save
+            // or when deserialization filter rejects malicious content
         }
         return null;
     }
