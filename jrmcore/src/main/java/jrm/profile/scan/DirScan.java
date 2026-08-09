@@ -8,19 +8,15 @@
  */
 package jrm.profile.scan;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InvalidClassException;
-import java.io.ObjectInputStream;
 import java.io.ObjectInputFilter;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.ObjectStreamClass;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
@@ -77,7 +73,6 @@ import jrm.profile.data.FakeDirectory;
 import jrm.profile.data.Rom;
 import jrm.profile.scan.options.FormatOptions;
 import jrm.profile.scan.options.FormatOptions.Ext;
-import jrm.security.DeserializationFilter;
 import jrm.security.PathAbstractor;
 import jrm.security.Session;
 import jtrrntzip.DummyLogCallback;
@@ -165,32 +160,24 @@ public final class DirScan extends PathAbstractor {
     private static ObjectInputStream createFilteredObjectInputStream(final InputStream in) throws IOException {
         final var ois = new ObjectInputStream(in);
         ois.setObjectInputFilter(ObjectInputFilter.Config.createFilter(
-            // Allow only specific safe classes needed for cache deserialization
-            "java.util.HashMap;" +
-            "java.util.concurrent.ConcurrentHashMap;" +
-            "java.util.Collections$SynchronizedMap;" +
-            "java.util.Collections$UnmodifiableMap;" +
-            "java.util.EnumSet;" +
-            "java.util.RegularEnumSet;" +
-            "java.lang.String;" +
-            "java.lang.Long;" +
-            "java.lang.Integer;" +
-            "java.lang.Boolean;" +
-            "java.lang.Enum;" +
-            "java.io.File;" +
-            "jtrrntzip.TrrntZipStatus;" +
-            "jrm.profile.data.Container;" +
-            "jrm.profile.data.Container$Type;" +
-            "jrm.profile.data.Archive;" +
-            "jrm.profile.data.Directory;" +
-            "jrm.profile.data.FakeDirectory;" +
-            "jrm.profile.data.Entry;" +
-            "jrm.profile.data.Rom;" +
-            "jrm.profile.data.Disk;" +
-            "jrm.profile.data.EntityBase;" +
-            "jrm.profile.data.EntityStatus;" +
-            "jrm.profile.data.NameBase;" +
-            "jrm.profile.data.Entity;" +
+            // Allow Java collections and their internal nested classes (e.g. HashMap$Node, Node[]).
+            // The trailing wildcard is required so that serialization-generated nested classes and
+            // arrays of those classes are accepted during cache deserialization.
+            "java.util.HashMap*;" +
+            "java.util.LinkedHashMap*;" +
+            "java.util.ArrayList*;" +
+            "java.util.Collections$*;" +
+            "java.util.EnumSet*;" +
+            "java.util.RegularEnumSet*;" +
+            "java.util.JumboEnumSet*;" +
+            // Allow Java base types and their arrays
+            "java.lang.*;" +
+            "java.io.File*;" +
+            // Allow every application class in the scan cache graph, including nested enum classes
+            // such as Entry$Type and Entity$Status.
+            "jrm.profile.data.*;" +
+            // Allow external torrentzip status enum
+            "jtrrntzip.*;" +
             "!*" // Reject all other classes
         ));
         return ois;
@@ -1862,80 +1849,6 @@ public final class DirScan extends PathAbstractor {
         return Collections.synchronizedMap(new HashMap<>());
     }
     
-    /**
-     * A validating ObjectInputStream that only allows deserialization of specific safe classes.
-     * This prevents arbitrary deserialization attacks by implementing an allowlist of permitted classes.
-     */
-    private static final class ValidatingObjectInputStream extends ObjectInputStream {
-        
-        /**
-         * Set of allowed class name prefixes for deserialization.
-         */
-        private static final Set<String> ALLOWED_CLASSES = Set.of(
-            // Java standard library classes
-            "java.lang.String",
-            "java.lang.Long",
-            "java.lang.Integer",
-            "java.lang.Boolean",
-            "java.lang.Number",
-            "java.lang.Enum",
-            "java.io.File",
-            "java.util.HashMap",
-            "java.util.LinkedHashMap",
-            "java.util.ArrayList",
-            "java.util.Collections$SynchronizedMap",
-            "java.util.Collections$UnmodifiableMap",
-            "java.util.EnumSet",
-            "java.util.RegularEnumSet",
-            "java.util.JumboEnumSet",
-            // Application domain classes
-            "jrm.profile.data.Container",
-            "jrm.profile.data.Archive",
-            "jrm.profile.data.Directory",
-            "jrm.profile.data.FakeDirectory",
-            "jrm.profile.data.Entry",
-            "jrm.profile.data.Rom",
-            "jrm.profile.data.Disk",
-            "jrm.profile.data.Entity",
-            "jrm.profile.data.EntityBase",
-            "jrm.profile.data.NameBase",
-            "jrm.profile.data.Container$Type",
-            "jrm.profile.data.Entry$Type",
-            "jrm.profile.data.Entity$Status",
-            // External library enums
-            "jtrrntzip.TrrntZipStatus"
-        );
-        
-        /**
-         * Constructs a ValidatingObjectInputStream that reads from the specified InputStream.
-         * 
-         * @param in the input stream to read from
-         * @throws IOException if an I/O error occurs while reading stream header
-         */
-        ValidatingObjectInputStream(final InputStream in) throws IOException {
-            super(in);
-        }
-        
-        @Override
-        protected Class<?> resolveClass(final ObjectStreamClass desc) throws IOException, ClassNotFoundException {
-            final String className = desc.getName();
-            
-            // Allow primitive types and arrays
-            if (className.startsWith("[")) {
-                // Array type - validate component type
-                return super.resolveClass(desc);
-            }
-            
-            // Check if the class is in the allowlist
-            if (!ALLOWED_CLASSES.contains(className)) {
-                Log.err(() -> "Blocked deserialization of unauthorized class: " + className);
-                throw new InvalidClassException("Unauthorized deserialization attempt", className);
-            }
-            
-            return super.resolveClass(desc);
-        }
-    }
-
     /**
      * Provides a collection iterator over all discovered container systems.
      * 
