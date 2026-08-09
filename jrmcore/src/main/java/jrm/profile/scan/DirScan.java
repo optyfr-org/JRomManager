@@ -8,14 +8,13 @@
  */
 package jrm.profile.scan;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.ObjectInputFilter;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.AccessDeniedException;
@@ -29,8 +28,10 @@ import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -40,6 +41,9 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import java.util.zip.CRC32;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 import org.apache.commons.compress.archivers.sevenz.SevenZArchiveEntry;
 import org.apache.commons.compress.archivers.sevenz.SevenZFile;
@@ -101,6 +105,84 @@ public final class DirScan extends PathAbstractor {
      * Default string prefix indicating glob path matching.
      */
     private static final String GLOB = "glob:";
+    
+    /**
+     * HMAC algorithm used for cache file integrity verification.
+     */
+    private static final String HMAC_ALGORITHM = "HmacSHA256";
+    
+    /**
+     * Derives a session-specific HMAC key for cache integrity verification.
+     * The key is derived from the user's work path to ensure per-user isolation.
+     * 
+     * @param session the current user session
+     * @return HMAC secret key
+     */
+    private static SecretKeySpec getHmacKey(final Session session) {
+        // Derive key from user's work path to ensure per-user isolation
+        final var workPath = session.getUser().getSettings().getWorkPath().toString();
+        final var keyMaterial = ("JRM-CACHE-INTEGRITY-" + workPath).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        // Use SHA-256 hash of the key material to get a fixed-length key
+        try {
+            final var digest = java.security.MessageDigest.getInstance("SHA-256");
+            final var keyBytes = digest.digest(keyMaterial);
+            return new SecretKeySpec(keyBytes, HMAC_ALGORITHM);
+        } catch (NoSuchAlgorithmException e) {
+            throw new RuntimeException("SHA-256 not available", e);
+        }
+    }
+    
+    /**
+     * Computes HMAC for cache file integrity verification.
+     * 
+     * @param session the current user session
+     * @param data the data to compute HMAC for
+     * @return HMAC bytes
+     */
+    private static byte[] computeHmac(final Session session, final byte[] data) {
+        try {
+            final var mac = Mac.getInstance(HMAC_ALGORITHM);
+            mac.init(getHmacKey(session));
+            return mac.doFinal(data);
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new RuntimeException("HMAC computation failed", e);
+        }
+    }
+    
+    /**
+     * Creates an ObjectInputStream with a security filter that only allows safe classes.
+     * This prevents deserialization attacks by restricting which classes can be instantiated.
+     * 
+     * @param in the input stream to wrap
+     * @return filtered ObjectInputStream
+     * @throws IOException if an I/O error occurs
+     */
+    private static ObjectInputStream createFilteredObjectInputStream(final InputStream in) throws IOException {
+        final var ois = new ObjectInputStream(in);
+        ois.setObjectInputFilter(ObjectInputFilter.Config.createFilter(
+            // Allow Java collections and their internal nested classes (e.g. HashMap$Node, Node[]).
+            // The trailing wildcard is required so that serialization-generated nested classes and
+            // arrays of those classes are accepted during cache deserialization.
+            "java.util.HashMap*;" +
+            "java.util.LinkedHashMap*;" +
+            "java.util.ArrayList*;" +
+            "java.util.Collections$*;" +
+            "java.util.EnumSet*;" +
+            "java.util.RegularEnumSet*;" +
+            "java.util.JumboEnumSet*;" +
+            // Allow Java base types and their arrays
+            "java.lang.*;" +
+            "java.io.File*;" +
+            // Allow every application class in the scan cache graph, including nested enum classes
+            // such as Entry$Type and Entity$Status.
+            "jrm.profile.data.*;" +
+            // Allow external torrentzip status enum
+            "jtrrntzip.*;" +
+            "!*" // Reject all other classes
+        ));
+        return ois;
+    }
+    
     /**
      * List of found {@link Container}s.
      */
@@ -1691,21 +1773,43 @@ public final class DirScan extends PathAbstractor {
     }
 
     /**
-     * Serializes current scans properties to the computed cache file.
+     * Serializes current scans properties to the computed cache file with integrity protection.
      * 
      * @param file root folder file
      * @param options options configurations
      */
     private void save(final File file, Set<Options> options) {
-        try (final var oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(getCacheFile(session, file, options))))) {
-            oos.writeObject(containersByName);
+        try {
+            // Serialize to byte array first
+            final var baos = new java.io.ByteArrayOutputStream();
+            try (final var oos = new ObjectOutputStream(baos)) {
+                oos.writeObject(containersByName);
+            }
+            final var serializedData = baos.toByteArray();
+            
+            // Compute HMAC for integrity verification
+            final var hmac = computeHmac(session, serializedData);
+            
+            // Write HMAC length, HMAC, then data
+            try (final var fos = new FileOutputStream(getCacheFile(session, file, options));
+                 final var bos = new BufferedOutputStream(fos)) {
+                // Write HMAC length as 4 bytes
+                bos.write((hmac.length >> 24) & 0xFF);
+                bos.write((hmac.length >> 16) & 0xFF);
+                bos.write((hmac.length >> 8) & 0xFF);
+                bos.write(hmac.length & 0xFF);
+                // Write HMAC
+                bos.write(hmac);
+                // Write serialized data
+                bos.write(serializedData);
+            }
         } catch (final Exception _) {
             // ignore
         }
     }
 
     /**
-     * Deserializes previous runs properties from disk.
+     * Deserializes previous runs properties from disk with integrity verification.
      * 
      * @param file root directory file
      * @param options options configurations
@@ -1715,16 +1819,36 @@ public final class DirScan extends PathAbstractor {
     @SuppressWarnings("unchecked")
     private Map<String, Container> load(final File file, Set<Options> options) {
         final var cachefile = getCacheFile(session, file, options);
-        try (final var ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(cachefile)))) {
+        try {
+            final var fileBytes = Files.readAllBytes(cachefile.toPath());
+            if (fileBytes.length < 4)
+                throw new IOException("Cache file too short");
+
+            final var hmacLength = ((fileBytes[0] & 0xFF) << 24)
+                    | ((fileBytes[1] & 0xFF) << 16)
+                    | ((fileBytes[2] & 0xFF) << 8)
+                    | (fileBytes[3] & 0xFF);
+            final var dataOffset = 4 + hmacLength;
+            if (hmacLength <= 0 || dataOffset > fileBytes.length)
+                throw new IOException("Invalid cache file header");
+
+            final var expectedHmac = Arrays.copyOfRange(fileBytes, 4, dataOffset);
+            final var serializedData = Arrays.copyOfRange(fileBytes, dataOffset, fileBytes.length);
+            final var actualHmac = computeHmac(session, serializedData);
+            if (!java.security.MessageDigest.isEqual(expectedHmac, actualHmac))
+                throw new SecurityException("Cache file integrity check failed");
+
             handler.clearInfos();
             handler.setProgress(String.format(Messages.getString("DirScan.LoadingScanCache"), getRelativePath(file.toPath())), 0); //$NON-NLS-1$
-            return (Map<String, Container>) ois.readObject();
-        } catch (final Exception _) {
-            // ignore
+            try (final var ois = createFilteredObjectInputStream(new java.io.ByteArrayInputStream(serializedData))) {
+                return (Map<String, Container>) ois.readObject();
+            }
+        } catch (final Exception e) {
+            Log.err(() -> "Failed to load cache file: " + cachefile.getAbsolutePath(), e);
         }
         return Collections.synchronizedMap(new HashMap<>());
     }
-
+    
     /**
      * Provides a collection iterator over all discovered container systems.
      * 

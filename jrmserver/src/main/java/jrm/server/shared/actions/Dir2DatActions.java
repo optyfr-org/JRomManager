@@ -133,18 +133,15 @@ public class Dir2DatActions {
      * <p>
      * This method performs the core logic of the Dir2Dat operation, including loading settings, creating a scanner instance, and handling
      * progress and cancellation.
-     * </p>
      * <h4>Security:</h4>
      * <p>
      * This method validates all file paths using {@link PathAbstractor#getAbsolutePath(jrm.security.Session, String)} to prevent 
      * directory traversal attacks and arbitrary file writes. In server mode, paths are restricted to allowed directories 
      * (base path, temp dir, or user dir). If path validation fails, a {@link SecurityException} is caught and the operation 
      * is cancelled with a warning message to the user.
-     * </p>
      * <h4>Thread Safety:</h4>
      * <p>
      * This method is designed to run in a separate thread, allowing for non-blocking execution of the transformation process.
-     * </p>
      * 
      * @param jso the JSON message containing transformation parameters and settings
      */
@@ -155,6 +152,17 @@ public class Dir2DatActions {
             String srcdir = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_src_dir);
             String dstdat = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_dst_file);
             String format = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_format);
+            
+            // Validate paths before processing
+            if (srcdir != null && !isPathWithinWorkspace(srcdir, session)) {
+                Log.err("Dir2Dat operation rejected: source directory escapes workspace: " + srcdir);
+                return;
+            }
+            if (dstdat != null && !isPathWithinWorkspace(dstdat, session)) {
+                Log.err("Dir2Dat operation rejected: destination file escapes workspace: " + dstdat);
+                return;
+            }
+            
             JsonObject opts = jso.get("params").asObject().get("options").asObject();
             EnumSet<DirScan.Options> options = getOptions(opts);
             HashMap<String, String> headers = new HashMap<>();
@@ -184,6 +192,36 @@ public class Dir2DatActions {
             session.getWorker().progress.close();
             session.getWorker().progress = null;
             session.setLastAction(Instant.now());
+        }
+    }
+
+    /**
+     * Validates that a file path remains within the user's workspace directory.
+     * <p>
+     * This method canonicalizes the provided path and ensures it is a descendant of the user's work path,
+     * preventing directory traversal attacks.
+     * </p>
+     * 
+     * @param pathString the file path to validate
+     * @param session the web session containing the user's workspace configuration
+     * @return true if the path is within the workspace, false if it escapes the workspace
+     */
+    private boolean isPathWithinWorkspace(String pathString, WebSession session) {
+        if (pathString == null || pathString.trim().isEmpty()) {
+            return false; // Reject null or empty paths at execution time
+        }
+        
+        try {
+            Path workPath = session.getUser().getSettings().getWorkPath().toRealPath();
+            File file = new File(pathString);
+            Path canonicalPath = file.getCanonicalFile().toPath();
+            
+            // Check if the canonical path starts with the work path
+            return canonicalPath.startsWith(workPath);
+        } catch (IOException e) {
+            // If we can't resolve the path, reject it for safety
+            Log.err("Failed to validate path: " + pathString, e);
+            return false;
         }
     }
 
