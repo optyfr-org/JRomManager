@@ -87,11 +87,46 @@ public class Dir2Dat {
      * @param options the scanning option ruleset filter configuration
      * @param type the target DAT file serialization style format
      * @param headers custom key-value pairs to write in the XML DAT header block
+     * @throws IllegalArgumentException if the destination file path escapes the workspace directory
      */
     public Dir2Dat(final Session session, File srcdir, File dstdat, final ProgressHandler progress, Set<Options> options, ExportType type, Map<String, String> headers) {
         this.session = session;
+        
+        // Validate destination path to prevent directory traversal
+        if (!isPathWithinWorkspace(dstdat)) {
+            throw new IllegalArgumentException("Destination file path escapes workspace: " + dstdat.getAbsolutePath());
+        }
+        
         DirScan srcDirScan = new DirScan(session, srcdir, progress, options);
         write(dstdat, srcDirScan, progress, options, type, headers);
+    }
+
+    /**
+     * Validates that a file path remains within the user's workspace directory.
+     * <p>
+     * This method canonicalizes the provided path and ensures it is a descendant of the user's work path,
+     * preventing directory traversal attacks.
+     * </p>
+     * 
+     * @param file the file to validate
+     * @return true if the path is within the workspace, false if it escapes the workspace
+     */
+    private boolean isPathWithinWorkspace(File file) {
+        if (file == null) {
+            return false;
+        }
+        
+        try {
+            java.nio.file.Path workPath = session.getUser().getSettings().getWorkPath().toRealPath();
+            java.nio.file.Path canonicalPath = file.getCanonicalFile().toPath();
+            
+            // Check if the canonical path starts with the work path
+            return canonicalPath.startsWith(workPath);
+        } catch (java.io.IOException e) {
+            // If we can't resolve the path, reject it for safety
+            Log.err("Failed to validate path: " + file.getAbsolutePath(), e);
+            return false;
+        }
     }
 
     /**

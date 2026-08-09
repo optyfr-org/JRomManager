@@ -87,6 +87,14 @@ public class Import implements UnitRenderer {
     public Import(final Session session, final File file, final boolean sl, ProgressHandler progress) {
         progress.setOptions(Option.LAZY);
         orgFile = file;
+        
+        // Validate file is not null to prevent NullPointerException
+        if (file == null) {
+            Log.warn("Import attempted with null file");
+            this.file = null;
+            return;
+        }
+        
         final var workdir = session.getUser().getSettings().getWorkPath().toFile(); // $NON-NLS-1$
         final var xmldir = new File(workdir, "xmlfiles"); //$NON-NLS-1$
         xmldir.mkdir();
