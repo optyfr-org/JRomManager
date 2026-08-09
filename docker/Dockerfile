@@ -16,4 +16,7 @@ EXPOSE ${JRM_SERVER_HTTP}
 
 VOLUME ["${JRM_SERVER_WORKPATH}"]
 
+RUN chown -R 1000:1000 /app
+USER 1000
+
 ENTRYPOINT ["java", "-cp", "JRomManager.jar", "jrm.server.Server"]

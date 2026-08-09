@@ -1,6 +1,8 @@
 package jrm.server.shared.actions;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonObject.Member;
@@ -81,6 +83,11 @@ public class GlobalActions {
      * <p>
      * After updating all properties, the settings are persisted to disk and a confirmation message is sent back to the client.
      * </p>
+     * <h4>Security:</h4>
+     * <p>
+     * File path properties (e.g., {@code dir2dat.dst_file}, {@code dir2dat.src_dir}) are validated to ensure they remain within
+     * the user's workspace directory. Paths that attempt directory traversal or escape the workspace are rejected.
+     * </p>
      * <h4>Incoming JSON Structure:</h4>
      * 
      * <pre>
@@ -114,6 +121,7 @@ public class GlobalActions {
      * <ul>
      * <li>If settings cannot be saved to disk, the error is logged via {@link Log#err(String, Throwable)}</li>
      * <li>If the WebSocket is closed, no confirmation message is sent</li>
+     * <li>If a file path property fails validation, it is rejected and logged</li>
      * </ul>
      *
      * @param jso the incoming JSON message containing property updates
@@ -122,12 +130,23 @@ public class GlobalActions {
         JsonObject pjso = jso.get(PARAMS).asObject();
         for (Member m : pjso) {
             JsonValue value = m.getValue();
+            String propertyName = m.getName();
+            
+            // Validate file path properties to prevent directory traversal
+            if (isFilePathProperty(propertyName)) {
+                String stringValue = value.isString() ? value.asString() : value.toString();
+                if (!isPathWithinWorkspace(stringValue)) {
+                    Log.err("Rejected property '" + propertyName + "': path escapes workspace: " + stringValue);
+                    continue;
+                }
+            }
+            
             if (value.isBoolean())
-                ws.getSession().getUser().getSettings().setProperty(m.getName(), value.asBoolean());
+                ws.getSession().getUser().getSettings().setProperty(propertyName, value.asBoolean());
             else if (value.isString())
-                ws.getSession().getUser().getSettings().setProperty(m.getName(), value.asString());
+                ws.getSession().getUser().getSettings().setProperty(propertyName, value.asString());
             else
-                ws.getSession().getUser().getSettings().setProperty(m.getName(), value.toString());
+                ws.getSession().getUser().getSettings().setProperty(propertyName, value.toString());
         }
         try {
             if (ws.isOpen()) {
@@ -139,6 +158,50 @@ public class GlobalActions {
             }
         } catch (IOException e) {
             Log.err(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Determines if a property name represents a file path that should be validated.
+     * 
+     * @param propertyName the property name to check
+     * @return true if the property represents a file path that requires validation
+     */
+    private boolean isFilePathProperty(String propertyName) {
+        return propertyName != null && (
+            propertyName.equals("dir2dat.dst_file") ||
+            propertyName.equals("dir2dat.src_dir") ||
+            propertyName.equals("dir2dat.lastdstdir") ||
+            propertyName.equals("dir2dat.lastsrcdir")
+        );
+    }
+
+    /**
+     * Validates that a file path remains within the user's workspace directory.
+     * <p>
+     * This method canonicalizes the provided path and ensures it is a descendant of the user's work path,
+     * preventing directory traversal attacks.
+     * </p>
+     * 
+     * @param pathString the file path to validate
+     * @return true if the path is within the workspace or is null/empty, false if it escapes the workspace
+     */
+    private boolean isPathWithinWorkspace(String pathString) {
+        if (pathString == null || pathString.trim().isEmpty()) {
+            return true; // Allow null or empty paths
+        }
+        
+        try {
+            Path workPath = ws.getSession().getUser().getSettings().getWorkPath().toRealPath();
+            File file = new File(pathString);
+            Path canonicalPath = file.getCanonicalFile().toPath();
+            
+            // Check if the canonical path starts with the work path
+            return canonicalPath.startsWith(workPath);
+        } catch (IOException e) {
+            // If we can't resolve the path, reject it for safety
+            Log.err("Failed to validate path: " + pathString, e);
+            return false;
         }
     }
 
