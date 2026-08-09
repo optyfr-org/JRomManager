@@ -403,12 +403,11 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
                 writer.writeEndElement();
                 writer.writeEndElement();
 
-                } catch (Exception ex) {
-                    failure(ex.getMessage());
-                }
-            } else
-                failure("Can't remove " + name);
-        }
+            } catch (Exception ex) {
+                failure(ex.getMessage());
+            }
+        } else
+            failure("Can't remove " + name);
     }
 
     /**
