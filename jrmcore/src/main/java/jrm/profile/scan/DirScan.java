@@ -1806,6 +1806,21 @@ public final class DirScan extends PathAbstractor {
             // Write HMAC length, HMAC, then data
             try (final var fos = new FileOutputStream(getCacheFile(session, file, options));
                  final var bos = new BufferedOutputStream(fos)) {
+
+            }
+        } catch (final Exception _) {
+            // ignore
+        }
+    }
+
+    /**
+     * Deserializes previous runs properties from disk with integrity verification.
+     * 
+     * @param file root directory file
+     * @param options options configurations
+     * 
+     * @return containers mapping retrieved from caching
+     */
     @SuppressWarnings("unchecked")
     private Map<String, Container> load(final File file, Set<Options> options) {
         final var cachefile = getCacheFile(session, file, options);
@@ -1833,34 +1848,6 @@ public final class DirScan extends PathAbstractor {
             try (final var ois = createFilteredObjectInputStream(new java.io.ByteArrayInputStream(serializedData))) {
                 return (Map<String, Container>) ois.readObject();
             }
-        } catch (final Exception e) {
-            Log.err(() -> "Failed to load cache file: " + cachefile.getAbsolutePath(), e);
-        }
-        return Collections.synchronizedMap(new HashMap<>());
-    }
-            }
-        } catch (final Exception _) {
-            // ignore
-        }
-    }
-
-    /**
-     * Deserializes previous runs properties from disk with integrity verification.
-     * 
-     * @param file root directory file
-     * @param options options configurations
-     * 
-     * @return containers mapping retrieved from caching
-     */
-    @SuppressWarnings("unchecked")
-    private Map<String, Container> load(final File file, Set<Options> options) {
-        final var cachefile = getCacheFile(session, file, options);
-        try (final var ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(cachefile)))) {
-            // Apply deserialization filter to prevent arbitrary code execution
-            ois.setObjectInputFilter(DeserializationFilter.createFilter());
-            handler.clearInfos();
-            handler.setProgress(String.format(Messages.getString("DirScan.LoadingScanCache"), getRelativePath(file.toPath())), 0); //$NON-NLS-1$
-            return (Map<String, Container>) ois.readObject();
         } catch (final Exception e) {
             Log.err(() -> "Failed to load cache file: " + cachefile.getAbsolutePath(), e);
         }
