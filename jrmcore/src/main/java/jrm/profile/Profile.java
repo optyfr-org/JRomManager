@@ -1599,8 +1599,10 @@ public class Profile implements Serializable, StatusRendererFactory {
             profile.session = session;
             session.setCurrProfile(profile);
             profile.nfo = nfo;
-        } catch (final Exception _) {
+        } catch (final Exception e) {
             // may fail to load because serialized classes did change since last cache save
+            // or if deserialization filter rejected untrusted classes
+            Log.debug(() -> "Failed to load cache file: " + e.getMessage());
         }
         return profile;
     }

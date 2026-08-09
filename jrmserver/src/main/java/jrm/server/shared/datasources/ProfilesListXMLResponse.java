@@ -106,7 +106,9 @@ public class ProfilesListXMLResponse extends XMLResponse {
             val src = pathAbstractor.getAbsolutePath(operation.getData("Src"));
             if (Files.exists(src) && Files.isRegularFile(src)) {
                 try {
-                    Path dst = dir.resolve(operation.getData("File"));
+                    Path dst = dir.resolve(operation.getData("File")).toAbsolutePath().normalize();
+                    if (!dst.startsWith(dir))
+                        throw new SecurityException("Invalid file path: path traversal detected");
                     if (!src.equals(dst))
                         Files.copy(src, dst, StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);
                     final var nfo = ProfileNFO.load(request.getSession(), dst.toFile());
@@ -117,6 +119,8 @@ public class ProfilesListXMLResponse extends XMLResponse {
                     writer.writeEndElement();
                     writer.writeEndElement();
                 } catch (IOException ex) {
+                    failure(ex.getMessage());
+                } catch (SecurityException ex) {
                     failure(ex.getMessage());
                 }
             } else
@@ -134,25 +138,31 @@ public class ProfilesListXMLResponse extends XMLResponse {
      */
     @Override
     protected void remove(Operation operation) throws XMLStreamException {
-        Path dir = request.getSession().getUser().getSettings().getWorkPath().resolve(XMLFILES).toAbsolutePath().normalize();
-        if (operation.hasData(PARENT) && !StringUtils.isEmpty(operation.getData(PARENT)))
-            dir = pathAbstractor.getAbsolutePath(operation.getData(PARENT));
-        val dst = dir.resolve(operation.getData("File"));
-        ProfileNFO nfo = ProfileNFO.load(request.getSession(), dst.toFile());
-        if (request.session.getCurrProfile() == null || !request.getSession().getCurrProfile().getNfo().equals(nfo)) {
-            if (nfo.delete()) {
-                writer.writeStartElement(RESPONSE);
-                writer.writeElement(STATUS, "0");
-                writer.writeStartElement("data");
-                writer.writeEmptyElement("record");
-                writer.writeAttribute(PARENT, pathAbstractor.getRelativePath(nfo.getFile().getParentFile().toPath()).toString());
-                writer.writeAttribute("File", nfo.getFile().getName());
-                writer.writeEndElement();
-                writer.writeEndElement();
+        try {
+            Path dir = request.getSession().getUser().getSettings().getWorkPath().resolve(XMLFILES).toAbsolutePath().normalize();
+            if (operation.hasData(PARENT) && !StringUtils.isEmpty(operation.getData(PARENT)))
+                dir = pathAbstractor.getAbsolutePath(operation.getData(PARENT));
+            val dst = dir.resolve(operation.getData("File")).toAbsolutePath().normalize();
+            if (!dst.startsWith(dir))
+                throw new SecurityException("Invalid file path: path traversal detected");
+            ProfileNFO nfo = ProfileNFO.load(request.getSession(), dst.toFile());
+            if (request.session.getCurrProfile() == null || !request.getSession().getCurrProfile().getNfo().equals(nfo)) {
+                if (nfo.delete()) {
+                    writer.writeStartElement(RESPONSE);
+                    writer.writeElement(STATUS, "0");
+                    writer.writeStartElement("data");
+                    writer.writeEmptyElement("record");
+                    writer.writeAttribute(PARENT, pathAbstractor.getRelativePath(nfo.getFile().getParentFile().toPath()).toString());
+                    writer.writeAttribute("File", nfo.getFile().getName());
+                    writer.writeEndElement();
+                    writer.writeEndElement();
+                } else
+                    failure("Failed to delete profile");
             } else
-                failure("Failed to delete profile");
-        } else
-            failure("Can't delete current loaded profile");
+                failure("Can't delete current loaded profile");
+        } catch (SecurityException ex) {
+            failure(ex.getMessage());
+        }
     }
 
     /**
@@ -166,18 +176,26 @@ public class ProfilesListXMLResponse extends XMLResponse {
     @Override
     protected void custom(Operation operation) throws XMLStreamException, IOException {
         if ("DropCache".equals(operation.getOperationId().toString())) {
-            Path dir = request.getSession().getUser().getSettings().getWorkPath().resolve(XMLFILES).toAbsolutePath().normalize();
-            if (operation.hasData(PARENT) && !StringUtils.isEmpty(operation.getData(PARENT)))
-                dir = pathAbstractor.getAbsolutePath(operation.getData(PARENT));
-            val dst = dir.resolve(operation.getData("File"));
-            if (Files.isRegularFile(dst)) {
-                val cache = dir.resolve(operation.getData("File") + ".cache");
-                if (Files.exists(cache) && !cache.toFile().delete())
-                    failure("Can't delete " + cache);
-                else
-                    success();
-            } else
-                failure("Can't find " + dst);
+            try {
+                Path dir = request.getSession().getUser().getSettings().getWorkPath().resolve(XMLFILES).toAbsolutePath().normalize();
+                if (operation.hasData(PARENT) && !StringUtils.isEmpty(operation.getData(PARENT)))
+                    dir = pathAbstractor.getAbsolutePath(operation.getData(PARENT));
+                val dst = dir.resolve(operation.getData("File")).toAbsolutePath().normalize();
+                if (!dst.startsWith(dir))
+                    throw new SecurityException("Invalid file path: path traversal detected");
+                if (Files.isRegularFile(dst)) {
+                    val cache = dir.resolve(operation.getData("File") + ".cache").toAbsolutePath().normalize();
+                    if (!cache.startsWith(dir))
+                        throw new SecurityException("Invalid cache file path: path traversal detected");
+                    if (Files.exists(cache) && !cache.toFile().delete())
+                        failure("Can't delete " + cache);
+                    else
+                        success();
+                } else
+                    failure("Can't find " + dst);
+            } catch (SecurityException ex) {
+                failure(ex.getMessage());
+            }
         } else
             super.custom(operation);
     }

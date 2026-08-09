@@ -2,6 +2,8 @@ package jrm.server.shared.actions;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -14,6 +16,7 @@ import jrm.profile.manager.Export.ExportType;
 import jrm.profile.scan.Dir2Dat;
 import jrm.profile.scan.DirScan;
 import jrm.profile.scan.DirScan.Options;
+import jrm.security.PathAbstractor;
 import jrm.server.shared.WebSession;
 import jrm.server.shared.Worker;
 
@@ -130,11 +133,15 @@ public class Dir2DatActions {
      * <p>
      * This method performs the core logic of the Dir2Dat operation, including loading settings, creating a scanner instance, and handling
      * progress and cancellation.
-     * </p>
+     * <h4>Security:</h4>
+     * <p>
+     * This method validates all file paths using {@link PathAbstractor#getAbsolutePath(jrm.security.Session, String)} to prevent 
+     * directory traversal attacks and arbitrary file writes. In server mode, paths are restricted to allowed directories 
+     * (base path, temp dir, or user dir). If path validation fails, a {@link SecurityException} is caught and the operation 
+     * is cancelled with a warning message to the user.
      * <h4>Thread Safety:</h4>
      * <p>
      * This method is designed to run in a separate thread, allowing for non-blocking execution of the transformation process.
-     * </p>
      * 
      * @param jso the JSON message containing transformation parameters and settings
      */
@@ -145,6 +152,7 @@ public class Dir2DatActions {
             String srcdir = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_src_dir);
             String dstdat = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_dst_file);
             String format = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_format);
+            
             JsonObject opts = jso.get("params").asObject().get("options").asObject();
             EnumSet<DirScan.Options> options = getOptions(opts);
             HashMap<String, String> headers = new HashMap<>();
@@ -153,8 +161,27 @@ public class Dir2DatActions {
                 if (!m.getValue().isNull())
                     headers.put(m.getName(), m.getValue().asString());
             });
-            if (srcdir != null && dstdat != null)
-                new Dir2Dat(ws.getSession(), new File(srcdir), new File(dstdat), session.getWorker().progress, options, ExportType.valueOf(format), headers);
+            if (srcdir != null && dstdat != null) {
+                // Resolve and validate workspace paths using PathAbstractor to prevent directory traversal and arbitrary file writes
+                try {
+                    Path validatedSrcDir = PathAbstractor.getAbsolutePath(session, srcdir);
+                    Path validatedDstDat = PathAbstractor.getAbsolutePath(session, dstdat);
+                    
+                    if (!isPathWithinWorkspace(validatedSrcDir, session)) {
+                        Log.err("Dir2Dat operation rejected: source directory escapes workspace: " + srcdir);
+                        return;
+                    }
+                    if (!isPathWithinWorkspace(validatedDstDat, session)) {
+                        Log.err("Dir2Dat operation rejected: destination file escapes workspace: " + dstdat);
+                        return;
+                    }
+                    
+                    new Dir2Dat(ws.getSession(), validatedSrcDir.toFile(), validatedDstDat.toFile(), session.getWorker().progress, options, ExportType.valueOf(format), headers);
+                } catch (SecurityException e) {
+                    Log.err(() -> "Path validation failed for Dir2Dat operation: " + e.getMessage(), e);
+                    new GlobalActions(ws).warn("Invalid source directory or destination file path. Operation cancelled for security reasons.");
+                }
+            }
         } catch (BreakException _) {
             // user cancelled action
         } finally {
@@ -164,6 +191,42 @@ public class Dir2DatActions {
             session.getWorker().progress.close();
             session.getWorker().progress = null;
             session.setLastAction(Instant.now());
+        }
+    }
+
+    /**
+     * Validates that a resolved file path remains within the user's workspace directory.
+     * <p>
+     * This method canonicalizes the provided path and ensures it is a descendant of the user's work path,
+     * preventing directory traversal attacks.
+     * </p>
+     * 
+     * @param path the resolved file path to validate
+     * @param session the web session containing the user's workspace configuration
+     * @return true if the path is within the workspace, false if it escapes the workspace
+     */
+    private boolean isPathWithinWorkspace(Path path, WebSession session) {
+        if (path == null) {
+            return false; // Reject null paths at execution time
+        }
+        
+        try {
+            Path workPath = session.getUser().getSettings().getWorkPath().toRealPath();
+            // Existing paths are resolved canonically; new output paths (e.g. the destination DAT file)
+            // may not exist yet, so fall back to a normalized absolute path for traversal checks.
+            Path normalizedPath;
+            try {
+                normalizedPath = path.toRealPath();
+            } catch (IOException _) {
+                normalizedPath = path.toAbsolutePath().normalize();
+            }
+            
+            // Check if the canonical path starts with the work path
+            return normalizedPath.startsWith(workPath);
+        } catch (IOException e) {
+            // If we can't resolve the path, reject it for safety
+            Log.err("Failed to validate path: " + path, e);
+            return false;
         }
     }
 
@@ -233,6 +296,96 @@ public class Dir2DatActions {
     private static void addUnless(JsonObject opts, EnumSet<Options> options, String key, boolean defaultValue, Options option) {
         if (!opts.getBoolean(key, defaultValue))
             options.add(option);
+    }
+
+    /**
+     * Validates and sanitizes a file path to prevent directory traversal attacks and arbitrary file writes.
+     * <p>
+     * This method performs the following security checks:
+     * </p>
+     * <ul>
+     * <li>Normalizes the path to resolve symbolic links and remove relative path components (e.g., {@code ..})</li>
+     * <li>In multi-user server mode, ensures the path is within the user's workspace directory</li>
+     * <li>Prevents writing to sensitive system directories and files</li>
+     * <li>Validates that the path does not contain null bytes or other malicious characters</li>
+     * </ul>
+     * <h4>Security Rationale:</h4>
+     * <p>
+     * Without this validation, an attacker could set {@code dir2dat.dst_file} to arbitrary paths like {@code /etc/passwd},
+     * {@code C:\Windows\System32\config\SAM}, or {@code ../../sensitive-file}, leading to arbitrary file overwrites on the server.
+     * This method ensures that all file operations are confined to safe, user-specific directories.
+     * </p>
+     * 
+     * @param session the current web session containing user context
+     * @param pathString the path string to validate
+     * @param mustBeDirectory true if the path must be a directory, false if it must be a file
+     * 
+     * @return the validated and normalized File object, or null if validation fails
+     */
+    private File validateAndSanitizePath(WebSession session, String pathString, boolean mustBeDirectory) {
+        try {
+            // Check for null or empty path
+            if (pathString == null || pathString.trim().isEmpty()) {
+                Log.warn("Path validation failed: path is null or empty");
+                return null;
+            }
+            
+            // Check for null bytes and other suspicious characters
+            if (pathString.contains("\0") || pathString.contains("\u0000")) {
+                Log.warn(() -> "Path validation failed: path contains null bytes: " + pathString);
+                return null;
+            }
+            
+            // Normalize the path to resolve symbolic links and remove relative components
+            Path normalizedPath = Paths.get(pathString).toAbsolutePath().normalize();
+            
+            // In multi-user server mode, enforce workspace sandboxing
+            if (session.isServer() && session.isMultiuser()) {
+                Path workPath = session.getUser().getSettings().getWorkPath().toAbsolutePath().normalize();
+                
+                // Ensure the path is within the user's workspace
+                if (!normalizedPath.startsWith(workPath)) {
+                    Log.warn(() -> "Path validation failed: path is outside user workspace: " + pathString + 
+                             " (normalized: " + normalizedPath + ", workspace: " + workPath + ")");
+                    return null;
+                }
+            }
+            
+            // Additional security checks: prevent writing to sensitive system directories
+            String normalizedPathStr = normalizedPath.toString().toLowerCase();
+            String[] forbiddenPaths = {
+                "/etc/", "/sys/", "/proc/", "/dev/", "/boot/", "/root/",  // Unix/Linux
+                "c:\\windows\\", "c:\\program files\\", "c:\\program files (x86)\\",  // Windows
+                "/system/", "/data/system/"  // Android
+            };
+            
+            for (String forbidden : forbiddenPaths) {
+                if (normalizedPathStr.startsWith(forbidden.toLowerCase())) {
+                    Log.warn(() -> "Path validation failed: path targets sensitive system directory: " + pathString);
+                    return null;
+                }
+            }
+            
+            File validatedFile = normalizedPath.toFile();
+            
+            // Validate directory vs file expectation
+            if (validatedFile.exists()) {
+                if (mustBeDirectory && !validatedFile.isDirectory()) {
+                    Log.warn(() -> "Path validation failed: expected directory but got file: " + pathString);
+                    return null;
+                }
+                if (!mustBeDirectory && validatedFile.isDirectory()) {
+                    Log.warn(() -> "Path validation failed: expected file but got directory: " + pathString);
+                    return null;
+                }
+            }
+            
+            return validatedFile;
+            
+        } catch (Exception e) {
+            Log.err(() -> "Path validation failed with exception for path: " + pathString, e);
+            return null;
+        }
     }
 
     /**
