@@ -37,6 +37,15 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
     private static final long serialVersionUID = 4L;
 
     /**
+     * Maximum object graph depth allowed when deserializing a torrent-check report.
+     * <p>
+     * {@link TorrentChecker#checkBlocksFile} nests one {@link Child} per torrent piece, so the depth limit must be high enough
+     * to accommodate large torrents without rejecting legitimate reports.
+     * </p>
+     */
+    private static final int MAX_DESERIALIZATION_DEPTH = 1_000_000;
+
+    /**
      * the atomic counter for generating unique IDs for Child nodes (not serialized)
      */
     private transient AtomicLong uidCnt = new AtomicLong();

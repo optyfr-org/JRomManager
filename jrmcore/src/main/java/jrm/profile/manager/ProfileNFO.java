@@ -329,7 +329,7 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
         {
             try (final var ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(filenfo)))) {
                 // Apply deserialization filter to prevent arbitrary code execution
-                ois.setObjectInputFilter(createDeserializationFilter());
+                ois.setObjectInputFilter(DeserializationFilter.createFilter());
                 ProfileNFO nfo = (ProfileNFO) ois.readObject();
                 if (nfo.file != null)
                     return nfo;

@@ -73,6 +73,7 @@ import jrm.profile.data.FakeDirectory;
 import jrm.profile.data.Rom;
 import jrm.profile.scan.options.FormatOptions;
 import jrm.profile.scan.options.FormatOptions.Ext;
+import jrm.security.DeserializationFilter;
 import jrm.security.PathAbstractor;
 import jrm.security.Session;
 import jtrrntzip.DummyLogCallback;
