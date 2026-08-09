@@ -153,16 +153,6 @@ public class Dir2DatActions {
             String dstdat = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_dst_file);
             String format = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_format);
             
-            // Validate paths before processing
-            if (srcdir != null && !isPathWithinWorkspace(srcdir, session)) {
-                Log.err("Dir2Dat operation rejected: source directory escapes workspace: " + srcdir);
-                return;
-            }
-            if (dstdat != null && !isPathWithinWorkspace(dstdat, session)) {
-                Log.err("Dir2Dat operation rejected: destination file escapes workspace: " + dstdat);
-                return;
-            }
-            
             JsonObject opts = jso.get("params").asObject().get("options").asObject();
             EnumSet<DirScan.Options> options = getOptions(opts);
             HashMap<String, String> headers = new HashMap<>();
@@ -172,10 +162,19 @@ public class Dir2DatActions {
                     headers.put(m.getName(), m.getValue().asString());
             });
             if (srcdir != null && dstdat != null) {
-                // Validate and sanitize paths using PathAbstractor to prevent directory traversal and arbitrary file writes
+                // Resolve and validate workspace paths using PathAbstractor to prevent directory traversal and arbitrary file writes
                 try {
                     Path validatedSrcDir = PathAbstractor.getAbsolutePath(session, srcdir);
                     Path validatedDstDat = PathAbstractor.getAbsolutePath(session, dstdat);
+                    
+                    if (!isPathWithinWorkspace(validatedSrcDir, session)) {
+                        Log.err("Dir2Dat operation rejected: source directory escapes workspace: " + srcdir);
+                        return;
+                    }
+                    if (!isPathWithinWorkspace(validatedDstDat, session)) {
+                        Log.err("Dir2Dat operation rejected: destination file escapes workspace: " + dstdat);
+                        return;
+                    }
                     
                     new Dir2Dat(ws.getSession(), validatedSrcDir.toFile(), validatedDstDat.toFile(), session.getWorker().progress, options, ExportType.valueOf(format), headers);
                 } catch (SecurityException e) {
@@ -196,31 +195,30 @@ public class Dir2DatActions {
     }
 
     /**
-     * Validates that a file path remains within the user's workspace directory.
+     * Validates that a resolved file path remains within the user's workspace directory.
      * <p>
      * This method canonicalizes the provided path and ensures it is a descendant of the user's work path,
      * preventing directory traversal attacks.
      * </p>
      * 
-     * @param pathString the file path to validate
+     * @param path the resolved file path to validate
      * @param session the web session containing the user's workspace configuration
      * @return true if the path is within the workspace, false if it escapes the workspace
      */
-    private boolean isPathWithinWorkspace(String pathString, WebSession session) {
-        if (pathString == null || pathString.trim().isEmpty()) {
-            return false; // Reject null or empty paths at execution time
+    private boolean isPathWithinWorkspace(Path path, WebSession session) {
+        if (path == null) {
+            return false; // Reject null paths at execution time
         }
         
         try {
             Path workPath = session.getUser().getSettings().getWorkPath().toRealPath();
-            File file = new File(pathString);
-            Path canonicalPath = file.getCanonicalFile().toPath();
+            Path canonicalPath = path.toRealPath();
             
             // Check if the canonical path starts with the work path
             return canonicalPath.startsWith(workPath);
         } catch (IOException e) {
             // If we can't resolve the path, reject it for safety
-            Log.err("Failed to validate path: " + pathString, e);
+            Log.err("Failed to validate path: " + path, e);
             return false;
         }
     }
