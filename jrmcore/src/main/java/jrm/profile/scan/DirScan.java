@@ -552,13 +552,13 @@ public final class DirScan extends PathAbstractor {
                         (int) (j.addAndGet(1 + (int) (c.getSize() >> 20)) * 100.0 / max.get())), j.get());
             } catch (final IOException e) {
                 c.setLoaded(0);
-                Log.err("IOException when scanning", e); //$NON-NLS-1$
+                Log.err("IOException when scanning", e);
             } catch (final BreakException _) {
                 c.setLoaded(0);
                 handler.doCancel();
             } catch (final Exception e) {
                 c.setLoaded(0);
-                Log.err("Other Exception when listing", e); //$NON-NLS-1$
+                Log.err("Other Exception when listing", e);
             }
             return;
         })) {

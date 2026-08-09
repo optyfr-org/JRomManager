@@ -25,7 +25,7 @@ import jrm.misc.Log;
 import jrm.profile.report.FilterOptions;
 import jrm.profile.report.ReportIntf;
 import jrm.profile.report.Subject;
-import jrm.security.ReportDeserializationFilter;
+import jrm.security.DeserializationFilter;
 import jrm.security.Session;
 import lombok.Getter;
 import lombok.Setter;
@@ -403,7 +403,7 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
     public static TrntChkReport load(final Session session, final File file) {
         try (final ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ReportIntf.getReportFile(session, file))))) {
             // Apply deserialization filter to prevent arbitrary code execution
-            ois.setObjectInputFilter(ReportDeserializationFilter.createFilter());
+            ois.setObjectInputFilter(DeserializationFilter.createFilter(MAX_DESERIALIZATION_DEPTH));
             final TrntChkReport report = (TrntChkReport) ois.readObject();
             report.file = file;
             report.fileModified = ReportIntf.getReportFile(session, file).lastModified();
