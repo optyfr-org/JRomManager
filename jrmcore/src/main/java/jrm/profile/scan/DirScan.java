@@ -1806,15 +1806,38 @@ public final class DirScan extends PathAbstractor {
             // Write HMAC length, HMAC, then data
             try (final var fos = new FileOutputStream(getCacheFile(session, file, options));
                  final var bos = new BufferedOutputStream(fos)) {
-                // Write HMAC length as 4 bytes
-                bos.write((hmac.length >> 24) & 0xFF);
-                bos.write((hmac.length >> 16) & 0xFF);
-                bos.write((hmac.length >> 8) & 0xFF);
-                bos.write(hmac.length & 0xFF);
-                // Write HMAC
-                bos.write(hmac);
-                // Write serialized data
-                bos.write(serializedData);
+    @SuppressWarnings("unchecked")
+    private Map<String, Container> load(final File file, Set<Options> options) {
+        final var cachefile = getCacheFile(session, file, options);
+        try {
+            final var fileBytes = Files.readAllBytes(cachefile.toPath());
+            if (fileBytes.length < 4)
+                throw new IOException("Cache file too short");
+
+            final var hmacLength = ((fileBytes[0] & 0xFF) << 24)
+                    | ((fileBytes[1] & 0xFF) << 16)
+                    | ((fileBytes[2] & 0xFF) << 8)
+                    | (fileBytes[3] & 0xFF);
+            final var dataOffset = 4 + hmacLength;
+            if (hmacLength <= 0 || dataOffset > fileBytes.length)
+                throw new IOException("Invalid cache file header");
+
+            final var expectedHmac = Arrays.copyOfRange(fileBytes, 4, dataOffset);
+            final var serializedData = Arrays.copyOfRange(fileBytes, dataOffset, fileBytes.length);
+            final var actualHmac = computeHmac(session, serializedData);
+            if (!java.security.MessageDigest.isEqual(expectedHmac, actualHmac))
+                throw new SecurityException("Cache file integrity check failed");
+
+            handler.clearInfos();
+            handler.setProgress(String.format(Messages.getString("DirScan.LoadingScanCache"), getRelativePath(file.toPath())), 0); //$NON-NLS-1$
+            try (final var ois = createFilteredObjectInputStream(new java.io.ByteArrayInputStream(serializedData))) {
+                return (Map<String, Container>) ois.readObject();
+            }
+        } catch (final Exception e) {
+            Log.err(() -> "Failed to load cache file: " + cachefile.getAbsolutePath(), e);
+        }
+        return Collections.synchronizedMap(new HashMap<>());
+    }
             }
         } catch (final Exception _) {
             // ignore
