@@ -15,6 +15,7 @@ import java.util.zip.CRC32;
 import jrm.aui.progress.ProgressHandler;
 import jrm.misc.Log;
 import jrm.profile.report.Report;
+import jrm.security.DeserializationFilter;
 import jrm.security.PathAbstractor;
 import jrm.security.Session;
 import lombok.Getter;
@@ -147,6 +148,8 @@ public class DirUpdaterResults implements Serializable {
     public static DirUpdaterResults load(final Session session, final File file, final ProgressHandler progress) {
         final var rfile = getFile(session, file);
         try (final var ois = new ObjectInputStream(new BufferedInputStream(progress.getInputStream(new FileInputStream(rfile), (int) rfile.length())))) {
+            // Apply deserialization filter to prevent arbitrary code execution
+            ois.setObjectInputFilter(DeserializationFilter.createFilter());
             return (DirUpdaterResults) ois.readObject();
         } catch (final Exception e) {
             Log.err(e.getMessage(), e);
@@ -166,6 +169,8 @@ public class DirUpdaterResults implements Serializable {
      */
     public static DirUpdaterResults load(final Session session, final File file) {
         try (final var ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(getFile(session, file))))) {
+            // Apply deserialization filter to prevent arbitrary code execution
+            ois.setObjectInputFilter(DeserializationFilter.createFilter());
             return (DirUpdaterResults) ois.readObject();
         } catch (final Exception e) {
             Log.err(e.getMessage(), e);

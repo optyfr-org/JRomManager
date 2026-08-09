@@ -79,6 +79,7 @@ import jrm.profile.filter.CatVer.Category.SubCategory;
 import jrm.profile.filter.NPlayer;
 import jrm.profile.filter.NPlayers;
 import jrm.profile.manager.ProfileNFO;
+import jrm.security.DeserializationFilter;
 import jrm.security.PathAbstractor;
 import jrm.security.Session;
 import jrm.xml.XMLTools;
@@ -1592,12 +1593,16 @@ public class Profile implements Serializable, StatusRendererFactory {
         handler.setInfos(1, null);
         handler.setProgress(Messages.getString("Profile.LoadingCache"), -1); //$NON-NLS-1$
         try (final var ois = new ObjectInputStream(new BufferedInputStream(handler.getInputStream(new FileInputStream(cachefile), (int) cachefile.length())))) {
+            // Apply deserialization filter to prevent arbitrary code execution
+            ois.setObjectInputFilter(DeserializationFilter.createFilter());
             profile = (Profile) ois.readObject();
             profile.session = session;
             session.setCurrProfile(profile);
             profile.nfo = nfo;
-        } catch (final Exception _) {
+        } catch (final Exception e) {
             // may fail to load because serialized classes did change since last cache save
+            // or if deserialization filter rejected untrusted classes
+            Log.debug(() -> "Failed to load cache file: " + e.getMessage());
         }
         return profile;
     }
