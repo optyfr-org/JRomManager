@@ -14,6 +14,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InvalidClassException;
+import java.io.ObjectInputFilter;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamField;
@@ -27,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -110,6 +113,73 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
      * Serial version UID for maintaining serialization compatibility.
      */
     private static final long serialVersionUID = 3L;
+
+    /**
+     * Allowlist of classes permitted during deserialization to prevent arbitrary code execution via malicious gadget chains.
+     * <p>
+     * This set contains only the classes that are legitimately expected in a ProfileNFO serialized object graph. Any attempt to
+     * deserialize classes outside this allowlist will be rejected by the {@link ObjectInputFilter}.
+     * </p>
+     */
+    private static final Set<String> ALLOWED_CLASSES = Set.of(
+        "jrm.profile.manager.ProfileNFO",
+        "jrm.profile.manager.ProfileNFOStats",
+        "jrm.profile.manager.ProfileNFOMame",
+        "java.io.File",
+        "java.lang.String",
+        "java.lang.Long",
+        "java.lang.Boolean",
+        "java.time.Instant",
+        "java.util.ArrayList",
+        "java.util.HashMap",
+        "java.util.LinkedHashMap",
+        "[Ljava.lang.String;",
+        "[Ljava.io.File;"
+    );
+
+    /**
+     * Creates an {@link ObjectInputFilter} that restricts deserialization to only the classes required for ProfileNFO objects.
+     * <p>
+     * This filter prevents arbitrary deserialization attacks by rejecting any class not explicitly allowlisted. It permits:
+     * </p>
+     * <ul>
+     * <li>ProfileNFO and its nested data classes (ProfileNFOStats, ProfileNFOMame)</li>
+     * <li>Standard Java types used in the object graph (File, String, Instant, collections)</li>
+     * <li>Java primitive types and arrays</li>
+     * </ul>
+     * <p>
+     * All other classes, including those commonly used in deserialization gadget chains, are explicitly rejected.
+     * </p>
+     * 
+     * @return an ObjectInputFilter configured with the ProfileNFO class allowlist
+     */
+    private static ObjectInputFilter createDeserializationFilter() {
+        return filterInfo -> {
+            Class<?> clazz = filterInfo.serialClass();
+            if (clazz == null) {
+                // Allow primitives and array depth checks
+                return ObjectInputFilter.Status.UNDECIDED;
+            }
+            
+            String className = clazz.getName();
+            
+            // Allow primitive types and their arrays
+            if (clazz.isPrimitive() || className.startsWith("[Z") || className.startsWith("[B") 
+                || className.startsWith("[C") || className.startsWith("[S") || className.startsWith("[I") 
+                || className.startsWith("[J") || className.startsWith("[F") || className.startsWith("[D")) {
+                return ObjectInputFilter.Status.ALLOWED;
+            }
+            
+            // Check against allowlist
+            if (ALLOWED_CLASSES.contains(className)) {
+                return ObjectInputFilter.Status.ALLOWED;
+            }
+            
+            // Reject everything else
+            Log.err("Deserialization rejected for unauthorized class: " + className, null);
+            return ObjectInputFilter.Status.REJECTED;
+        };
+    }
 
     /**
      * The profile's physical database file path (e.g. .jrm, .dat, .xml).
@@ -242,6 +312,10 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
     /**
      * Loads metadata properties from an existing .nfo file if present and fresh, otherwise instantiates a new empty ProfileNFO for
      * the supplied profile file.
+     * <p>
+     * <b>Security:</b> This method applies a strict deserialization filter to prevent arbitrary code execution via malicious .nfo
+     * files. Only classes explicitly allowlisted in {@link #ALLOWED_CLASSES} are permitted during deserialization.
+     * </p>
      * 
      * @param session the current active security session
      * @param file the profile database file
@@ -253,9 +327,13 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
         if (filenfo.lastModified() >= file.lastModified()) // $NON-NLS-1$
         {
             try (final var ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(filenfo)))) {
+                // Apply deserialization filter to prevent arbitrary code execution
+                ois.setObjectInputFilter(createDeserializationFilter());
                 ProfileNFO nfo = (ProfileNFO) ois.readObject();
                 if (nfo.file != null)
                     return nfo;
+            } catch (final InvalidClassException e) {
+                Log.err("Deserialization security violation detected in .nfo file: " + filenfo.getAbsolutePath() + " - " + e.getMessage(), e);
             } catch (final Exception e) {
                 Log.err(e.getMessage(), e);
             }
