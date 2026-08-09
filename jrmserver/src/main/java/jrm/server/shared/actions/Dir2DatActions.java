@@ -212,10 +212,17 @@ public class Dir2DatActions {
         
         try {
             Path workPath = session.getUser().getSettings().getWorkPath().toRealPath();
-            Path canonicalPath = path.toRealPath();
+            // Existing paths are resolved canonically; new output paths (e.g. the destination DAT file)
+            // may not exist yet, so fall back to a normalized absolute path for traversal checks.
+            Path normalizedPath;
+            try {
+                normalizedPath = path.toRealPath();
+            } catch (IOException _) {
+                normalizedPath = path.toAbsolutePath().normalize();
+            }
             
             // Check if the canonical path starts with the work path
-            return canonicalPath.startsWith(workPath);
+            return normalizedPath.startsWith(workPath);
         } catch (IOException e) {
             // If we can't resolve the path, reject it for safety
             Log.err("Failed to validate path: " + path, e);
