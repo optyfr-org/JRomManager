@@ -1806,7 +1806,15 @@ public final class DirScan extends PathAbstractor {
             // Write HMAC length, HMAC, then data
             try (final var fos = new FileOutputStream(getCacheFile(session, file, options));
                  final var bos = new BufferedOutputStream(fos)) {
-
+                // Write HMAC length as 4 bytes
+                bos.write((hmac.length >> 24) & 0xFF);
+                bos.write((hmac.length >> 16) & 0xFF);
+                bos.write((hmac.length >> 8) & 0xFF);
+                bos.write(hmac.length & 0xFF);
+                // Write HMAC
+                bos.write(hmac);
+                // Write serialized data
+                bos.write(serializedData);
             }
         } catch (final Exception _) {
             // ignore
