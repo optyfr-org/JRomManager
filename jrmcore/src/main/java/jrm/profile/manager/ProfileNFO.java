@@ -41,6 +41,7 @@ import org.xml.sax.helpers.DefaultHandler;
 
 import jrm.aui.status.StatusRendererFactory;
 import jrm.misc.Log;
+import jrm.security.DeserializationFilter;
 import jrm.security.Session;
 import jrm.security.SignedObjectStore;
 
