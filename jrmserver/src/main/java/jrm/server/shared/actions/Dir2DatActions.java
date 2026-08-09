@@ -178,8 +178,6 @@ public class Dir2DatActions {
                     Path validatedDstDat = PathAbstractor.getAbsolutePath(session, dstdat);
                     
                     new Dir2Dat(ws.getSession(), validatedSrcDir.toFile(), validatedDstDat.toFile(), session.getWorker().progress, options, ExportType.valueOf(format), headers);
-                    
-                    new Dir2Dat(ws.getSession(), validatedSrcDir.toFile(), validatedDstDat.toFile(), session.getWorker().progress, options, ExportType.valueOf(format), headers);
                 } catch (SecurityException e) {
                     Log.err(() -> "Path validation failed for Dir2Dat operation: " + e.getMessage(), e);
                     new GlobalActions(ws).warn("Invalid source directory or destination file path. Operation cancelled for security reasons.");
