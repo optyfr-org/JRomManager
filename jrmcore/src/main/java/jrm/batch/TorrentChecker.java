@@ -149,7 +149,7 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
             result = checkFiles(progress, sdr, src, dst, report, tfiles);
         else
             result = checkBlocks(progress, sdr, src, dst, report, torrent, tfiles);
-        report.save(report.getReportFile(session));
+        report.save(session, report.getReportFile(session));
         return result;
     }
 

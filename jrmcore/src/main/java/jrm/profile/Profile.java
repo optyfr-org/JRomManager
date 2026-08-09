@@ -8,14 +8,9 @@
  */
 package jrm.profile;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -79,9 +74,9 @@ import jrm.profile.filter.CatVer.Category.SubCategory;
 import jrm.profile.filter.NPlayer;
 import jrm.profile.filter.NPlayers;
 import jrm.profile.manager.ProfileNFO;
-import jrm.security.DeserializationFilter;
 import jrm.security.PathAbstractor;
 import jrm.security.Session;
+import jrm.security.SignedObjectStore;
 import jrm.xml.XMLTools;
 import lombok.Getter;
 import lombok.Setter;
@@ -1396,8 +1391,8 @@ public class Profile implements Serializable, StatusRendererFactory {
      * Serializes current profile state properties to cached binary files.
      */
     public void save() {
-        try (final var oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(session.getUser().getSettings().getCacheFile(nfo.getFile()))))) {
-            oos.writeObject(this);
+        try {
+            SignedObjectStore.write(session, session.getUser().getSettings().getCacheFile(nfo.getFile()), this);
         } catch (final Exception _) {
             // do nothing
         }
@@ -1592,10 +1587,8 @@ public class Profile implements Serializable, StatusRendererFactory {
     private static Profile loadCache(final Session session, final ProfileNFO nfo, final ProgressHandler handler, Profile profile, final File cachefile) {
         handler.setInfos(1, null);
         handler.setProgress(Messages.getString("Profile.LoadingCache"), -1); //$NON-NLS-1$
-        try (final var ois = new ObjectInputStream(new BufferedInputStream(handler.getInputStream(new FileInputStream(cachefile), (int) cachefile.length())))) {
-            // Apply deserialization filter to prevent arbitrary code execution
-            ois.setObjectInputFilter(DeserializationFilter.createFilter());
-            profile = (Profile) ois.readObject();
+        try (final var in = handler.getInputStream(new java.io.FileInputStream(cachefile), (int) cachefile.length())) {
+            profile = (Profile) SignedObjectStore.read(session, in, (int) cachefile.length(), -1);
             profile.session = session;
             session.setCurrProfile(profile);
             profile.nfo = nfo;

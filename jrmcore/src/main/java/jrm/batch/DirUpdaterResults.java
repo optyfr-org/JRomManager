@@ -1,12 +1,8 @@
 package jrm.batch;
 
 import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,6 +14,7 @@ import jrm.profile.report.Report;
 import jrm.security.DeserializationFilter;
 import jrm.security.PathAbstractor;
 import jrm.security.Session;
+import jrm.security.SignedObjectStore;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -127,8 +124,8 @@ public class DirUpdaterResults implements Serializable {
      * @param session the active user session
      */
     public void save(final Session session) {
-        try (final var oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(getFile(session, dat))))) {
-            oos.writeObject(this);
+        try {
+            SignedObjectStore.write(session, getFile(session, dat), this);
         } catch (final Exception e) {
             Log.err(e.getMessage(), e);
         }
@@ -147,10 +144,9 @@ public class DirUpdaterResults implements Serializable {
      */
     public static DirUpdaterResults load(final Session session, final File file, final ProgressHandler progress) {
         final var rfile = getFile(session, file);
-        try (final var ois = new ObjectInputStream(new BufferedInputStream(progress.getInputStream(new FileInputStream(rfile), (int) rfile.length())))) {
-            // Apply deserialization filter to prevent arbitrary code execution
-            ois.setObjectInputFilter(DeserializationFilter.createFilter());
-            return (DirUpdaterResults) ois.readObject();
+        try (final var in = new BufferedInputStream(progress.getInputStream(new FileInputStream(rfile), (int) rfile.length()))) {
+            return (DirUpdaterResults) SignedObjectStore.read(session, in, (int) rfile.length(),
+                    DeserializationFilter.Mode.REPORT, -1);
         } catch (final Exception e) {
             Log.err(e.getMessage(), e);
         }
@@ -168,10 +164,9 @@ public class DirUpdaterResults implements Serializable {
      * @return the loaded DirUpdaterResults instance, or null if an error occurred
      */
     public static DirUpdaterResults load(final Session session, final File file) {
-        try (final var ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(getFile(session, file))))) {
-            // Apply deserialization filter to prevent arbitrary code execution
-            ois.setObjectInputFilter(DeserializationFilter.createFilter());
-            return (DirUpdaterResults) ois.readObject();
+        try {
+            return (DirUpdaterResults) SignedObjectStore.read(session, getFile(session, file),
+                    DeserializationFilter.Mode.REPORT, -1);
         } catch (final Exception e) {
             Log.err(e.getMessage(), e);
         }

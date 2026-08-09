@@ -8,11 +8,7 @@
  */
 package jrm.profile.report;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
@@ -49,8 +45,9 @@ import jrm.misc.Log;
 import jrm.misc.SettingsEnum;
 import jrm.profile.Profile;
 import jrm.profile.data.Anyware;
-import jrm.security.ReportDeserializationFilter;
+import jrm.security.DeserializationFilter;
 import jrm.security.Session;
+import jrm.security.SignedObjectStore;
 import lombok.Getter;
 import one.util.streamex.IntStreamEx;
 
@@ -1027,17 +1024,18 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
      * @param session the target user execution session context
      */
     public void save(final Session session) {
-        save(getReportFile(session));
+        save(session, getReportFile(session));
     }
 
     /**
-     * Serializes the current report state data to a specific file destination.
+     * Serializes the current report state data to a specific file destination with an HMAC integrity envelope.
      *
+     * @param session the user execution context (HMAC key is derived from the work path)
      * @param file the destination File path
      */
-    public void save(File file) {
-        try (final ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
-            oos.writeObject(Report.this);
+    public void save(final Session session, final File file) {
+        try {
+            SignedObjectStore.write(session, file, Report.this);
         } catch (final Exception _) {
             // Silently fail to maintain stability on faulty file systems
         }
@@ -1046,9 +1044,9 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
     /**
      * Restores a serialized report database instance from file storage.
      * <p>
-     * This method applies strict deserialization filtering to prevent arbitrary code execution
-     * via malicious serialized objects. Only classes explicitly allowlisted for report
-     * serialization are permitted during deserialization.
+     * Prefer signed payloads written by {@link #save(Session, File)}. Legacy unsigned Java streams remain readable for backward
+     * compatibility and are still subject to the deserialization allowlist.
+     * </p>
      *
      * @param session the user execution context
      * @param file the original catalog metadata target path
@@ -1056,12 +1054,11 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
      * @return the restored Report instance, or {@code null} if restoration fails
      */
     public static Report load(final Session session, final File file) {
-        try (final ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ReportIntf.getReportFile(session, file))))) {
-            // Apply deserialization filter to prevent arbitrary code execution
-            ois.setObjectInputFilter(ReportDeserializationFilter.createFilter());
-            Report report = (Report) ois.readObject();
+        try {
+            final var reportFile = ReportIntf.getReportFile(session, file);
+            Report report = (Report) SignedObjectStore.read(session, reportFile, DeserializationFilter.Mode.REPORT, -1);
             report.file = file;
-            report.fileModified = ReportIntf.getReportFile(session, file).lastModified();
+            report.fileModified = reportFile.lastModified();
             report.handler = new ReportTreeDefaultHandler(report);
             return report;
         } catch (final Exception _) {

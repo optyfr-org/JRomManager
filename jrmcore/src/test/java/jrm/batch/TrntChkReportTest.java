@@ -484,7 +484,7 @@ class TrntChkReportTest {
             parent.add("child1").setStatus(TrntChkReport.Status.MISSING);
 
             var reportFile = report.getReportFile(session);
-            report.save(reportFile);
+            report.save(session, reportFile);
 
             var loaded = TrntChkReport.load(session, srcFile);
 
@@ -508,7 +508,7 @@ class TrntChkReportTest {
             report.add("node");
 
             var reportFile = report.getReportFile(session);
-            report.save(reportFile);
+            report.save(session, reportFile);
 
             var loaded = TrntChkReport.load(session, srcFile);
 
@@ -538,7 +538,7 @@ class TrntChkReportTest {
             }
 
             var reportFile = report.getReportFile(session);
-            report.save(reportFile);
+            report.save(session, reportFile);
 
             var loaded = TrntChkReport.load(session, srcFile);
 
@@ -565,7 +565,7 @@ class TrntChkReportTest {
             report.add("node");
 
             var reportFile = report.getReportFile(session);
-            report.save(reportFile);
+            report.save(session, reportFile);
 
             assertThat(reportFile).exists();
         }

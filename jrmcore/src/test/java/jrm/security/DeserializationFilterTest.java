@@ -7,7 +7,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.lang.reflect.Constructor;
@@ -89,10 +88,14 @@ class DeserializationFilterTest {
      * @throws IOException if deserialization fails
      * @throws ClassNotFoundException if a class cannot be resolved
      */
-    @SuppressWarnings("unchecked")
     private static <T> T deserializeWithFilter(byte[] bytes) throws IOException, ClassNotFoundException {
-        try (final var ois = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
-            ois.setObjectInputFilter(DeserializationFilter.createFilter());
+        return deserializeWithFilter(bytes, DeserializationFilter.Mode.DEFAULT);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T deserializeWithFilter(byte[] bytes, DeserializationFilter.Mode mode)
+            throws IOException, ClassNotFoundException {
+        try (final var ois = DeserializationFilter.openObjectInputStream(new ByteArrayInputStream(bytes), mode)) {
             return (T) ois.readObject();
         }
     }
@@ -158,8 +161,7 @@ class DeserializationFilterTest {
         }
         final var bytes = serialize(original);
 
-        try (final var ois = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
-            ois.setObjectInputFilter(DeserializationFilter.createFilter(200));
+        try (final var ois = DeserializationFilter.openObjectInputStream(new ByteArrayInputStream(bytes), 200)) {
             @SuppressWarnings("unchecked")
             final DeepNode<Integer> restored = (DeepNode<Integer>) ois.readObject();
             assertThat(restored).usingRecursiveComparison().isEqualTo(original);
@@ -171,7 +173,9 @@ class DeserializationFilterTest {
      */
     private static final class DeepNode<T> implements Serializable {
         private static final long serialVersionUID = 1L;
+        @SuppressWarnings("unused")
         private final T value;
+        @SuppressWarnings("unused")
         private final DeepNode<T> child;
 
         DeepNode(T value, DeepNode<T> child) {
@@ -190,13 +194,16 @@ class DeserializationFilterTest {
      * @throws Exception if serialization or deserialization fails
      */
     private static <T> T roundTrip(final T object) throws Exception {
+        return roundTrip(object, DeserializationFilter.Mode.DEFAULT);
+    }
+
+    private static <T> T roundTrip(final T object, final DeserializationFilter.Mode mode) throws Exception {
         final var baos = new ByteArrayOutputStream();
         try (final var oos = new ObjectOutputStream(baos)) {
             oos.writeObject(object);
         }
         final var bytes = baos.toByteArray();
-        try (final var ois = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
-            ois.setObjectInputFilter(DeserializationFilter.createFilter());
+        try (final var ois = DeserializationFilter.openObjectInputStream(new ByteArrayInputStream(bytes), mode)) {
             @SuppressWarnings("unchecked")
             final T result = (T) ois.readObject();
             return result;
@@ -268,7 +275,7 @@ class DeserializationFilterTest {
     }
 
     @Test
-    @DisplayName("Report should round-trip under the filter")
+    @DisplayName("Report should round-trip under the report filter")
     void reportShouldRoundTripUnderTheFilter(@TempDir final Path tempDir) throws Exception {
         final var report = new Report();
         setField(report, "reportFile", tempDir.resolve("report.rpt").toFile());
@@ -277,7 +284,7 @@ class DeserializationFilterTest {
         archive.setLastTZipStatus(EnumSet.of(TrrntZipStatus.VALIDTRRNTZIP));
         report.getSubjects().add(new ContainerUnknown(archive));
 
-        final Report loaded = roundTrip(report);
+        final Report loaded = roundTrip(report, DeserializationFilter.Mode.REPORT);
 
         assertThat(loaded).isNotNull();
         assertThat(loaded.getReportFile()).isEqualTo(tempDir.resolve("report.rpt").toFile());
@@ -290,7 +297,7 @@ class DeserializationFilterTest {
     }
 
     @Test
-    @DisplayName("DirUpdaterResults should round-trip under the filter")
+    @DisplayName("DirUpdaterResults should round-trip under the report filter")
     void dirUpdaterResultsShouldRoundTripUnderTheFilter(@TempDir final Path tempDir) throws Exception {
         final var results = new DirUpdaterResults();
         final var datFile = tempDir.resolve("source.dat").toFile();
@@ -301,7 +308,7 @@ class DeserializationFilterTest {
         results.add(tempDir.resolve("a.dat").toFile(), stats);
         results.add(tempDir.resolve("b.dat").toFile(), new Report.Stats());
 
-        final DirUpdaterResults loaded = roundTrip(results);
+        final DirUpdaterResults loaded = roundTrip(results, DeserializationFilter.Mode.REPORT);
 
         assertThat(loaded).isNotNull();
         assertThat(loaded.getDat()).isEqualTo(datFile);
@@ -310,6 +317,19 @@ class DeserializationFilterTest {
         assertThat(loaded.getResults().get(0).getStats().getSetFound()).isEqualTo(1);
         assertThat(loaded.getResults().get(0).getStats().getSetFoundOk()).isEqualTo(1);
         assertThat(loaded.getResults().get(1).getDat()).isEqualTo(tempDir.resolve("b.dat").toFile());
+    }
+
+    @Test
+    @DisplayName("report mode should reject non-report jrm packages")
+    void reportModeShouldRejectNonReportJrmPackages() throws Exception {
+        final Constructor<ProfileNFO> constructor = ProfileNFO.class.getDeclaredConstructor(File.class);
+        constructor.setAccessible(true);
+        final ProfileNFO nfo = constructor.newInstance(new File("test.dat"));
+        final var bytes = serialize(nfo);
+
+        assertThatThrownBy(() -> deserializeWithFilter(bytes, DeserializationFilter.Mode.REPORT))
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("REJECTED");
     }
 
     @Test
@@ -331,7 +351,7 @@ class DeserializationFilterTest {
     }
 
     @Test
-    @DisplayName("TrntChkReport should round-trip under the filter")
+    @DisplayName("TrntChkReport should round-trip under the report filter")
     void trntChkReportShouldRoundTripUnderTheFilter(@TempDir final Path tempDir) throws Exception {
         final var report = new TrntChkReport(tempDir.resolve("test.torrent").toFile());
         final TrntChkReport.Child root = (TrntChkReport.Child) addTrntChkReportChild(report, "root");
@@ -341,7 +361,7 @@ class DeserializationFilterTest {
         final TrntChkReport.Child child = (TrntChkReport.Child) addTrntChkReportChild(parent, "child");
         setTrntChkReportChildStatus(child, TrntChkReport.Status.MISSING);
 
-        final TrntChkReport loaded = roundTrip(report);
+        final TrntChkReport loaded = roundTrip(report, DeserializationFilter.Mode.REPORT);
 
         assertThat(loaded).isNotNull();
         assertThat(loaded.getNodes()).hasSize(2);
