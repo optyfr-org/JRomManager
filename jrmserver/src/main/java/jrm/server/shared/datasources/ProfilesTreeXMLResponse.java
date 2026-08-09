@@ -136,24 +136,32 @@ public class ProfilesTreeXMLResponse extends XMLResponse {
      */
     @Override
     protected void add(Operation operation) throws XMLStreamException, IOException {
-        var key = request.getSession().getLastProfileListKey() + 1;
-        var basepath = operation.getData("Path");
-        if (basepath == null || basepath.isEmpty())
-            basepath = request.getSession().getUser().getSettings().getWorkPath().resolve("xmlfiles").toAbsolutePath().normalize().toString();
-        var path = Files.createDirectory(Paths.get(basepath, operation.getData(TITLE)));
-        request.getSession().putProfileList(key, path);
-        writer.writeStartElement(RESPONSE);
-        writer.writeElement(STATUS, "0");
-        writer.writeStartElement("data");
-        writer.writeStartElement(RECORD);
-        writer.writeAttribute("ID", Integer.toString(key));
-        writer.writeAttribute("Path", pathAbstractor.getRelativePath(path).toString());
-        writer.writeAttribute(TITLE, operation.getData(TITLE));
-        writer.writeAttribute(IS_FOLDER, "true");
-        writer.writeAttribute(PARENT_ID, operation.getData(PARENT_ID));
-        writer.writeEndElement();
-        writer.writeEndElement();
-        writer.writeEndElement();
+        try {
+            var key = request.getSession().getLastProfileListKey() + 1;
+            var basepath = operation.getData("Path");
+            if (basepath == null || basepath.isEmpty())
+                basepath = request.getSession().getUser().getSettings().getWorkPath().resolve("xmlfiles").toAbsolutePath().normalize().toString();
+            var title = operation.getData(TITLE);
+            var path = Paths.get(basepath).resolve(title).toAbsolutePath().normalize();
+            if (!path.startsWith(Paths.get(basepath).toAbsolutePath().normalize()))
+                throw new SecurityException("Invalid path: path traversal detected");
+            path = Files.createDirectory(path);
+            request.getSession().putProfileList(key, path);
+            writer.writeStartElement(RESPONSE);
+            writer.writeElement(STATUS, "0");
+            writer.writeStartElement("data");
+            writer.writeStartElement(RECORD);
+            writer.writeAttribute("ID", Integer.toString(key));
+            writer.writeAttribute("Path", pathAbstractor.getRelativePath(path).toString());
+            writer.writeAttribute(TITLE, operation.getData(TITLE));
+            writer.writeAttribute(IS_FOLDER, "true");
+            writer.writeAttribute(PARENT_ID, operation.getData(PARENT_ID));
+            writer.writeEndElement();
+            writer.writeEndElement();
+            writer.writeEndElement();
+        } catch (SecurityException ex) {
+            failure(ex.getMessage());
+        }
     }
 
     /**
@@ -166,27 +174,35 @@ public class ProfilesTreeXMLResponse extends XMLResponse {
      */
     @Override
     protected void update(Operation operation) throws XMLStreamException, IOException {
-        var id = Integer.valueOf(operation.getData("ID"));
-        var path = request.getSession().getProfileList(id);
-        if(path==null) {
-            failure();
-            return;
+        try {
+            var id = Integer.valueOf(operation.getData("ID"));
+            var path = request.getSession().getProfileList(id);
+            if(path==null) {
+                failure();
+                return;
+            }
+            var title = operation.getData(TITLE);
+            var parent = path.getParent();
+            var newPath = parent.resolve(title).toAbsolutePath().normalize();
+            if (!newPath.startsWith(parent.toAbsolutePath().normalize()))
+                throw new SecurityException("Invalid path: path traversal detected");
+            path = Files.move(path, newPath);
+            request.getSession().putProfileList(id, path);
+            writer.writeStartElement(RESPONSE);
+            writer.writeElement(STATUS, "0");
+            writer.writeStartElement("data");
+            writer.writeStartElement(RECORD);
+            writer.writeAttribute("ID", id.toString());
+            writer.writeAttribute("Path", pathAbstractor.getRelativePath(path).toString());
+            writer.writeAttribute(TITLE, title);
+            writer.writeAttribute(IS_FOLDER, "true");
+            writer.writeAttribute(PARENT_ID, operation.getOldValues().get(PARENT_ID));
+            writer.writeEndElement();
+            writer.writeEndElement();
+            writer.writeEndElement();
+        } catch (SecurityException ex) {
+            failure(ex.getMessage());
         }
-        var title = operation.getData(TITLE);
-        path = Files.move(path, path.getParent().resolve(title));
-        request.getSession().putProfileList(id, path);
-        writer.writeStartElement(RESPONSE);
-        writer.writeElement(STATUS, "0");
-        writer.writeStartElement("data");
-        writer.writeStartElement(RECORD);
-        writer.writeAttribute("ID", id.toString());
-        writer.writeAttribute("Path", pathAbstractor.getRelativePath(path).toString());
-        writer.writeAttribute(TITLE, title);
-        writer.writeAttribute(IS_FOLDER, "true");
-        writer.writeAttribute(PARENT_ID, operation.getOldValues().get(PARENT_ID));
-        writer.writeEndElement();
-        writer.writeEndElement();
-        writer.writeEndElement();
     }
 
     /**
