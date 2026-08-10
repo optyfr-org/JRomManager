@@ -1,6 +1,7 @@
 package jrm.fullserver.db;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -119,6 +120,67 @@ class SQLUtilsTest {
         @DisplayName("returns null for null input")
         void returnsNull() {
             assertThat(utils.backquote(null)).isNull();
+        }
+
+        @Test
+        @DisplayName("rejects injection characters")
+        void rejectsInjectionChars() {
+            assertThatThrownBy(() -> utils.backquote("a`b")).isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> utils.backquote("t; DROP TABLE x")).isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> utils.backquote("1bad")).isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("rejects blank identifier")
+        void rejectsBlank() {
+            assertThatThrownBy(() -> utils.backquote("  ")).isInstanceOf(IllegalArgumentException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("requireSqlIdentifier")
+    class RequireSqlIdentifierTest {
+        @Test
+        @DisplayName("accepts alphanumerics and underscore")
+        void acceptsSafe() {
+            assertThat(utils.requireSqlIdentifier("USERS")).isEqualTo("USERS");
+            assertThat(utils.requireSqlIdentifier("count_table")).isEqualTo("count_table");
+        }
+
+        @Test
+        @DisplayName("returns null for null")
+        void nullOk() {
+            assertThat(utils.requireSqlIdentifier(null)).isNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("requireSelectStatement")
+    class RequireSelectStatementTest {
+        @Test
+        @DisplayName("accepts SELECT statements")
+        void acceptsSelect() {
+            assertThat(utils.requireSelectStatement("SELECT * FROM USERS")).isEqualTo("SELECT * FROM USERS");
+        }
+
+        @Test
+        @DisplayName("accepts parenthesized SELECT")
+        void acceptsParenthesized() {
+            assertThat(utils.requireSelectStatement("(SELECT 1)")).isEqualTo("(SELECT 1)");
+        }
+
+        @Test
+        @DisplayName("rejects multi-statement input")
+        void rejectsSemicolon() {
+            assertThatThrownBy(() -> utils.requireSelectStatement("SELECT 1; DROP TABLE USERS"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("rejects non-SELECT")
+        void rejectsNonSelect() {
+            assertThatThrownBy(() -> utils.requireSelectStatement("DELETE FROM USERS"))
+                    .isInstanceOf(IllegalArgumentException.class);
         }
     }
 

@@ -1,6 +1,7 @@
 package jrm.fullserver.db;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.nio.file.Path;
 import java.sql.Connection;
@@ -86,6 +87,61 @@ class SQLTest {
             sql.update("INSERT INTO count_table VALUES(2)");
             final Long count = sql.count("SELECT * FROM count_table");
             assertThat(count).isEqualTo(2L);
+        }
+
+        @Test
+        @DisplayName("count rejects multi-statement select")
+        void countRejectsInjection() {
+            assertThatThrownBy(() -> sql.count("SELECT * FROM count_table; DROP TABLE count_table"))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("dropTable uses quoted identifier")
+        void dropTableQuoted() throws SQLException {
+            sql.update("CREATE TABLE drop_me(id INT PRIMARY KEY)");
+            sql.dropTable("drop_me");
+            assertThat(sql.count("SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = 'DROP_ME'")).isZero();
+        }
+
+        @Test
+        @DisplayName("countTbl returns table row count")
+        void countTbl() throws SQLException {
+            sql.update("CREATE TABLE tbl_count(id INT PRIMARY KEY)");
+            sql.update("INSERT INTO tbl_count VALUES(1)");
+            assertThat(sql.countTbl("tbl_count", null)).isEqualTo(1L);
+        }
+
+        @Test
+        @DisplayName("countTbl rejects unsafe table name")
+        void countTblRejectsInjection() {
+            assertThatThrownBy(() -> sql.countTbl("x; DROP TABLE y", null))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        @DisplayName("insert binds values and quotes identifiers")
+        void insertRoundTrip() throws SQLException {
+            sql.update("CREATE TABLE insert_table(id INT PRIMARY KEY, name VARCHAR(255))");
+            final var row = new java.util.LinkedHashMap<String, Object>();
+            row.put("id", 1);
+            row.put("name", "O'Reilly; DROP TABLE insert_table");
+            sql.insert("insert_table", null, row);
+            final var result = sql.queryFirst("SELECT * FROM insert_table WHERE id=?", 1);
+            assertThat(result).containsEntry("ID", 1).containsEntry("NAME", "O'Reilly; DROP TABLE insert_table");
+            assertThat(sql.countTbl("insert_table", null)).isEqualTo(1L);
+        }
+
+        @Test
+        @DisplayName("insert rejects unsafe table or column names")
+        void insertRejectsInjection() {
+            final var row = java.util.Map.<String, Object>of("id", 1);
+            assertThatThrownBy(() -> sql.insert("t; DROP TABLE x", null, row))
+                    .isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> sql.insert("safe_table", null, java.util.Map.of("a;b", 1)))
+                    .isInstanceOf(IllegalArgumentException.class);
+            assertThatThrownBy(() -> sql.insert("safe_table", null, java.util.Map.of()))
+                    .isInstanceOf(IllegalArgumentException.class);
         }
     }
 
