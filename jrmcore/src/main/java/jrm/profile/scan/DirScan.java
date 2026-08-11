@@ -1717,7 +1717,7 @@ public final class DirScan extends PathAbstractor {
             handler.setProgress(String.format(Messages.getString("DirScan.LoadingScanCache"), getRelativePath(file.toPath())), 0); //$NON-NLS-1$
             return (Map<String, Container>) SignedObjectStore.read(session, cachefile);
         } catch (final Exception e) {
-            Log.err(() -> "Failed to load cache file: " + cachefile.getAbsolutePath(), e);
+            Log.info(() -> "Failed to load cache file: " + cachefile.getAbsolutePath() + " (" + e.getMessage() + ")");
         }
         return Collections.synchronizedMap(new HashMap<>());
     }
