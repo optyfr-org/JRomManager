@@ -19,7 +19,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Tests for {@link SignedObjectStore}: signed round-trip, legacy bare streams, and legacy DirScan HMAC envelopes.
+ * Tests for {@link SignedObjectStore}: signed round-trip, bare-stream rejection, and legacy DirScan HMAC envelopes.
  */
 @DisplayName("SignedObjectStore tests")
 class SignedObjectStoreTest {
@@ -58,8 +58,8 @@ class SignedObjectStoreTest {
     }
 
     @Test
-    @DisplayName("legacy bare Java stream should still load")
-    void legacyBareJavaStreamShouldLoad() throws Exception {
+    @DisplayName("legacy bare Java stream should be rejected")
+    void legacyBareJavaStreamShouldBeRejected() throws Exception {
         final var original = new HashMap<String, String>();
         original.put("key", "value");
         final File file = tempDir.resolve("legacy.cache").toFile();
@@ -67,9 +67,9 @@ class SignedObjectStoreTest {
             oos.writeObject(original);
         }
 
-        @SuppressWarnings("unchecked")
-        final Map<String, String> loaded = (Map<String, String>) SignedObjectStore.read(session, file);
-        assertThat(loaded).containsExactlyInAnyOrderEntriesOf(original);
+        assertThatThrownBy(() -> SignedObjectStore.read(session, file))
+                .isInstanceOf(SecurityException.class)
+                .hasMessageContaining("Unsigned Java serialization");
     }
 
     @Test
