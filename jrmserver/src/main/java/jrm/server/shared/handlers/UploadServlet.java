@@ -199,7 +199,8 @@ public class UploadServlet extends HttpServlet {
      * <ul>
      * <li>Extracts and decodes filename and parent directory from HTTP headers</li>
      * <li>Verifies the target directory is writable according to the user's session</li>
-     * <li>Blocks uploads to the reports cache directory to prevent cache poisoning attacks</li>
+     * <li>Blocks uploads that could poison deserializable caches ({@code .cache}/{@code .nfo} files and
+     * internal cache directories)</li>
      * <li>Confirms the destination directory exists on the filesystem</li>
      * <li>Checks that sufficient disk space is available for the file</li>
      * <li>Validates the file path is syntactically correct</li>
@@ -221,10 +222,10 @@ public class UploadServlet extends HttpServlet {
             final String fileparent = sanitizeHeader(req.getHeader("x-file-parent"));
             validateUploadHeaders(filename, fileparent);
             
-            // Prevent uploads to the reports cache directory to mitigate cache poisoning attacks
-            if (isReportsCacheDirectory(ws, pathAbstractor, fileparent)) {
+            // Prevent uploads that can poison Java deserialization cache/nfo paths
+            if (isProtectedCacheTarget(ws, pathAbstractor, fileparent, filename)) {
                 result.status = 11;
-                result.extstatus = "Uploads to reports cache directory are not permitted";
+                result.extstatus = "Uploads to protected cache locations are not permitted";
                 return;
             }
             
@@ -324,27 +325,51 @@ public class UploadServlet extends HttpServlet {
     }
 
     /**
-     * Determines whether the requested parent directory resolves to the reports cache directory or any of its descendants.
+     * Determines whether an upload would overwrite a path consumed by Java deserialization loaders.
      * <p>
-     * This check mitigates cache-poisoning attacks by rejecting uploads whose resolved destination falls inside the reports cache
-     * subtree. The abstract {@code fileparent} is resolved through {@link PathAbstractor} and compared against the real reports cache
-     * root {@code session.getUser().getSettings().getWorkPath().resolve("reports")}, so only the actual cache directory is blocked.
-     * User-owned directories whose abstract names happen to contain "reports" are not affected.
+     * Rejects:
+     * </p>
+     * <ul>
+     * <li>Filenames ending in {@code .cache} or {@code .nfo} (profile/DirScan/ProfileNFO caches)</li>
+     * <li>Parents under the session work-tree {@code reports}, {@code cache}, or {@code work} directories</li>
+     * </ul>
+     * Session users can derive the HMAC key from their work path, so authenticated envelopes alone are not
+     * sufficient when the attacker can also write the destination file.
      *
      * @param ws the active web session
      * @param pathAbstractor the path abstractor for resolving {@code fileparent}
      * @param fileparent the abstract parent directory path from the request header
-     * 
-     * @return {@code true} if the resolved destination is inside the reports cache subtree
+     * @param filename the upload filename
+     *
+     * @return {@code true} if the upload targets a protected cache location
      */
-    private boolean isReportsCacheDirectory(final WebSession ws, final PathAbstractor pathAbstractor, final String fileparent) {
+    boolean isProtectedCacheTarget(final WebSession ws, final PathAbstractor pathAbstractor, final String fileparent,
+            final String filename) {
+        if (isProtectedCacheFilename(filename)) {
+            return true;
+        }
         try {
             final var resolved = pathAbstractor.getAbsolutePath(fileparent).toAbsolutePath().normalize();
-            final var reportsCache = ws.getUser().getSettings().getWorkPath().resolve("reports").toAbsolutePath().normalize(); //$NON-NLS-1$
-            return resolved.startsWith(reportsCache);
+            final var workPath = ws.getUser().getSettings().getWorkPath().toAbsolutePath().normalize();
+            return isUnderWorkSubdir(resolved, workPath, "reports")
+                    || isUnderWorkSubdir(resolved, workPath, "cache")
+                    || isUnderWorkSubdir(resolved, workPath, "work");
         } catch (final Exception e) { // Let normal path validation report resolution errors
             return false;
         }
+    }
+
+    private static boolean isProtectedCacheFilename(final String filename) {
+        if (filename == null || filename.isBlank()) {
+            return false;
+        }
+        final var lower = filename.toLowerCase();
+        return lower.endsWith(".cache") || lower.endsWith(".nfo");
+    }
+
+    private static boolean isUnderWorkSubdir(final Path resolved, final Path workPath, final String subdir) {
+        final var root = workPath.resolve(subdir).toAbsolutePath().normalize();
+        return resolved.startsWith(root);
     }
 
     /**
@@ -354,7 +379,7 @@ public class UploadServlet extends HttpServlet {
      * <ul>
      * <li>Extracts and decodes filename and parent directory from HTTP headers</li>
      * <li>Validates the target directory is writable</li>
-     * <li>Blocks uploads to the reports cache directory to prevent cache poisoning attacks</li>
+     * <li>Blocks uploads that could poison deserializable caches ({@code .cache}/{@code .nfo} and internal cache dirs)</li>
      * <li>Creates any necessary parent directories for the target file</li>
      * <li>Streams the request body to the target file on disk</li>
      * <li>Verifies the uploaded file size matches the expected size</li>
@@ -379,10 +404,10 @@ public class UploadServlet extends HttpServlet {
                 final String fileparent = sanitizeHeader(req.getHeader("x-file-parent"));
                 validateFilenameComponent(filename);
                 
-                // Prevent uploads to the reports cache directory to mitigate cache poisoning attacks
-                if (isReportsCacheDirectory(ws, pathAbstractor, fileparent)) {
+                // Prevent uploads that can poison Java deserialization cache/nfo paths
+                if (isProtectedCacheTarget(ws, pathAbstractor, fileparent, filename)) {
                     result.status = 11;
-                    result.extstatus = "Uploads to reports cache directory are not permitted";
+                    result.extstatus = "Uploads to protected cache locations are not permitted";
                     resp.getWriter().write(new Gson().toJson(result));
                     return;
                 }

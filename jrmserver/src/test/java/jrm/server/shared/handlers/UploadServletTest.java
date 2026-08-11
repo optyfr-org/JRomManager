@@ -154,7 +154,7 @@ class UploadServletTest {
             servlet.doPost(req, resp);
 
             final String json = writer.toString();
-            assertThat(json).contains("\"status\":11").contains("reports cache");
+            assertThat(json).contains("\"status\":11").contains("protected cache");
         }
 
         @Test
@@ -179,7 +179,56 @@ class UploadServletTest {
             servlet.doPost(req, resp);
 
             final String json = writer.toString();
-            assertThat(json).contains("\"status\":11").contains("reports cache");
+            assertThat(json).contains("\"status\":11").contains("protected cache");
+        }
+
+        @Test
+        @DisplayName("init=1 with profile .cache filename returns status 11")
+        void initProfileCacheFilenameBlocked() throws Exception {
+            Files.createDirectories(Path.of(System.getProperty("jrommanager.dir")).resolve("users").resolve("admin"));
+            final HttpSession httpSession = mock(HttpSession.class);
+            when(httpSession.getAttribute("session")).thenReturn(webSession);
+            final HttpServletRequest req = mock(HttpServletRequest.class);
+            lenient().when(req.getSession()).thenReturn(httpSession);
+            lenient().when(req.getRequestURI()).thenReturn("/upload/");
+            lenient().when(req.getParameter("init")).thenReturn("1");
+            lenient().when(req.getHeader("x-file-name")).thenReturn("mame.dat.cache");
+            lenient().when(req.getHeader("x-file-parent")).thenReturn("%25work");
+            lenient().when(req.getHeader("x-file-size")).thenReturn("100");
+
+            final StringWriter writer = new StringWriter();
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            when(resp.getWriter()).thenReturn(new PrintWriter(writer));
+
+            servlet.doPost(req, resp);
+
+            final String json = writer.toString();
+            assertThat(json).contains("\"status\":11").contains("protected cache");
+        }
+
+        @Test
+        @DisplayName("init=1 with DirScan cache directory returns status 11")
+        void initDirScanCacheDirectoryBlocked() throws Exception {
+            final var workPath = webSession.getUser().getSettings().getWorkPath();
+            Files.createDirectories(workPath.resolve("cache"));
+            final HttpSession httpSession = mock(HttpSession.class);
+            when(httpSession.getAttribute("session")).thenReturn(webSession);
+            final HttpServletRequest req = mock(HttpServletRequest.class);
+            lenient().when(req.getSession()).thenReturn(httpSession);
+            lenient().when(req.getRequestURI()).thenReturn("/upload/");
+            lenient().when(req.getParameter("init")).thenReturn("1");
+            lenient().when(req.getHeader("x-file-name")).thenReturn("scan.bin");
+            lenient().when(req.getHeader("x-file-parent")).thenReturn("%25work/cache");
+            lenient().when(req.getHeader("x-file-size")).thenReturn("100");
+
+            final StringWriter writer = new StringWriter();
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            when(resp.getWriter()).thenReturn(new PrintWriter(writer));
+
+            servlet.doPost(req, resp);
+
+            final String json = writer.toString();
+            assertThat(json).contains("\"status\":11").contains("protected cache");
         }
 
         @Test
@@ -297,7 +346,50 @@ class UploadServletTest {
             servlet.doPut(req, resp);
 
             final String json = writer.toString();
-            assertThat(json).contains("\"status\":11").contains("reports cache");
+            assertThat(json).contains("\"status\":11").contains("protected cache");
+        }
+
+        @Test
+        @DisplayName("profile .cache filename is rejected with status 11")
+        void profileCacheFilenameBlocked() throws Exception {
+            Files.createDirectories(Path.of(System.getProperty("jrommanager.dir")).resolve("users").resolve("admin"));
+            final HttpSession httpSession = mock(HttpSession.class);
+            when(httpSession.getAttribute("session")).thenReturn(webSession);
+            final HttpServletRequest req = mock(HttpServletRequest.class);
+            lenient().when(req.getSession()).thenReturn(httpSession);
+            lenient().when(req.getRequestURI()).thenReturn("/upload/");
+            lenient().when(req.getHeader("x-file-name")).thenReturn("mame.dat.cache");
+            lenient().when(req.getHeader("x-file-parent")).thenReturn("%25work");
+            lenient().when(req.getInputStream()).thenReturn(new ServletInputStream() {
+                @Override
+                public boolean isFinished() {
+                    return true;
+                }
+
+                @Override
+                public boolean isReady() {
+                    return true;
+                }
+
+                @Override
+                public void setReadListener(final jakarta.servlet.ReadListener readListener) {
+                    // no-op
+                }
+
+                @Override
+                public int read() throws IOException {
+                    return -1;
+                }
+            });
+
+            final StringWriter writer = new StringWriter();
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            when(resp.getWriter()).thenReturn(new PrintWriter(writer));
+
+            servlet.doPut(req, resp);
+
+            final String json = writer.toString();
+            assertThat(json).contains("\"status\":11").contains("protected cache");
         }
 
         @Test
