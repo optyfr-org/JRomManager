@@ -1440,10 +1440,15 @@ public class Profile implements Serializable, StatusRendererFactory {
      */
     private static Profile loadProfile(final Session session, final ProfileNFO nfo, final ProgressHandler handler) {
         final var cachefile = session.getUser().getSettings().getCacheFile(nfo.getFile());
+        Profile profile = null;
         if (shouldLoadFromCache(cachefile, nfo, session)) {
-            return loadCache(session, nfo, handler, null, cachefile);
+            profile = loadCache(session, nfo, handler, null, cachefile);
         }
-        return loadThenSaveToCache(session, nfo, handler);
+        // Cache may be missing, corrupt, unsigned, or rejected by the deserialization filter
+        if (profile == null) {
+            profile = loadThenSaveToCache(session, nfo, handler);
+        }
+        return profile;
     }
 
     /**
