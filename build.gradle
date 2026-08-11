@@ -162,7 +162,7 @@ subprojects {
         }
         finalizedBy jacocoTestReport
         minHeapSize = "256m" // initial heap size
-        maxHeapSize = "2G" // maximum heap size
+        maxHeapSize = "3G" // maximum heap size
         jvmArgs '-XX:+EnableDynamicAgentLoading',
             '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
             '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
