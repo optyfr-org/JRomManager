@@ -246,12 +246,23 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
     private void checkFilesFile(CheckFilesData data, final File src, final File dst, TorrentFile tfile, final TrntChkReport report, final ProgressHandler progress)
             throws IOException {
         current.incrementAndGet();
-        var file = dst.toPath();
-        for (String path : tfile.getFileDirs())
-            file = file.resolve(path);
-        data.paths.add(file.toAbsolutePath());
-        final var identity = Paths.get(".");
-        final Child node = report.add(tfile.getFileDirs().stream().map(Paths::get).reduce(identity, Path::resolve).toString());
+        final Path destRoot = dst.toPath().toAbsolutePath().normalize();
+        final Path file;
+        try {
+            file = resolveTorrentEntry(destRoot, tfile.getFileDirs());
+        } catch (IOException e) {
+            final Child node = report.add(String.join("/", tfile.getFileDirs()));
+            node.setStatus(Status.MISSING);
+            if (mode == TrntChkMode.FILENAME)
+                data.missingFiles++;
+            else
+                data.missingBytes += (node.getData().setLength(tfile.getFileLength()).getLength());
+            progress.setProgress(toDocument(toPurple(src.getAbsolutePath())), -1, null, e.getMessage());
+            progress.setProgress2(current + "/" + processing, current.get(), processing.get()); //$NON-NLS-1$
+            return;
+        }
+        data.paths.add(file);
+        final Child node = report.add(destRoot.relativize(file).toString());
         progress.setProgress(toDocument(toPurple(src.getAbsolutePath())), -1, null, file.toString());
         progress.setProgress2(current + "/" + processing, current.get(), processing.get()); //$NON-NLS-1$
         if (Files.exists(file)) {
@@ -418,14 +429,21 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
      */
     private void checkBlocksFile(final CheckBlocksData data, final File src, final File dst, TorrentFile tfile, final TrntChkReport report, final ProgressHandler progress)
             throws IOException {
-        var file = dst.toPath();
-        for (String path : tfile.getFileDirs())
-            file = file.resolve(path);
-        data.paths.add(file.toAbsolutePath());
-        final var identity = Paths.get(".");
-        data.node = data.block.add(tfile.getFileDirs().stream().map(Paths::get).reduce(identity, Path::resolve).toString());
-        try (BufferedInputStream in = getFileStram(options, data.wrongSizedFiles, data.node, data.valid, tfile, file)) {
-            progress.setProgress(toDocument(toPurple(src.getAbsolutePath())), -1, null, file.toString());
+        final Path destRoot = dst.toPath().toAbsolutePath().normalize();
+        Path file = null;
+        try {
+            file = resolveTorrentEntry(destRoot, tfile.getFileDirs());
+            data.paths.add(file);
+            data.node = data.block.add(destRoot.relativize(file).toString());
+        } catch (IOException e) {
+            data.node = data.block.add(String.join("/", tfile.getFileDirs()));
+            data.node.setStatus(Status.MISSING);
+            data.valid.set(false);
+        }
+        final Path resolved = file;
+        try (BufferedInputStream in = resolved == null ? null
+                : getFileStram(options, data.wrongSizedFiles, data.node, data.valid, tfile, resolved)) {
+            progress.setProgress(toDocument(toPurple(src.getAbsolutePath())), -1, null, resolved != null ? resolved.toString() : data.node.getData().getTitle());
             long flen = (data.node.getData().setLength(tfile.getFileLength()).getLength());
             while (flen >= data.toGo) {
                 hashStream(data.md, data.buffer, in, data.toGo);
@@ -451,10 +469,10 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
                 current.incrementAndGet();
                 data.valid.set(true);
                 if (flen > 0) {
-                    if (!Files.exists(file)) {
+                    if (resolved == null || !Files.exists(resolved)) {
                         data.valid.set(false);
                         data.node.setStatus(Status.MISSING);
-                    } else if (Files.size(file) != tfile.getFileLength()) {
+                    } else if (Files.size(resolved) != tfile.getFileLength()) {
                         data.valid.set(false);
                         data.node.setStatus(Status.SIZE);
                     }
@@ -575,6 +593,7 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
         final var components = new HashSet<String>();
         final var archives = new HashSet<Path>();
         final var dst = PathAbstractor.getAbsolutePath(session, sdr.getDst());
+        final Path destRoot = dst.toAbsolutePath().normalize();
         for (var j = 0; j < tfiles.size(); j++) {
             final TorrentFile tfile = tfiles.get(j);
             final List<String> filedirs = tfile.getFileDirs();
@@ -582,21 +601,23 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
                 final String path = filedirs.get(0);
                 if (!components.contains(path)) {
                     components.add(path);
-
-                    Path file = dst;
-                    file = file.resolve(path);
-
-                    isArchive(archives, file);
+                    try {
+                        isArchive(archives, resolveTorrentEntry(destRoot, List.of(path)));
+                    } catch (IOException e) {
+                        Log.debug(e.getMessage());
+                    }
                 }
             }
         }
         for (var j = 0; j < tfiles.size(); j++) {
             TorrentFile tfile = tfiles.get(j);
-            Path file = dst;
-            for (final String path : tfile.getFileDirs())
-                file = file.resolve(path);
-            if (archives.contains(file))
-                archives.remove(file);
+            try {
+                final Path file = resolveTorrentEntry(destRoot, tfile.getFileDirs());
+                if (archives.contains(file))
+                    archives.remove(file);
+            } catch (IOException e) {
+                Log.debug(e.getMessage());
+            }
         }
         for (Path archive : archives) {
             if (unarchive) {
@@ -715,6 +736,41 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
         final Path resolved = destDir.resolve(relativeName).normalize();
         if (!resolved.startsWith(destDir)) {
             throw new IOException("Zip entry escapes destination directory: " + relativeName);
+        }
+        return resolved;
+    }
+
+    /**
+     * Resolves torrent path components under {@code destDir}, rejecting absolute segments, {@code ..}, embedded separators,
+     * and any result that normalizes outside the destination tree.
+     *
+     * @param destDir absolute normalized destination directory
+     * @param components torrent file path elements
+     * @return path confined under {@code destDir}
+     * @throws IOException if the path would escape {@code destDir} or is otherwise invalid
+     */
+    static Path resolveTorrentEntry(final Path destDir, final List<String> components) throws IOException {
+        if (components == null || components.isEmpty()) {
+            throw new IOException("Torrent path is empty");
+        }
+        final Path root = destDir.toAbsolutePath().normalize();
+        Path resolved = root;
+        for (final String component : components) {
+            if (component == null || component.isEmpty() || ".".equals(component) || "..".equals(component)) {
+                throw new IOException("Torrent path component rejected: " + component);
+            }
+            if (component.indexOf('/') >= 0 || component.indexOf('\\') >= 0) {
+                throw new IOException("Torrent path component contains separator: " + component);
+            }
+            final Path segment = Paths.get(component);
+            if (segment.isAbsolute()) {
+                throw new IOException("Torrent path component is absolute: " + component);
+            }
+            resolved = resolved.resolve(segment);
+        }
+        resolved = resolved.normalize();
+        if (!resolved.startsWith(root) || resolved.equals(root)) {
+            throw new IOException("Torrent path escapes destination directory: " + String.join("/", components));
         }
         return resolved;
     }

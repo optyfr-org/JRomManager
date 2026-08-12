@@ -158,6 +158,36 @@ class TorrentCheckerTest {
         return torrentFile;
     }
 
+    /**
+     * Creates a multi-file torrent whose path uses {@code ..} to escape the destination directory.
+     */
+    private Path createTraversalMultiFileTorrent(String name) throws IOException {
+        BDictionary root = new BDictionary();
+        BDictionary info = new BDictionary();
+
+        info.add(new BByteString("name"), new BByteString(name));
+        info.add(new BByteString("piece length"), new BInt(16384L));
+        info.add(new BByteString("pieces"), new BByteString(new byte[20]));
+
+        BList files = new BList();
+
+        BDictionary file1 = new BDictionary();
+        file1.add(new BByteString("length"), new BInt(500L));
+        BList path1 = new BList();
+        path1.add(new BByteString(".."));
+        path1.add(new BByteString("evil-outside.txt"));
+        file1.add(new BByteString("path"), path1);
+
+        files.add(file1);
+
+        info.add(new BByteString("files"), files);
+        root.add(new BByteString("info"), info);
+
+        Path torrentFile = tempDir.resolve(name + ".torrent");
+        Files.write(torrentFile, root.bencode());
+        return torrentFile;
+    }
+
     // ──────────────────────────────────────────────────────────────
     //  Empty / unselected lists
     // ──────────────────────────────────────────────────────────────
@@ -487,6 +517,27 @@ class TorrentCheckerTest {
 
             assertThatCode(() -> new TorrentChecker<>(session, progress, sdrl, jrm.io.torrent.options.TrntChkMode.FILENAME,
                     updater, Set.of(TorrentChecker.Options.DETECTARCHIVEDFOLDERS))).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("FILESIZE REMOVEWRONGSIZEDFILES must not delete paths outside destDir")
+        void removeWrongSizedFilesMustRejectPathTraversal() throws IOException {
+            var torrentFile = createTraversalMultiFileTorrent("path-slip");
+            var dstDir = tempDir.resolve("dst-path-slip");
+            Files.createDirectories(dstDir);
+
+            var outsideTarget = tempDir.resolve("evil-outside.txt");
+            Files.write(outsideTarget, new byte[42]); // wrong size vs torrent length 500
+
+            var sdr = new SrcDstResult(torrentFile.toString(), dstDir.toString());
+            sdr.setSelected(true);
+            var sdrl = new SDRList<SrcDstResult>();
+            sdrl.add(sdr);
+
+            assertThatCode(() -> new TorrentChecker<>(session, progress, sdrl, jrm.io.torrent.options.TrntChkMode.FILESIZE,
+                    updater, Set.of(TorrentChecker.Options.REMOVEWRONGSIZEDFILES))).doesNotThrowAnyException();
+
+            assertThat(outsideTarget).exists().hasSize(42);
         }
 
         @Test
