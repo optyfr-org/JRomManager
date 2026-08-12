@@ -12,10 +12,13 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -484,6 +487,46 @@ class TorrentCheckerTest {
 
             assertThatCode(() -> new TorrentChecker<>(session, progress, sdrl, jrm.io.torrent.options.TrntChkMode.FILENAME,
                     updater, Set.of(TorrentChecker.Options.DETECTARCHIVEDFOLDERS))).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("DETECTARCHIVEDFOLDERS must not extract Zip Slip paths outside destDir")
+        void detectArchivedFoldersMustRejectZipSlipEntries() throws IOException {
+            var torrentFile = createNestedMultiFileTorrent("zipslip");
+            var dstDir = tempDir.resolve("dst-zipslip");
+            Files.createDirectories(dstDir);
+
+            // detectArchives looks for <first-component>.zip beside the expected folder
+            var maliciousZip = dstDir.resolve("subdir.zip");
+            var outsideTarget = tempDir.resolve("evil-outside.txt");
+            assertThat(outsideTarget).doesNotExist();
+
+            try (var zos = new ZipOutputStream(Files.newOutputStream(maliciousZip))) {
+                zos.putNextEntry(new ZipEntry("../../evil-outside.txt"));
+                zos.write("pwned".getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+                zos.putNextEntry(new ZipEntry("safe.txt"));
+                zos.write("ok".getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+            }
+
+            var sdr = new SrcDstResult(torrentFile.toString(), dstDir.toString());
+            sdr.setSelected(true);
+            var sdrl = new SDRList<SrcDstResult>();
+            sdrl.add(sdr);
+
+            assertThatCode(() -> new TorrentChecker<>(session, progress, sdrl, jrm.io.torrent.options.TrntChkMode.FILENAME,
+                    updater, Set.of(TorrentChecker.Options.DETECTARCHIVEDFOLDERS))).doesNotThrowAnyException();
+
+            assertThat(outsideTarget).doesNotExist();
+            assertThat(tempDir.resolve("evil-outside.txt")).doesNotExist();
+            // Safe entries under the extraction root may still be written before a bad entry aborts
+            var extractedRoot = dstDir.resolve("subdir");
+            if (Files.isDirectory(extractedRoot)) {
+                assertThat(extractedRoot.resolve("safe.txt")).satisfiesAnyOf(
+                        p -> assertThat(p).doesNotExist(),
+                        p -> assertThat(p).exists().hasContent("ok"));
+            }
         }
     }
 

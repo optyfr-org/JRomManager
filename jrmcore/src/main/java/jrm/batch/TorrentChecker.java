@@ -657,6 +657,7 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
         if (Files.notExists(destDir)) {
             Files.createDirectories(destDir);
         }
+        final Path normalizedDestDir = destDir.toAbsolutePath().normalize();
 
         try (final var zipFileSystem = FileSystems.newFileSystem(zipFile, (ClassLoader) null)) {
             Log.debug(() -> "unzipping : " + zipFile);
@@ -665,7 +666,11 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
             Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    final var destFile = Paths.get(destDir.toString(), file.toString());
+                    final Path destFile = resolveZipEntry(normalizedDestDir, root, file);
+                    final Path parent = destFile.getParent();
+                    if (parent != null && Files.notExists(parent)) {
+                        Files.createDirectories(parent);
+                    }
                     try {
                         Files.copy(file, destFile, StandardCopyOption.REPLACE_EXISTING);
                     } catch (DirectoryNotEmptyException _) {
@@ -676,13 +681,41 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
 
                 @Override
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                    final var dirToCreate = Paths.get(destDir.toString(), dir.toString());
+                    if (dir.equals(root)) {
+                        return FileVisitResult.CONTINUE;
+                    }
+                    final Path dirToCreate = resolveZipEntry(normalizedDestDir, root, dir);
                     if (Files.notExists(dirToCreate)) {
-                        Files.createDirectory(dirToCreate);
+                        Files.createDirectories(dirToCreate);
                     }
                     return FileVisitResult.CONTINUE;
                 }
             });
         }
+    }
+
+    /**
+     * Resolves a ZIP entry path against the extraction root and rejects path-traversal entries (Zip Slip).
+     *
+     * @param destDir absolute normalized extraction directory
+     * @param zipRoot root path of the ZIP filesystem
+     * @param zipEntry entry path within the ZIP filesystem
+     * @return destination path confined under {@code destDir}
+     * @throws IOException if the entry would escape {@code destDir}
+     */
+    private static Path resolveZipEntry(final Path destDir, final Path zipRoot, final Path zipEntry) throws IOException {
+        final Path relative = zipRoot.relativize(zipEntry);
+        var relativeName = relative.toString().replace('\\', '/');
+        while (relativeName.startsWith("/")) {
+            relativeName = relativeName.substring(1);
+        }
+        if (relativeName.isEmpty() || ".".equals(relativeName)) {
+            return destDir;
+        }
+        final Path resolved = destDir.resolve(relativeName).normalize();
+        if (!resolved.startsWith(destDir)) {
+            throw new IOException("Zip entry escapes destination directory: " + relativeName);
+        }
+        return resolved;
     }
 }
