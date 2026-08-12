@@ -22,6 +22,7 @@ import jrm.compressors.Archive;
 import jrm.compressors.SevenZipArchive;
 import jrm.compressors.ZipTools;
 import jrm.locale.Messages;
+import jrm.misc.IOUtils;
 import jrm.misc.Log;
 import jrm.profile.data.Entity;
 import jrm.profile.data.EntityBase;
@@ -88,7 +89,13 @@ public class AddEntry extends EntryAction {
      */
     @Override
     public boolean doAction(final Session session, final Path target, final ProgressHandler handler, int i, int max) {
-        final var dstpath = target.resolve(entity.getName());
+        final Path dstpath;
+        try {
+            dstpath = IOUtils.resolveContainedPath(target, entity.getName());
+        } catch (final IOException e) {
+            Log.err(String.format(ADD_FROM_S_TO_S_AT_S_FAILED, entry.getRelFile(), parent != null ? parent.container.getFile().getName() : target, entity.getName()), e);
+            return false;
+        }
         handler.setProgress(null, null, null, progress(i, max, String.format(session.getMsgs().getString(ADD_ENTRY_ADDING), entity.getName()))); // $NON-NLS-1$
         switch (entry.getParent().getType()) {
             case DIR:

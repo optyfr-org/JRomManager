@@ -97,16 +97,14 @@ public class DuplicateEntry extends EntryAction {
     public boolean doAction(final Session session, final Path target, final ProgressHandler handler, int i, int max) {
         Path dstpath = null;
         try {
-            dstpath = target.resolve(newname);
-            if (dstpath != null) {
-                handler.setProgress(null, null, null, progress(i, max, String.format(session.getMsgs().getString(DUPLICATE_ENTRY_DUPLICATING), entry.getRelFile(), newname))); // $NON-NLS-1$
-                final var srcpath = target.resolve(entry.getFile());
-                final var parent2 = dstpath.getParent();
-                if (parent2 != null)
-                    Files.createDirectories(parent2);
-                Files.copy(srcpath, dstpath);
-                return true;
-            }
+            dstpath = IOUtils.resolveContainedPath(target, newname);
+            handler.setProgress(null, null, null, progress(i, max, String.format(session.getMsgs().getString(DUPLICATE_ENTRY_DUPLICATING), entry.getRelFile(), newname))); // $NON-NLS-1$
+            final var srcpath = IOUtils.resolveContainedPath(target, entry.getFile());
+            final var parent2 = dstpath.getParent();
+            if (parent2 != null)
+                Files.createDirectories(parent2);
+            Files.copy(srcpath, dstpath);
+            return true;
         } catch (final Exception _) {
             Log.err(String.format(DUPLICATE_S_AT_S_TO_S_AT_S_FAILED, parent.container.getFile().getName(), entry.getRelFile(), parent.container.getFile().getName(), newname));
         }

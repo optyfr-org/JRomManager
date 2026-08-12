@@ -72,7 +72,7 @@ class NArchivePathTraversalTest {
                 
                 assertThatThrownBy(() -> archive.addStdIn(maliciousContent, maliciousEntry))
                     .isInstanceOf(IOException.class)
-                    .hasMessageContaining("escapes temporary directory");
+                    .hasMessageMatching(".*(escapes base directory|escapes temporary directory).*");
             }
         }
 
@@ -199,7 +199,7 @@ class NArchivePathTraversalTest {
             try (SevenZipArchive archive = new SevenZipArchive(session, archivePath.toFile())) {
                 assertThatThrownBy(() -> archive.add(sourceFile.toFile(), maliciousEntry))
                     .isInstanceOf(IOException.class)
-                    .hasMessageContaining("escapes temporary directory");
+                    .hasMessageMatching(".*(escapes base directory|escapes temporary directory).*");
             }
         }
     }
@@ -227,7 +227,7 @@ class NArchivePathTraversalTest {
             try (SevenZipArchive archive = new SevenZipArchive(session, archivePath.toFile(), true, null)) {
                 assertThatThrownBy(() -> archive.extract(maliciousEntry))
                     .isInstanceOf(IOException.class)
-                    .hasMessageContaining("escapes temporary directory");
+                    .hasMessageMatching(".*(escapes base directory|escapes temporary directory).*");
             }
         }
     }
@@ -255,7 +255,7 @@ class NArchivePathTraversalTest {
             try (SevenZipArchive archive = new SevenZipArchive(session, archivePath.toFile(), true, null)) {
                 assertThatThrownBy(() -> archive.extractStdOut(maliciousEntry))
                     .isInstanceOf(IOException.class)
-                    .hasMessageMatching(".*(escapes temporary directory|absolute).*");
+                    .hasMessageMatching(".*(escapes base directory|escapes temporary directory|absolute).*");
             }
         }
     }
@@ -278,7 +278,7 @@ class NArchivePathTraversalTest {
             final var baseDir = tempDir.resolve("extract-root").toFile();
             assertThatThrownBy(() -> ExtractorCallback.resolveContainedFile(baseDir, maliciousEntry))
                 .isInstanceOf(IOException.class)
-                .hasMessageMatching(".*(escapes temporary directory|absolute|null byte).*");
+                .hasMessageMatching(".*(escapes base directory|escapes temporary directory|absolute|null byte).*");
         }
 
         @Test
@@ -319,7 +319,7 @@ class NArchivePathTraversalTest {
                     assertThat(expected.getMessage() == null ? "" : expected.getMessage()
                             + (expected.getCause() != null && expected.getCause().getMessage() != null
                                     ? expected.getCause().getMessage() : ""))
-                            .matches("(?s).*(escapes temporary directory|absolute|null byte|SevenZip).*");
+                            .matches("(?s).*(escapes base directory|escapes temporary directory|absolute|null byte|SevenZip).*");
                 }
             }
 

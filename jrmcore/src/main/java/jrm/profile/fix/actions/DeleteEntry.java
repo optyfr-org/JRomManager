@@ -17,6 +17,7 @@ import jrm.aui.progress.ProgressHandler;
 import jrm.compressors.Archive;
 import jrm.compressors.ZipTools;
 import jrm.locale.Messages;
+import jrm.misc.IOUtils;
 import jrm.misc.Log;
 import jrm.profile.data.Entry;
 import jrm.security.Session;
@@ -84,7 +85,7 @@ public class DeleteEntry extends EntryAction {
         Path path = null;
         try {
             handler.setProgress(null, null, null, progress(i, max, String.format(session.getMsgs().getString(DELETE_ENTRY_DELETING), entry.getRelFile()))); // $NON-NLS-1$
-            path = target.resolve(entry.getFile());
+            path = IOUtils.resolveContainedPath(target, entry.getFile());
             Files.deleteIfExists(path);
             return true;
         } catch (final Exception _) {

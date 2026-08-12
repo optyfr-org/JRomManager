@@ -3,11 +3,11 @@ package jrm.compressors.sevenzipjbinding;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.file.Path;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 
+import jrm.misc.IOUtils;
 import jrm.misc.Log;
 import net.sf.sevenzipjbinding.ExtractAskMode;
 import net.sf.sevenzipjbinding.ExtractOperationResult;
@@ -117,32 +117,7 @@ public abstract class ExtractorCallback implements IArchiveExtractCallback {
      * @throws IOException if the entry is absolute, contains NULs, or would escape {@code baseDir}
      */
     public static File resolveContainedFile(final File baseDir, final String entryPath) throws IOException {
-        if (baseDir == null) {
-            throw new IOException("Extraction directory cannot be null");
-        }
-        if (entryPath == null || entryPath.isEmpty()) {
-            throw new IOException("Entry path cannot be null or empty");
-        }
-
-        final var normalizedEntry = entryPath.replace('\\', '/');
-        if (normalizedEntry.contains("\0")) {
-            throw new IOException("Entry path contains null byte: " + normalizedEntry);
-        }
-
-        final var hasWindowsDriveRoot = normalizedEntry.length() > 2
-            && Character.isLetter(normalizedEntry.charAt(0))
-            && normalizedEntry.charAt(1) == ':'
-            && (normalizedEntry.charAt(2) == '/' || normalizedEntry.charAt(2) == '\\');
-        if (normalizedEntry.startsWith("/") || normalizedEntry.startsWith("//") || hasWindowsDriveRoot) {
-            throw new IOException("Entry path cannot be absolute: " + normalizedEntry);
-        }
-
-        final Path basePath = baseDir.toPath().toAbsolutePath().normalize();
-        final Path resolved = basePath.resolve(normalizedEntry).normalize();
-        if (!resolved.startsWith(basePath)) {
-            throw new IOException("Entry path escapes temporary directory: " + normalizedEntry);
-        }
-        return resolved.toFile();
+        return IOUtils.resolveContainedFile(baseDir, entryPath);
     }
 
     /**

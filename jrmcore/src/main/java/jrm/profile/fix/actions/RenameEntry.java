@@ -19,6 +19,7 @@ import jrm.aui.progress.ProgressHandler;
 import jrm.compressors.Archive;
 import jrm.compressors.ZipTools;
 import jrm.locale.Messages;
+import jrm.misc.IOUtils;
 import jrm.misc.Log;
 import jrm.profile.data.Entry;
 import jrm.security.PathAbstractor;
@@ -97,9 +98,9 @@ public class RenameEntry extends EntryAction {
     public boolean doAction(final Session session, final Path target, final ProgressHandler handler, int i, int max) {
         Path dstpath = null;
         try {
-            dstpath = target.resolve(newname);
+            dstpath = IOUtils.resolveContainedPath(target, newname);
             handler.setProgress(null, null, null, progress(i, max, String.format(session.getMsgs().getString(RENAME_ENTRY_RENAMING), entry.getRelFile(), newname))); // $NON-NLS-1$
-            final var srcpath = target.resolve(entry.getFile());
+            final var srcpath = IOUtils.resolveContainedPath(target, entry.getFile());
             final var parent = dstpath.getParent();
             if (parent != null)
                 Files.createDirectories(parent);
