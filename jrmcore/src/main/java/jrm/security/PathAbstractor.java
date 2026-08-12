@@ -71,8 +71,9 @@ public class PathAbstractor {
     /**
      * Checks if the specified abstract path string is writeable under the provided session context.
      * <ul>
-     * <li>Paths starting with {@code %work} are writeable by all users.</li>
-     * <li>Paths starting with {@code %shared} are writeable only by administrators.</li>
+     * <li>Paths starting with {@code %work} or {@code %presets} are writeable by all users.</li>
+     * <li>Paths starting with {@code %shared}, or absolute paths under the shared root, are writeable only by
+     * administrators.</li>
      * <li>All other paths default to administrator-only write access.</li>
      * </ul>
      *
@@ -82,11 +83,91 @@ public class PathAbstractor {
      * @return {@code true} if the path is writeable under the session, {@code false} otherwise
      */
     public static boolean isWriteable(Session session, String strpath) {
-        if (strpath.startsWith(WORK))
+        if (strpath == null || strpath.isEmpty())
+            return session.getUser().isAdmin();
+        final String normalized = strpath.replace('\\', '/');
+        if (normalized.startsWith(WORK) || normalized.startsWith(PRESETS))
             return true;
-        if (strpath.startsWith(SHARED))
+        if (normalized.startsWith(SHARED) || isUnderSharedRoot(session, strpath))
             return session.getUser().isAdmin();
         return session.getUser().isAdmin();
+    }
+
+    /**
+     * Checks whether an absolute filesystem path is writeable under the session (same rules as
+     * {@link #isWriteable(Session, String)}, after abstracting the path when possible).
+     *
+     * @param session the active user session context
+     * @param path the absolute path to check
+     * @return {@code true} if writeable
+     */
+    public static boolean isWriteable(Session session, Path path) {
+        if (path == null)
+            return false;
+        final Path relative = getRelativePath(session, path.toAbsolutePath().normalize());
+        final String asString = relative.toString().replace('\\', '/');
+        if (asString.startsWith(WORK) || asString.startsWith(PRESETS) || asString.startsWith(SHARED))
+            return isWriteable(session, asString);
+        return isWriteable(session, path.toAbsolutePath().normalize().toString());
+    }
+
+    /**
+     * Ensures the path is writeable under the session; throws otherwise.
+     *
+     * @param session the active user session context
+     * @param strpath the abstract or absolute path string
+     * @throws SecurityException if the session may not write to the path
+     */
+    public static void requireWriteable(Session session, String strpath) throws SecurityException {
+        if (!isWriteable(session, strpath))
+            throw new SecurityException("Write access denied");
+    }
+
+    /**
+     * Ensures the path is writeable under the session; throws otherwise.
+     *
+     * @param session the active user session context
+     * @param path the absolute path
+     * @throws SecurityException if the session may not write to the path
+     */
+    public static void requireWriteable(Session session, Path path) throws SecurityException {
+        if (!isWriteable(session, path))
+            throw new SecurityException("Write access denied");
+    }
+
+    /**
+     * Resolves {@code strpath} like {@link #getAbsolutePath(Session, String)} but only after write authorization succeeds.
+     *
+     * @param session the active user session context
+     * @param strpath the abstract path string to resolve for a write destination
+     * @return the absolute, normalized path
+     * @throws SecurityException if write access is denied or the path is forged
+     */
+    public static Path getWritableAbsolutePath(Session session, final String strpath) throws SecurityException {
+        requireWriteable(session, strpath);
+        return getAbsolutePath(session, strpath);
+    }
+
+    /**
+     * Instance variant of {@link #getWritableAbsolutePath(Session, String)}.
+     *
+     * @param strpath the abstract path string to resolve for a write destination
+     * @return the absolute, normalized path
+     * @throws SecurityException if write access is denied or the path is forged
+     */
+    public Path getWritableAbsolutePath(final String strpath) throws SecurityException {
+        return getWritableAbsolutePath(session, strpath);
+    }
+
+    private static boolean isUnderSharedRoot(Session session, String strpath) {
+        try {
+            final Path path = Paths.get(strpath).toAbsolutePath().normalize();
+            final Path sharedRoot = session.getUser().getSettings().getBasePath().resolve("users").resolve("shared").toAbsolutePath()
+                    .normalize();
+            return path.startsWith(sharedRoot);
+        } catch (Exception _) {
+            return false;
+        }
     }
 
     /**

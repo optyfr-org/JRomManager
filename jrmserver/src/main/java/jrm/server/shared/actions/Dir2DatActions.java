@@ -133,10 +133,9 @@ public class Dir2DatActions {
      * progress and cancellation.
      * <h4>Security:</h4>
      * <p>
-     * This method validates all file paths using {@link PathAbstractor#getAbsolutePath(jrm.security.Session, String)} to prevent 
-     * directory traversal attacks and arbitrary file writes. In server mode, paths are restricted to allowed directories 
-     * (base path, temp dir, or user dir). If path validation fails, a {@link SecurityException} is caught and the operation 
-     * is cancelled with a warning message to the user.
+     * Source paths are resolved with {@link PathAbstractor#getAbsolutePath(jrm.security.Session, String)}; destinations use
+     * {@link PathAbstractor#getWritableAbsolutePath(jrm.security.Session, String)} so forged paths and non-writeable locations
+     * (e.g. {@code %shared} for non-admins) cannot reach {@code FileOutputStream}. Failures cancel the operation with a warning.
      * <h4>Thread Safety:</h4>
      * <p>
      * This method is designed to run in a separate thread, allowing for non-blocking execution of the transformation process.
@@ -174,65 +173,25 @@ public class Dir2DatActions {
     }
 
     /**
-     * Resolves abstract paths, checks workspace containment, then runs {@link Dir2Dat}.
-     * Paths from settings may be {@code %work/...} / {@code %shared/...} and must go through
-     * {@link PathAbstractor} before any workspace check.
+     * Resolves abstract paths through {@link PathAbstractor}, enforces write access on the
+     * destination, then runs {@link Dir2Dat}. Settings may hold {@code %work/...} /
+     * {@code %shared/...} placeholders and must never be passed raw to {@code FileOutputStream}.
+     * {@link Dir2Dat} re-checks the final destination stays under work/shared roots.
      */
     private void runDir2Dat(WebSession session, String srcdir, String dstdat, String format,
             EnumSet<DirScan.Options> options, HashMap<String, String> headers) {
         try {
-            Path validatedSrcDir = PathAbstractor.getAbsolutePath(session, srcdir);
-            Path validatedDstDat = PathAbstractor.getAbsolutePath(session, dstdat);
-
-            if (!isPathWithinWorkspace(validatedSrcDir, session)) {
-                Log.err("Dir2Dat operation rejected: source directory escapes workspace: " + srcdir);
-                return;
-            }
-            if (!isPathWithinWorkspace(validatedDstDat, session)) {
-                Log.err("Dir2Dat operation rejected: destination file escapes workspace: " + dstdat);
-                return;
-            }
+            final Path validatedSrcDir = PathAbstractor.getAbsolutePath(session, srcdir);
+            final Path validatedDstDat = PathAbstractor.getWritableAbsolutePath(session, dstdat);
 
             new Dir2Dat(session, validatedSrcDir.toFile(), validatedDstDat.toFile(), session.getWorker().progress,
                     options, ExportType.valueOf(format), headers);
         } catch (SecurityException e) {
             Log.err(() -> "Path validation failed for Dir2Dat operation: " + e.getMessage(), e);
             new GlobalActions(ws).warn("Invalid source directory or destination file path. Operation cancelled for security reasons.");
-        }
-    }
-
-    /**
-     * Validates that a resolved file path remains within the user's workspace directory.
-     * <p>
-     * Call only after {@link PathAbstractor#getAbsolutePath}; do not pass raw chooser strings.
-     * </p>
-     *
-     * @param path the resolved file path to validate
-     * @param session the web session containing the user's workspace configuration
-     * @return true if the path is within the workspace, false if it escapes the workspace
-     */
-    private boolean isPathWithinWorkspace(Path path, WebSession session) {
-        if (path == null)
-            return false;
-
-        try {
-            Path workPath = session.getUser().getSettings().getWorkPath().toRealPath();
-            Path normalizedPath = resolveForWorkspaceCheck(path);
-            return normalizedPath.startsWith(workPath);
-        } catch (IOException e) {
-            Log.err("Failed to validate path: " + path, e);
-            return false;
-        }
-    }
-
-    /**
-     * Existing paths use {@link Path#toRealPath()}; destinations that do not exist yet use normalized absolute path.
-     */
-    private static Path resolveForWorkspaceCheck(Path path) {
-        try {
-            return path.toRealPath();
-        } catch (IOException _) {
-            return path.toAbsolutePath().normalize();
+        } catch (IllegalArgumentException e) {
+            Log.err(() -> "Dir2Dat destination rejected: " + e.getMessage(), e);
+            new GlobalActions(ws).warn("Destination file path is outside the allowed workspace. Operation cancelled.");
         }
     }
 

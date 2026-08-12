@@ -20,7 +20,13 @@ import jrm.misc.Log;
  * Provides deserialization filtering to prevent arbitrary code execution attacks.
  * This filter implements an allowlist approach, only permitting safe classes from
  * the application and standard Java libraries to be deserialized.
- * 
+ * <p>
+ * Not a standalone public deserialization API. Production loads go through
+ * {@link SignedObjectStore} (HMAC integrity + this filter). Stream open helpers are
+ * package-private so other modules cannot call {@code ObjectInputStream.readObject()}
+ * without that gate.
+ * </p>
+ *
  * @author optyfr
  * @since 1.0
  */
@@ -127,33 +133,36 @@ public final class DeserializationFilter {
     
     /**
      * Creates a deserialization filter with the default depth limit and {@link Mode#DEFAULT} allowlist.
-     * 
+     * Package-private: production loads must go through {@link SignedObjectStore}.
+     *
      * @return ObjectInputFilter configured with allowlist of safe classes and the default depth limit
-     * 
+     *
      * @see #createFilter(int)
      * @see #createFilter(Mode, int)
      */
-    public static ObjectInputFilter createFilter() {
+    static ObjectInputFilter createFilter() {
         return createFilter(Mode.DEFAULT, MAX_DEPTH);
     }
-    
+
     /**
      * Creates a deserialization filter with a caller-specific depth limit and {@link Mode#DEFAULT} allowlist.
-     * 
+     * Package-private: production loads must go through {@link SignedObjectStore}.
+     *
      * @param maxDepth the maximum object graph depth to allow before rejecting the stream
      * @return ObjectInputFilter configured with allowlist of safe classes and the supplied depth limit
      */
-    public static ObjectInputFilter createFilter(final int maxDepth) {
+    static ObjectInputFilter createFilter(final int maxDepth) {
         return createFilter(Mode.DEFAULT, maxDepth);
     }
 
     /**
      * Creates a deserialization filter with the default depth limit and the supplied allowlist mode.
+     * Package-private: production loads must go through {@link SignedObjectStore}.
      *
      * @param mode the allowlist mode
      * @return ObjectInputFilter configured for the mode
      */
-    public static ObjectInputFilter createFilter(final Mode mode) {
+    static ObjectInputFilter createFilter(final Mode mode) {
         return createFilter(mode, MAX_DEPTH);
     }
 
@@ -164,23 +173,27 @@ public final class DeserializationFilter {
      * nest one {@code TrntChkReport.Child} per piece). Persisted formats that need a higher limit can call this overload
      * instead of the default.
      * </p>
-     * 
+     * <p>
+     * Package-private on purpose: the only production entry point is {@link SignedObjectStore}, which verifies an
+     * HMAC-SHA256 envelope before any {@code readObject()} call. Callers must not deserialize untrusted bytes.
+     * </p>
+     *
      * @param mode the allowlist mode ({@link Mode#DEFAULT} or stricter {@link Mode#REPORT})
      * @param maxDepth the maximum object graph depth to allow before rejecting the stream
      * @return ObjectInputFilter configured with the selected allowlist and depth limit
      */
-    public static ObjectInputFilter createFilter(final Mode mode, final int maxDepth) {
+    static ObjectInputFilter createFilter(final Mode mode, final int maxDepth) {
         final Mode effectiveMode = mode == null ? Mode.DEFAULT : mode;
         return filterInfo -> {
             Class<?> serialClass = filterInfo.serialClass();
-            
+
             // Reject if depth or array size exceeds reasonable limits (DoS prevention)
             if (filterInfo.depth() > maxDepth || filterInfo.arrayLength() > MAX_ARRAY_LENGTH) {
                 Log.warn(() -> String.format("Deserialization rejected: depth=%d (max=%d), arrayLength=%d (max=%d)",
                     filterInfo.depth(), maxDepth, filterInfo.arrayLength(), MAX_ARRAY_LENGTH));
                 return ObjectInputFilter.Status.REJECTED;
             }
-            
+
             // Allow null and primitive types
             if (serialClass == null) {
                 return ObjectInputFilter.Status.UNDECIDED;
@@ -193,13 +206,13 @@ public final class DeserializationFilter {
             if (serialClass.isEnum()) {
                 return ObjectInputFilter.Status.ALLOWED;
             }
-            
+
             String className = serialClass.getName();
-            
+
             if (isAllowedClassName(effectiveMode, className)) {
                 return ObjectInputFilter.Status.ALLOWED;
             }
-            
+
             // Reject everything else (including known gadget classes)
             Log.warn(() -> "Deserialization rejected for untrusted class: " + className);
             return ObjectInputFilter.Status.REJECTED;
@@ -208,49 +221,64 @@ public final class DeserializationFilter {
 
     /**
      * Opens an {@link ObjectInputStream} with the default deserialization filter already applied.
+     * Package-private: production loads must go through {@link SignedObjectStore}.
      *
      * @param in the underlying input stream
      * @return a filtered object input stream
      * @throws IOException if the stream cannot be opened
      */
-    public static ObjectInputStream openObjectInputStream(final InputStream in) throws IOException {
+    static ObjectInputStream openObjectInputStream(final InputStream in) throws IOException {
         return openObjectInputStream(in, Mode.DEFAULT, MAX_DEPTH);
     }
 
     /**
      * Opens an {@link ObjectInputStream} with a caller-specific depth limit already applied.
+     * Package-private: production loads must go through {@link SignedObjectStore}.
      *
      * @param in the underlying input stream
      * @param maxDepth the maximum object graph depth to allow
      * @return a filtered object input stream
      * @throws IOException if the stream cannot be opened
      */
-    public static ObjectInputStream openObjectInputStream(final InputStream in, final int maxDepth) throws IOException {
+    static ObjectInputStream openObjectInputStream(final InputStream in, final int maxDepth) throws IOException {
         return openObjectInputStream(in, Mode.DEFAULT, maxDepth);
     }
 
     /**
      * Opens an {@link ObjectInputStream} with the supplied allowlist mode and default depth limit.
+     * Package-private: production loads must go through {@link SignedObjectStore}.
      *
      * @param in the underlying input stream
      * @param mode the allowlist mode
      * @return a filtered object input stream
      * @throws IOException if the stream cannot be opened
      */
-    public static ObjectInputStream openObjectInputStream(final InputStream in, final Mode mode) throws IOException {
+    static ObjectInputStream openObjectInputStream(final InputStream in, final Mode mode) throws IOException {
         return openObjectInputStream(in, mode, MAX_DEPTH);
     }
 
     /**
-     * Opens an {@link ObjectInputStream} with the supplied allowlist mode and depth limit.
+     * Opens a filtered {@link ObjectInputStream}. Not a public API.
+     * <p>
+     * Defense in depth for Java deserialization (Aikido / CWE-502):
+     * </p>
+     * <ul>
+     * <li>Production callers use only {@link SignedObjectStore}, which rejects bare {@code 0xACED} streams and
+     * verifies a session-bound HMAC-SHA256 envelope before invoking this method.</li>
+     * <li>This method always installs an allowlist {@link ObjectInputFilter} (mode + depth + array limits) so
+     * gadget classes outside the app/JDK allowlist cannot be reconstituted even if integrity were bypassed.</li>
+     * <li>Persisted data is workspace cache/report content written by this application, not arbitrary user upload
+     * parsing endpoints.</li>
+     * </ul>
      *
-     * @param in the underlying input stream
+     * @param in the underlying input stream (must already be integrity-checked in production)
      * @param mode the allowlist mode
      * @param maxDepth the maximum object graph depth to allow
      * @return a filtered object input stream
      * @throws IOException if the stream cannot be opened
      */
-    public static ObjectInputStream openObjectInputStream(final InputStream in, final Mode mode, final int maxDepth) throws IOException {
+    static ObjectInputStream openObjectInputStream(final InputStream in, final Mode mode, final int maxDepth) throws IOException {
+        // ObjectInputStream is required for legacy cache/report graphs; filter + SignedObjectStore HMAC gate the risk.
         final var ois = new ObjectInputStream(in);
         ois.setObjectInputFilter(createFilter(mode, maxDepth));
         return ois;

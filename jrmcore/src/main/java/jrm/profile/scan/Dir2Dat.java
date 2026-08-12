@@ -42,6 +42,7 @@ import jrm.profile.data.SoftwareList;
 import jrm.profile.manager.Export;
 import jrm.profile.manager.Export.ExportType;
 import jrm.profile.scan.DirScan.Options;
+import jrm.security.PathAbstractor;
 import jrm.security.Session;
 import jrm.xml.EnhancedXMLStreamWriter;
 import jrm.xml.SimpleAttribute;
@@ -87,45 +88,52 @@ public class Dir2Dat {
      * @param options the scanning option ruleset filter configuration
      * @param type the target DAT file serialization style format
      * @param headers custom key-value pairs to write in the XML DAT header block
-     * @throws IllegalArgumentException if the destination file path escapes the workspace directory
+     * @throws IllegalArgumentException if server mode and the destination escapes the write sandbox
      */
     public Dir2Dat(final Session session, File srcdir, File dstdat, final ProgressHandler progress, Set<Options> options, ExportType type, Map<String, String> headers) {
         this.session = session;
-        
-        // Validate destination path to prevent directory traversal
-        if (!isPathWithinWorkspace(dstdat)) {
-            throw new IllegalArgumentException("Destination file path escapes workspace: " + dstdat.getAbsolutePath());
-        }
-        
+        requireWritableDestination(dstdat);
         DirScan srcDirScan = new DirScan(session, srcdir, progress, options);
         write(dstdat, srcDirScan, progress, options, type, headers);
     }
 
     /**
-     * Validates that a file path remains within the user's workspace directory.
-     * <p>
-     * This method canonicalizes the provided path and ensures it is a descendant of the user's work path,
-     * preventing directory traversal attacks.
-     * </p>
-     * 
-     * @param file the file to validate
-     * @return true if the path is within the workspace, false if it escapes the workspace
+     * In server mode, destination must be writeable under the session and stay inside the user
+     * work path or (admins only) the shared root. Desktop sessions are unrestricted.
      */
-    private boolean isPathWithinWorkspace(File file) {
-        if (file == null) {
+    private void requireWritableDestination(File dstdat) {
+        if (dstdat == null)
+            throw new IllegalArgumentException("Destination file is required");
+        if (!session.isServer())
+            return;
+        try {
+            final Path absolute = dstdat.toPath().toAbsolutePath().normalize();
+            PathAbstractor.requireWriteable(session, absolute);
+            if (!isInsideExportRoots(absolute))
+                throw new SecurityException("Forged path");
+        } catch (SecurityException e) {
+            throw new IllegalArgumentException("Destination file path escapes workspace: " + dstdat.getAbsolutePath(), e);
+        }
+    }
+
+    private boolean isInsideExportRoots(Path absolute) {
+        try {
+            final Path work = session.getUser().getSettings().getWorkPath().toAbsolutePath().normalize();
+            final Path shared = session.getUser().getSettings().getBasePath().resolve("users").resolve("shared").toAbsolutePath().normalize();
+            final Path candidate = resolveExistingOrNormalized(absolute);
+            final Path workReal = resolveExistingOrNormalized(work);
+            final Path sharedReal = resolveExistingOrNormalized(shared);
+            return candidate.startsWith(workReal) || (session.getUser().isAdmin() && candidate.startsWith(sharedReal));
+        } catch (Exception _) {
             return false;
         }
-        
+    }
+
+    private static Path resolveExistingOrNormalized(Path path) {
         try {
-            java.nio.file.Path workPath = session.getUser().getSettings().getWorkPath().toRealPath();
-            java.nio.file.Path canonicalPath = file.getCanonicalFile().toPath();
-            
-            // Check if the canonical path starts with the work path
-            return canonicalPath.startsWith(workPath);
-        } catch (java.io.IOException e) {
-            // If we can't resolve the path, reject it for safety
-            Log.err("Failed to validate path: " + file.getAbsolutePath(), e);
-            return false;
+            return path.toRealPath();
+        } catch (IOException _) {
+            return path.toAbsolutePath().normalize();
         }
     }
 

@@ -333,16 +333,44 @@ public final class ProfileNFOMame implements Serializable {
     }
 
     /**
-     * Physically deletes all extracted database XML files (ROM list and Software Lists) associated with this MAME installation.
+     * Physically deletes extracted database XML files that sit beside the given profile file.
+     * Paths outside the profile directory are ignored so crafted serialized metadata cannot delete arbitrary files.
+     *
+     * @param profileFile the trusted profile path whose directory bounds companion deletion
      */
-    public void delete() {
+    public void deleteAlongside(final File profileFile) {
         try {
-            if (fileroms != null)
+            if (isSiblingOf(fileroms, profileFile))
                 Files.deleteIfExists(fileroms.toPath());
-            if (filesl != null)
+            if (isSiblingOf(filesl, profileFile))
                 Files.deleteIfExists(filesl.toPath());
         } catch (IOException e) {
             Log.err(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Keeps only companion DAT paths that resolve as siblings of {@code profileFile}; clears the rest.
+     *
+     * @param profileFile the trusted profile path
+     */
+    void retainOnlySiblingPaths(final File profileFile) {
+        if (!isSiblingOf(fileroms, profileFile))
+            fileroms = null;
+        if (!isSiblingOf(filesl, profileFile))
+            filesl = null;
+    }
+
+    private static boolean isSiblingOf(final File candidate, final File profileFile) {
+        if (candidate == null || profileFile == null)
+            return false;
+        try {
+            final var profileParent = profileFile.getCanonicalFile().getParentFile();
+            final var candidateParent = candidate.getCanonicalFile().getParentFile();
+            return profileParent != null && profileParent.equals(candidateParent);
+        } catch (IOException e) {
+            Log.err("Failed to validate companion path against profile directory", e);
+            return false;
         }
     }
 }

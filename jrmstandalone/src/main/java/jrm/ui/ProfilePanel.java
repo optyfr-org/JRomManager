@@ -593,7 +593,7 @@ public class ProfilePanel extends JPanel {
      * @throws IOException
      */
     private void updateFromMame(final Session session, final ProfileNFO nfo, Import imprt) throws IOException {
-        nfo.getMame().delete();
+        nfo.getMame().deleteAlongside(nfo.getFile());
         nfo.getMame().setFileroms(new File(nfo.getFile().getParentFile(), imprt.getRomsFile().getName()));
         Files.copy(imprt.getRomsFile().toPath(), nfo.getMame().getFileroms().toPath(), StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);
         if (nfo.getMame().isSL()) {

@@ -48,6 +48,7 @@ public class ActionServlet extends HttpServlet {
      * on the {@code /actions/cmd} endpoint.
      */
     private static final String APPLICATION_JSON = "application/json";
+    private static final String APPLICATION_JSON_UTF8 = "application/json;charset=UTF-8";
 
     /**
      * Handles POST requests for processing client commands.
@@ -79,12 +80,13 @@ public class ActionServlet extends HttpServlet {
                 else if (req.getContentLength() < 0)
                     resp.setStatus(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
                 else if (req.getContentLength() > 0) {
-                    if (req.getContentType().equalsIgnoreCase(APPLICATION_JSON)) {
+                    if (isJsonContentType(req.getContentType())) {
                         final var buf = new byte[req.getContentLength()];
                         req.getInputStream().read(buf, 0, req.getContentLength());
                         new LongPollingReqMgr((WebSession) req.getSession().getAttribute("session")).process(new String(buf, StandardCharsets.UTF_8));
                         resp.setContentLength(0);
-                        resp.setContentType(APPLICATION_JSON);
+                        resp.setContentType(APPLICATION_JSON_UTF8);
+                        resp.setHeader("X-Content-Type-Options", "nosniff");
                         resp.setStatus(HttpServletResponse.SC_OK);
                     } else
                         resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -189,6 +191,8 @@ public class ActionServlet extends HttpServlet {
             var msg = sess.getLprMsg().poll(20, TimeUnit.SECONDS);
             if (msg == null && WebSession.isTerminate())
                 resp.setStatus(HttpServletResponse.SC_GONE);
+            else if (msg == null)
+                sendResp(resp, null);
             else {
                 final var msgs = new ArrayList<String>();
                 msgs.add(msg);
@@ -211,8 +215,9 @@ public class ActionServlet extends HttpServlet {
     /**
      * Sends the HTTP response with the specified message content.
      * <p>
-     * This method sets the appropriate response headers and writes the message to the response output stream. If the message is
-     * null, it sends an empty response with zero content length.
+     * This method sets JSON content type with charset, {@code X-Content-Type-Options: nosniff} (so browsers do not MIME-sniff the
+     * body as HTML), and writes the message to the response. If the message is null, it sends an empty response with zero content
+     * length. The body is server-built JSON for the authenticated long-poll client and must not be HTML-encoded.
      * 
      * @param resp the HTTP servlet response
      * @param msg the message content to send, or null for empty response
@@ -220,13 +225,30 @@ public class ActionServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs while writing the response
      */
     void sendResp(HttpServletResponse resp, String msg) throws IOException {
-        resp.setContentType(APPLICATION_JSON);
+        resp.setContentType(APPLICATION_JSON_UTF8);
+        resp.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        resp.setHeader("X-Content-Type-Options", "nosniff");
         resp.setStatus(HttpServletResponse.SC_OK);
         if (msg != null) {
-            resp.setContentLength(msg.getBytes(StandardCharsets.UTF_8).length);
-            resp.getWriter().write(msg);
+            final byte[] bytes = msg.getBytes(StandardCharsets.UTF_8);
+            resp.setContentLength(bytes.length);
+            resp.getOutputStream().write(bytes);
         } else
             resp.setContentLength(0);
+    }
+
+    /**
+     * Returns whether {@code contentType} is JSON, ignoring optional parameters such as {@code charset}.
+     *
+     * @param contentType the request {@code Content-Type} header value, may be null
+     * @return {@code true} if the media type is {@code application/json}
+     */
+    static boolean isJsonContentType(final String contentType) {
+        if (contentType == null || contentType.isBlank())
+            return false;
+        final int semi = contentType.indexOf(';');
+        final String mediaType = (semi < 0 ? contentType : contentType.substring(0, semi)).trim();
+        return APPLICATION_JSON.equalsIgnoreCase(mediaType);
     }
 
     /**

@@ -256,9 +256,12 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
         if (filenfo.lastModified() >= file.lastModified()) // $NON-NLS-1$
         {
             try {
-                ProfileNFO nfo = (ProfileNFO) SignedObjectStore.read(session, filenfo);
-                if (nfo.file != null)
+                final ProfileNFO nfo = (ProfileNFO) SignedObjectStore.read(session, filenfo);
+                if (nfo != null) {
+                    // Never trust filesystem paths from serialized NFO; bind to the caller-resolved profile path.
+                    nfo.bindToProfileFile(file);
                     return nfo;
+                }
             } catch (final InvalidClassException e) {
                 Log.err("Deserialization security violation detected in .nfo file: " + filenfo.getAbsolutePath() + " - " + e.getMessage(), e);
             } catch (final Exception e) {
@@ -266,6 +269,24 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
             }
         }
         return new ProfileNFO(file);
+    }
+
+    /**
+     * Rebinds this NFO to a server-resolved profile path and drops any deserialized companion paths
+     * that do not live beside that profile. Prevents crafted .nfo payloads from redirecting delete/save.
+     *
+     * @param profileFile the trusted profile database file path
+     */
+    void bindToProfileFile(final File profileFile) {
+        this.file = profileFile;
+        if (name == null || name.isBlank())
+            name = profileFile.getName();
+        if (mame == null)
+            mame = new ProfileNFOMame();
+        else
+            mame.retainOnlySiblingPaths(profileFile);
+        if (stats == null)
+            stats = new ProfileNFOStats();
     }
 
     /**
@@ -386,7 +407,7 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
     public boolean delete() {
         try {
             if (Files.deleteIfExists(file.toPath())) {
-                mame.delete();
+                mame.deleteAlongside(file);
                 Files.deleteIfExists(Paths.get(file.getAbsolutePath() + ".cache"));
                 Files.deleteIfExists(Paths.get(file.getAbsolutePath() + ".nfo"));
                 Files.deleteIfExists(Paths.get(file.getAbsolutePath() + ".properties"));

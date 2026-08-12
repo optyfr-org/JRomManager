@@ -3,6 +3,7 @@ package jrm.server.shared.datasources;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 
 import javax.xml.stream.XMLStreamException;
@@ -31,6 +32,10 @@ public class ProfilesListXMLResponse extends XMLResponse {
     /** XML element name for the xmlfiles directory context. */
     private static final String XMLFILES = "xmlfiles";
 
+    private static final String FILE = "File";
+
+    private static final String PATH_TRAVERSAL = "Invalid file path: path traversal detected";
+
     /**
      * Constructs a new ProfilesListXMLResponse.
      *
@@ -52,9 +57,7 @@ public class ProfilesListXMLResponse extends XMLResponse {
      */
     @Override
     protected void fetch(Operation operation) throws XMLStreamException {
-        Path dir = request.getSession().getUser().getSettings().getWorkPath().resolve(XMLFILES).toAbsolutePath().normalize();
-        if (operation.hasData(PARENT))
-            dir = pathAbstractor.getAbsolutePath(operation.getData(PARENT));
+        Path dir = resolveParentDir(operation);
         val rows = ProfileNFO.list(request.getSession(), dir.toFile());
         writer.writeStartElement(RESPONSE);
         writer.writeElement(STATUS, "0");
@@ -80,7 +83,7 @@ public class ProfilesListXMLResponse extends XMLResponse {
         writer.writeEmptyElement("record");
         writer.writeAttribute("Name", nfo.getName());
         writer.writeAttribute(PARENT, pathAbstractor.getRelativePath(nfo.getFile().getParentFile().toPath()).toString());
-        writer.writeAttribute("File", nfo.getFile().getName());
+        writer.writeAttribute(FILE, nfo.getFile().getName());
         writer.writeAttribute("version", nfo.getHTMLVersion());
         writer.writeAttribute("haveSets", nfo.getHTMLHaveSets());
         writer.writeAttribute("haveRoms", nfo.getHTMLHaveRoms());
@@ -100,31 +103,29 @@ public class ProfilesListXMLResponse extends XMLResponse {
     @Override
     protected void add(Operation operation) throws XMLStreamException {
         if (operation.hasData("Src")) {
-            Path dir = request.getSession().getUser().getSettings().getWorkPath().resolve(XMLFILES).toAbsolutePath().normalize();
-            if (operation.hasData(PARENT) && !StringUtils.isEmpty(operation.getData(PARENT)))
-                dir = pathAbstractor.getAbsolutePath(operation.getData(PARENT));
-            val src = pathAbstractor.getAbsolutePath(operation.getData("Src"));
-            if (Files.exists(src) && Files.isRegularFile(src)) {
-                try {
-                    Path dst = dir.resolve(operation.getData("File")).toAbsolutePath().normalize();
-                    if (!dst.startsWith(dir))
-                        throw new SecurityException("Invalid file path: path traversal detected");
-                    if (!src.equals(dst))
-                        Files.copy(src, dst, StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);
-                    final var nfo = ProfileNFO.load(request.getSession(), dst.toFile());
-                    writer.writeStartElement(RESPONSE);
-                    writer.writeElement(STATUS, "0");
-                    writer.writeStartElement("data");
-                    writeRecord(nfo);
-                    writer.writeEndElement();
-                    writer.writeEndElement();
-                } catch (IOException ex) {
-                    failure(ex.getMessage());
-                } catch (SecurityException ex) {
-                    failure(ex.getMessage());
-                }
-            } else
-                failure("Source file does not exist");
+            try {
+                Path dir = resolveParentDir(operation);
+                val src = pathAbstractor.getAbsolutePath(operation.getData("Src"));
+                if (Files.exists(src) && Files.isRegularFile(src)) {
+                    try {
+                        Path dst = resolveContainedFile(dir, operation.getData(FILE));
+                        if (!src.equals(dst))
+                            Files.copy(src, dst, StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);
+                        final var nfo = ProfileNFO.load(request.getSession(), dst.toFile());
+                        writer.writeStartElement(RESPONSE);
+                        writer.writeElement(STATUS, "0");
+                        writer.writeStartElement("data");
+                        writeRecord(nfo);
+                        writer.writeEndElement();
+                        writer.writeEndElement();
+                    } catch (IOException ex) {
+                        failure(ex.getMessage());
+                    }
+                } else
+                    failure("Source file does not exist");
+            } catch (SecurityException ex) {
+                failure(ex.getMessage());
+            }
         } else
             failure("Src is needed");
     }
@@ -139,12 +140,8 @@ public class ProfilesListXMLResponse extends XMLResponse {
     @Override
     protected void remove(Operation operation) throws XMLStreamException {
         try {
-            Path dir = request.getSession().getUser().getSettings().getWorkPath().resolve(XMLFILES).toAbsolutePath().normalize();
-            if (operation.hasData(PARENT) && !StringUtils.isEmpty(operation.getData(PARENT)))
-                dir = pathAbstractor.getAbsolutePath(operation.getData(PARENT));
-            val dst = dir.resolve(operation.getData("File")).toAbsolutePath().normalize();
-            if (!dst.startsWith(dir))
-                throw new SecurityException("Invalid file path: path traversal detected");
+            Path dir = resolveParentDir(operation);
+            val dst = resolveContainedFile(dir, operation.getData(FILE));
             ProfileNFO nfo = ProfileNFO.load(request.getSession(), dst.toFile());
             if (request.session.getCurrProfile() == null || !request.getSession().getCurrProfile().getNfo().equals(nfo)) {
                 if (nfo.delete()) {
@@ -153,7 +150,7 @@ public class ProfilesListXMLResponse extends XMLResponse {
                     writer.writeStartElement("data");
                     writer.writeEmptyElement("record");
                     writer.writeAttribute(PARENT, pathAbstractor.getRelativePath(nfo.getFile().getParentFile().toPath()).toString());
-                    writer.writeAttribute("File", nfo.getFile().getName());
+                    writer.writeAttribute(FILE, nfo.getFile().getName());
                     writer.writeEndElement();
                     writer.writeEndElement();
                 } else
@@ -177,16 +174,10 @@ public class ProfilesListXMLResponse extends XMLResponse {
     protected void custom(Operation operation) throws XMLStreamException, IOException {
         if ("DropCache".equals(operation.getOperationId().toString())) {
             try {
-                Path dir = request.getSession().getUser().getSettings().getWorkPath().resolve(XMLFILES).toAbsolutePath().normalize();
-                if (operation.hasData(PARENT) && !StringUtils.isEmpty(operation.getData(PARENT)))
-                    dir = pathAbstractor.getAbsolutePath(operation.getData(PARENT));
-                val dst = dir.resolve(operation.getData("File")).toAbsolutePath().normalize();
-                if (!dst.startsWith(dir))
-                    throw new SecurityException("Invalid file path: path traversal detected");
+                Path dir = resolveParentDir(operation);
+                val dst = resolveContainedFile(dir, operation.getData(FILE));
                 if (Files.isRegularFile(dst)) {
-                    val cache = dir.resolve(operation.getData("File") + ".cache").toAbsolutePath().normalize();
-                    if (!cache.startsWith(dir))
-                        throw new SecurityException("Invalid cache file path: path traversal detected");
+                    val cache = resolveContainedFile(dir, operation.getData(FILE) + ".cache");
                     if (Files.exists(cache) && !cache.toFile().delete())
                         failure("Can't delete " + cache);
                     else
@@ -198,5 +189,34 @@ public class ProfilesListXMLResponse extends XMLResponse {
             }
         } else
             super.custom(operation);
+    }
+
+    /**
+     * Resolves the profiles parent directory from the operation, defaulting to the session {@code xmlfiles} folder.
+     */
+    private Path resolveParentDir(Operation operation) {
+        Path dir = request.getSession().getUser().getSettings().getWorkPath().resolve(XMLFILES).toAbsolutePath().normalize();
+        if (operation.hasData(PARENT) && !StringUtils.isEmpty(operation.getData(PARENT)))
+            dir = pathAbstractor.getAbsolutePath(operation.getData(PARENT)).toAbsolutePath().normalize();
+        return dir;
+    }
+
+    /**
+     * Resolves {@code fileName} as a single path segment under {@code dir}. Rejects absolute paths, multi-segment
+     * relative paths, and any result that escapes {@code dir} after normalization.
+     *
+     * @throws SecurityException if the name is missing, not a plain file name, or escapes the base directory
+     */
+    static Path resolveContainedFile(Path dir, String fileName) {
+        if (StringUtils.isEmpty(fileName))
+            throw new SecurityException(PATH_TRAVERSAL);
+        final Path name = Paths.get(fileName);
+        if (name.isAbsolute() || name.getNameCount() != 1 || ".".equals(fileName) || "..".equals(fileName))
+            throw new SecurityException(PATH_TRAVERSAL);
+        final Path base = dir.toAbsolutePath().normalize();
+        final Path dst = base.resolve(name.getFileName().toString()).toAbsolutePath().normalize();
+        if (!dst.startsWith(base) || dst.equals(base))
+            throw new SecurityException(PATH_TRAVERSAL);
+        return dst;
     }
 }

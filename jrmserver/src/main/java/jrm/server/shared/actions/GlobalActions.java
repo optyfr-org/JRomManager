@@ -1,14 +1,17 @@
 package jrm.server.shared.actions;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Set;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonObject.Member;
 import com.eclipsesource.json.JsonValue;
 
 import jrm.misc.Log;
+import jrm.misc.SettingsEnum;
+import jrm.security.PathAbstractor;
+import jrm.security.Session;
 
 /**
  * Handles WebSocket actions for global application settings and system operations.
@@ -126,34 +129,49 @@ public class GlobalActions {
      *
      * @param jso the incoming JSON message containing property updates
      */
+    /** Destination path properties that must resolve and be writeable under the session sandbox. */
+    private static final Set<String> DEST_PATH_PROPERTIES = Set.of(
+            SettingsEnum.dir2dat_dst_file.toString(),
+            SettingsEnum.dir2dat_dst_file.name(),
+            SettingsEnum.dir2dat_lastdstdir.toString(),
+            SettingsEnum.dir2dat_lastdstdir.name());
+
+    /** Source/path properties that must resolve inside the session sandbox (read). */
+    private static final Set<String> SRC_PATH_PROPERTIES = Set.of(
+            SettingsEnum.dir2dat_src_dir.toString(),
+            SettingsEnum.dir2dat_src_dir.name(),
+            SettingsEnum.dir2dat_lastsrcdir.toString(),
+            SettingsEnum.dir2dat_lastsrcdir.name());
+
     public void setProperty(JsonObject jso) {
         JsonObject pjso = jso.get(PARAMS).asObject();
+        final var accepted = new JsonObject();
         for (Member m : pjso) {
             JsonValue value = m.getValue();
-            String propertyName = m.getName();
-            
-            // Validate file path properties to prevent directory traversal
-            if (isFilePathProperty(propertyName)) {
+            String propertyName = canonicalizePropertyName(m.getName());
+
+            if (isPathProperty(m.getName()) || isPathProperty(propertyName)) {
                 String stringValue = value.isString() ? value.asString() : value.toString();
-                if (!isPathWithinWorkspace(stringValue)) {
+                if (!isValidSandboxPath(stringValue, isDestPathProperty(m.getName()) || isDestPathProperty(propertyName))) {
                     Log.err("Rejected property '" + propertyName + "': path escapes workspace: " + stringValue);
                     continue;
                 }
             }
-            
+
             if (value.isBoolean())
                 ws.getSession().getUser().getSettings().setProperty(propertyName, value.asBoolean());
             else if (value.isString())
                 ws.getSession().getUser().getSettings().setProperty(propertyName, value.asString());
             else
                 ws.getSession().getUser().getSettings().setProperty(propertyName, value.toString());
+            accepted.add(propertyName, value);
         }
         try {
             if (ws.isOpen()) {
                 ws.getSession().getUser().getSettings().saveSettings();
                 final var rjso = new JsonObject();
                 rjso.add("cmd", "Global.updateProperty");
-                rjso.add(PARAMS, pjso);
+                rjso.add(PARAMS, accepted);
                 ws.send(rjso.toString());
             }
         } catch (IOException e) {
@@ -162,46 +180,66 @@ public class GlobalActions {
     }
 
     /**
-     * Determines if a property name represents a file path that should be validated.
-     * 
-     * @param propertyName the property name to check
-     * @return true if the property represents a file path that requires validation
+     * Maps client/legacy property aliases (enum {@code name()}) to the canonical {@link SettingsEnum#toString()} key.
      */
-    private boolean isFilePathProperty(String propertyName) {
-        return propertyName != null && (
-            propertyName.equals("dir2dat.dst_file") ||
-            propertyName.equals("dir2dat.src_dir") ||
-            propertyName.equals("dir2dat.lastdstdir") ||
-            propertyName.equals("dir2dat.lastsrcdir")
-        );
+    private static String canonicalizePropertyName(String propertyName) {
+        if (propertyName == null)
+            return null;
+        final SettingsEnum option = SettingsEnum.from(propertyName);
+        return option != null ? option.toString() : propertyName;
+    }
+
+    private static boolean isPathProperty(String propertyName) {
+        return isDestPathProperty(propertyName) || isSrcPathProperty(propertyName);
+    }
+
+    private static boolean isDestPathProperty(String propertyName) {
+        return propertyName != null && DEST_PATH_PROPERTIES.contains(propertyName);
+    }
+
+    private static boolean isSrcPathProperty(String propertyName) {
+        return propertyName != null && SRC_PATH_PROPERTIES.contains(propertyName);
     }
 
     /**
-     * Validates that a file path remains within the user's workspace directory.
-     * <p>
-     * This method canonicalizes the provided path and ensures it is a descendant of the user's work path,
-     * preventing directory traversal attacks.
-     * </p>
-     * 
-     * @param pathString the file path to validate
-     * @return true if the path is within the workspace or is null/empty, false if it escapes the workspace
+     * Validates path settings via {@link PathAbstractor}: resolve abstract {@code %work}/{@code %shared}
+     * placeholders, reject forged/traversal paths, require write access for destinations, and keep
+     * destinations inside work (or shared for admins).
      */
-    private boolean isPathWithinWorkspace(String pathString) {
-        if (pathString == null || pathString.trim().isEmpty()) {
-            return true; // Allow null or empty paths
-        }
-        
+    private boolean isValidSandboxPath(String pathString, boolean requireWrite) {
+        if (pathString == null || pathString.isBlank())
+            return true;
         try {
-            Path workPath = ws.getSession().getUser().getSettings().getWorkPath().toRealPath();
-            File file = new File(pathString);
-            Path canonicalPath = file.getCanonicalFile().toPath();
-            
-            // Check if the canonical path starts with the work path
-            return canonicalPath.startsWith(workPath);
-        } catch (IOException e) {
-            // If we can't resolve the path, reject it for safety
-            Log.err("Failed to validate path: " + pathString, e);
+            final var session = ws.getSession();
+            final var resolved = requireWrite
+                    ? PathAbstractor.getWritableAbsolutePath(session, pathString)
+                    : PathAbstractor.getAbsolutePath(session, pathString);
+            if (requireWrite && !isInsideExportRoots(session, resolved))
+                throw new SecurityException("Forged path");
+            return true;
+        } catch (SecurityException e) {
+            Log.err("Failed to validate path: " + pathString + " (" + e.getMessage() + ")");
             return false;
+        }
+    }
+
+    private static boolean isInsideExportRoots(Session session, Path absolute) {
+        try {
+            final Path work = session.getUser().getSettings().getWorkPath().toAbsolutePath().normalize();
+            final Path shared = session.getUser().getSettings().getBasePath().resolve("users").resolve("shared").toAbsolutePath().normalize();
+            final Path candidate = resolveExistingOrNormalized(absolute);
+            return candidate.startsWith(resolveExistingOrNormalized(work))
+                    || (session.getUser().isAdmin() && candidate.startsWith(resolveExistingOrNormalized(shared)));
+        } catch (Exception _) {
+            return false;
+        }
+    }
+
+    private static Path resolveExistingOrNormalized(Path path) {
+        try {
+            return path.toRealPath();
+        } catch (IOException _) {
+            return path.toAbsolutePath().normalize();
         }
     }
 
