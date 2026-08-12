@@ -33,7 +33,7 @@ class ProfileNFOPathRebindTest {
     void setUp() throws IOException {
         System.setProperty(JRM_DIR_PROP, tempDir.toString());
         Files.createDirectories(tempDir.resolve("users").resolve("JRomManager"));
-        session = new Session("profile-nfo-path-rebind-test");
+        session = new Session("profile-nfo-path-rebind-test", "JRomManager", new String[] { "admin" });
     }
 
     @AfterEach

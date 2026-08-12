@@ -138,9 +138,9 @@ public class Session {
     }
 
     /**
-     * Constructs a single-user server session with a specific session identifier. The {@link #server} flag is set to {@code true}
-     * and the default locale resource bundle is loaded. No explicit user is assigned; one will be lazily created via
-     * {@link #getUser()} if accessed.
+     * Constructs a server session with a specific session identifier and no authenticated user. The {@link #server} flag is set to
+     * {@code true} and the default locale resource bundle is loaded. A user must be assigned explicitly via {@link #setUser} (or the
+     * multi-user constructor) before privileged operations; {@link #getUser()} does not invent an admin identity.
      *
      * @param sessionId the unique session ID representing this session on the server
      */
@@ -152,34 +152,51 @@ public class Session {
 
     /**
      * Constructs a multi-user server session with a specific session identifier, username, and role assignments. Both the
-     * {@link #server} and {@link #multiuser} flags are set to {@code true}. If the username or roles are {@code null}, sensible
-     * defaults are applied:
-     * <ul>
-     * <li>Username defaults to {@code "server"}.</li>
-     * <li>Roles default to a single-element array containing {@value #ADMIN}.</li>
-     * </ul>
+     * {@link #server} and {@link #multiuser} flags are set to {@code true}. When {@code user} is {@code null}, no user is attached
+     * until {@link #setUser(String, String[])} is called (e.g. after successful login). When {@code user} is non-null and
+     * {@code roles} is {@code null}, roles default to a single {@value #ADMIN} role.
      *
      * @param sessionId the unique session ID representing this session on the server
-     * @param user the username to associate with this session; if {@code null}, defaults to {@code "server"}
-     * @param roles the roles assigned to the user; if {@code null}, defaults to a single {@code "admin"} role
+     * @param user the username to associate with this session; if {@code null}, the session remains unauthenticated
+     * @param roles the roles assigned to the user; if {@code null} and {@code user} is non-null, defaults to a single {@code "admin"}
+     *        role
      */
     public Session(String sessionId, String user, String[] roles) {
         this.multiuser = true;
         this.server = true;
         this.sessionId = sessionId;
-        this.user = new User(this, user == null ? "server" : user, roles == null ? new String[] { ADMIN } : roles);
+        if (user != null)
+            this.user = new User(this, user, roles == null ? new String[] { ADMIN } : roles);
         msgs = Messages.getBundle();
     }
 
     /**
-     * Returns the user context associated with this session. If no user is currently defined, a default administrator user named
-     * {@code "JRomManager"} is automatically created and cached for subsequent calls.
+     * Returns whether this session has an authenticated {@link User}. Server sessions stay unauthenticated until a user is assigned
+     * explicitly; desktop sessions always have a user after construction.
+     *
+     * @return {@code true} if a user is attached, {@code false} otherwise
+     */
+    public boolean hasUser() {
+        return user != null;
+    }
+
+    /**
+     * Returns the user context associated with this session.
+     * <p>
+     * For non-server (desktop/CLI) sessions only, a missing user is lazily initialized as the local administrator
+     * {@code "JRomManager"}. Server sessions never auto-elevate: callers must authenticate and assign a user first, or
+     * {@link #hasUser()} is {@code false} and this method throws.
+     * </p>
      *
      * @return the active {@link User} associated with this session; never {@code null}
+     * @throws IllegalStateException if this is a server session with no authenticated user
      */
     public User getUser() {
-        if (user == null)
+        if (user == null) {
+            if (server)
+                throw new IllegalStateException("No authenticated user for server session");
             user = new User(this, "JRomManager", new String[] { ADMIN });
+        }
         return user;
     }
 

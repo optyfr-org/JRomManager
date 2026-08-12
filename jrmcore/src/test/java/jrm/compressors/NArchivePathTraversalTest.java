@@ -43,7 +43,7 @@ class NArchivePathTraversalTest {
     void setUp() throws IOException {
         System.setProperty(JRM_DIR_PROP, tempDir.toString());
         Files.createDirectories(tempDir.resolve("users").resolve("JRomManager"));
-        session = new Session("path-traversal-test");
+        session = new Session("path-traversal-test", "JRomManager", new String[] { "admin" });
     }
 
     @AfterEach

@@ -55,7 +55,7 @@ class DirScanCacheTest {
     void setUp() throws IOException {
         System.setProperty(JRM_DIR_PROP, tempDir.toString());
         Files.createDirectories(tempDir.resolve("users").resolve("JRomManager"));
-        session = new Session("dirscan-cache-test");
+        session = new Session("dirscan-cache-test", "JRomManager", new String[] { "admin" });
         handler = mock(ProgressHandler.class, withSettings().stubOnly());
         when(handler.isCancel()).thenReturn(false);
         logHandler = new CapturingLogHandler();

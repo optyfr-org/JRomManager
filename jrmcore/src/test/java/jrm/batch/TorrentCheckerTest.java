@@ -60,7 +60,7 @@ class TorrentCheckerTest {
     void setUp() throws IOException {
         System.setProperty(JRM_DIR_PROP, tempDir.toString());
         Files.createDirectories(tempDir.resolve("users").resolve("JRomManager"));
-        session = new Session("torrent-checker-test");
+        session = new Session("torrent-checker-test", "JRomManager", new String[] { "admin" });
         session.getUser().getSettings().setProperty(SettingsEnum.use_parallelism, false);
         progress = mock(ProgressHandler.class, withSettings().stubOnly());
         when(progress.isCancel()).thenReturn(false);

@@ -39,7 +39,7 @@ class TrntChkReportTest {
     void setUp() throws IOException {
         System.setProperty(JRM_DIR_PROP, tempDir.toString());
         Files.createDirectories(tempDir.resolve("users").resolve("JRomManager"));
-        session = new Session("trntchk-report-test");
+        session = new Session("trntchk-report-test", "JRomManager", new String[] { "admin" });
     }
 
     @AfterEach

@@ -90,6 +90,20 @@ class ActionsMgrTest {
         assertThat(sentMessages).isEmpty();
     }
 
+    @Test
+    @DisplayName("processActions rejects Global.setProperty without authenticated user")
+    void processActionsRejectsUnauthenticatedSetProperty() {
+        webSession = new WebSession("actionsmgr-unauth");
+        final JsonObject params = new JsonObject();
+        params.add("evil.prop", "pwned");
+        final JsonObject jso = new JsonObject();
+        jso.add("cmd", "Global.setProperty");
+        jso.add("params", params);
+        mgr.processActions(mgr, jso);
+        assertThat(sentMessages).isEmpty();
+        assertThat(webSession.hasUser()).isFalse();
+    }
+
     @Nested
     @DisplayName("Global command routing")
     class GlobalRoutingTest {

@@ -74,12 +74,16 @@ public class Server extends AbstractServer {
      */
     private static int httpPort = HTTP_PORT_DEFAULT;
 
-    /** Default bind address for the server (all network interfaces). */
-    private static final String BIND_DEFAULT = "0.0.0.0";
+    /**
+     * Default bind address for the simple (unauthenticated) server: loopback only. The simple server has no login; binding all
+     * interfaces would expose admin settings and actions on the network. Use {@code -b 0.0.0.0} or {@code JRM_SERVER_BIND} only when
+     * the host is otherwise firewalled (e.g. Docker publishes a single port).
+     */
+    private static final String BIND_DEFAULT = "127.0.0.1";
 
     /**
-     * The IP address or hostname to which the server socket will be bound. Defaults to {@value #BIND_DEFAULT} (all interfaces). Can
-     * be overridden via command-line arguments or environment properties.
+     * The IP address or hostname to which the server socket will be bound. Defaults to {@value #BIND_DEFAULT} (loopback). Can be
+     * overridden via command-line arguments or environment properties.
      */
     private static String bind = BIND_DEFAULT;
 

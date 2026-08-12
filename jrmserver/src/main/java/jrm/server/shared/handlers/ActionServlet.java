@@ -61,6 +61,7 @@ public class ActionServlet extends HttpServlet {
      * <li>{@code 411 Length Required} - if content length is negative (long)</li>
      * <li>{@code 413 Request Entity Too Large} - if content length exceeds int range</li>
      * <li>{@code 400 Bad Request} - if content type is not application/json, or if body is empty</li>
+     * <li>{@code 401 Unauthorized} - if there is no HTTP session or the session has no authenticated user</li>
      * <li>{@code 501 Not Implemented} - if request URI does not match /actions/cmd</li>
      * <li>{@code 200 OK} - command processed successfully</li>
      * <li>{@code 500 Internal Server Error} - on unexpected exceptions</li>
@@ -75,6 +76,9 @@ public class ActionServlet extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
         try {
             if ("/actions/cmd".equals(req.getRequestURI())) {
+                final WebSession sess = requireAuthenticatedSession(req, resp);
+                if (sess == null)
+                    return;
                 if (req.getContentLengthLong() < 0)
                     resp.setStatus(HttpServletResponse.SC_LENGTH_REQUIRED);
                 else if (req.getContentLength() < 0)
@@ -83,7 +87,7 @@ public class ActionServlet extends HttpServlet {
                     if (isJsonContentType(req.getContentType())) {
                         final var buf = new byte[req.getContentLength()];
                         req.getInputStream().read(buf, 0, req.getContentLength());
-                        new LongPollingReqMgr((WebSession) req.getSession().getAttribute("session")).process(new String(buf, StandardCharsets.UTF_8));
+                        new LongPollingReqMgr(sess).process(new String(buf, StandardCharsets.UTF_8));
                         resp.setContentLength(0);
                         resp.setContentType(APPLICATION_JSON_UTF8);
                         resp.setHeader("X-Content-Type-Options", "nosniff");
@@ -111,6 +115,7 @@ public class ActionServlet extends HttpServlet {
      * HTTP status codes returned:
      * <ul>
      * <li>{@code 200 OK} - request processed successfully</li>
+     * <li>{@code 401 Unauthorized} - if there is no HTTP session or the session has no authenticated user</li>
      * <li>{@code 410 Gone} - if the server is terminating</li>
      * <li>{@code 501 Not Implemented} - if request URI does not match known endpoints</li>
      * <li>{@code 500 Internal Server Error} - on unexpected exceptions</li>
@@ -124,7 +129,9 @@ public class ActionServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
         try {
-            WebSession sess = (WebSession) req.getSession().getAttribute("session");
+            final WebSession sess = requireAuthenticatedSession(req, resp);
+            if (sess == null)
+                return;
             switch (req.getRequestURI()) {
                 case "/actions/init": {
                     doInit(sess);
@@ -142,6 +149,29 @@ public class ActionServlet extends HttpServlet {
         } catch (Exception _) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    /**
+     * Returns the request {@link WebSession} only when it has an authenticated user; otherwise responds with
+     * {@code 401 Unauthorized} and returns {@code null}.
+     * <p>
+     * Creating an HTTP session is not enough: multi-user {@link WebSession}s stay without a user until login, and
+     * {@link jrm.security.Session#getUser()} no longer invents an admin identity on server sessions. The simple
+     * single-user server assigns a local admin in {@link jrm.server.SessionListener} after session creation.
+     * </p>
+     *
+     * @param req  the HTTP request
+     * @param resp the HTTP response
+     * @return the authenticated session, or {@code null} if the request was rejected
+     */
+    static WebSession requireAuthenticatedSession(final HttpServletRequest req, final HttpServletResponse resp) {
+        final var httpSession = req.getSession(true);
+        final WebSession sess = httpSession != null ? (WebSession) httpSession.getAttribute("session") : null;
+        if (sess == null || !sess.hasUser()) {
+            resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return null;
+        }
+        return sess;
     }
 
     /**

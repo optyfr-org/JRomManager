@@ -144,6 +144,11 @@ public class GlobalActions {
             SettingsEnum.dir2dat_lastsrcdir.name());
 
     public void setProperty(JsonObject jso) {
+        final Session session = ws.getSession();
+        if (session == null || !session.hasUser()) {
+            Log.err("Rejected Global.setProperty: no authenticated user");
+            return;
+        }
         JsonObject pjso = jso.get(PARAMS).asObject();
         final var accepted = new JsonObject();
         for (Member m : pjso) {
@@ -159,16 +164,16 @@ public class GlobalActions {
             }
 
             if (value.isBoolean())
-                ws.getSession().getUser().getSettings().setProperty(propertyName, value.asBoolean());
+                session.getUser().getSettings().setProperty(propertyName, value.asBoolean());
             else if (value.isString())
-                ws.getSession().getUser().getSettings().setProperty(propertyName, value.asString());
+                session.getUser().getSettings().setProperty(propertyName, value.asString());
             else
-                ws.getSession().getUser().getSettings().setProperty(propertyName, value.toString());
+                session.getUser().getSettings().setProperty(propertyName, value.toString());
             accepted.add(propertyName, value);
         }
         try {
             if (ws.isOpen()) {
-                ws.getSession().getUser().getSettings().saveSettings();
+                session.getUser().getSettings().saveSettings();
                 final var rjso = new JsonObject();
                 rjso.add("cmd", "Global.updateProperty");
                 rjso.add(PARAMS, accepted);

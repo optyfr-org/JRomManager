@@ -52,6 +52,7 @@ class ActionServletTest {
         when(httpSession.getAttribute("session")).thenReturn(webSession);
         final HttpServletRequest req = mock(HttpServletRequest.class);
         lenient().when(req.getSession()).thenReturn(httpSession);
+        lenient().when(req.getSession(true)).thenReturn(httpSession);
         lenient().when(req.getRequestURI()).thenReturn(uri);
         lenient().when(req.getContentLengthLong()).thenReturn(contentLengthLong);
         lenient().when(req.getContentLength()).thenReturn(contentLength);
@@ -137,6 +138,26 @@ class ActionServletTest {
             servlet.doPost(req, resp);
             verify(resp).setStatus(HttpServletResponse.SC_OK);
         }
+
+        @Test
+        @DisplayName("session without authenticated user returns SC_UNAUTHORIZED")
+        void unauthenticatedWebSession() throws Exception {
+            final WebSession unauth = new WebSession("unauth-action");
+            final HttpSession httpSession = mock(HttpSession.class);
+            when(httpSession.getAttribute("session")).thenReturn(unauth);
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            final String jsonCmd = "{\"cmd\":\"Global.setProperty\",\"params\":{\"x\":\"y\"}}";
+            final byte[] body = jsonCmd.getBytes(StandardCharsets.UTF_8);
+            final HttpServletRequest req = mock(HttpServletRequest.class);
+            when(req.getRequestURI()).thenReturn("/actions/cmd");
+            when(req.getSession(true)).thenReturn(httpSession);
+            lenient().when(req.getContentLengthLong()).thenReturn((long) body.length);
+            lenient().when(req.getContentLength()).thenReturn(body.length);
+            lenient().when(req.getContentType()).thenReturn("application/json");
+            servlet.doPost(req, resp);
+            verify(resp).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            assertThat(unauth.hasUser()).isFalse();
+        }
     }
 
     @Nested
@@ -150,9 +171,24 @@ class ActionServletTest {
             when(httpSession.getAttribute("session")).thenReturn(webSession);
             final HttpServletRequest req = mock(HttpServletRequest.class);
             when(req.getSession()).thenReturn(httpSession);
+            when(req.getSession(true)).thenReturn(httpSession);
             when(req.getRequestURI()).thenReturn("/actions/unknown");
             servlet.doGet(req, resp);
             verify(resp).setStatus(HttpServletResponse.SC_NOT_IMPLEMENTED);
+        }
+
+        @Test
+        @DisplayName("unauthenticated GET returns SC_UNAUTHORIZED")
+        void unauthenticatedGet() throws Exception {
+            final WebSession unauth = new WebSession("unauth-get");
+            final HttpSession httpSession = mock(HttpSession.class);
+            when(httpSession.getAttribute("session")).thenReturn(unauth);
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            final HttpServletRequest req = mock(HttpServletRequest.class);
+            when(req.getSession(true)).thenReturn(httpSession);
+            when(req.getRequestURI()).thenReturn("/actions/init");
+            servlet.doGet(req, resp);
+            verify(resp).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
     }
 

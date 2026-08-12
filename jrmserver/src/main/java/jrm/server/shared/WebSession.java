@@ -188,8 +188,8 @@ public class WebSession extends Session implements Closeable, Serializable {
      * </p>
      *
      * @param sessionId the unique HTTP session identifier
-     * @param user the username for this session, or {@code null} to use the default
-     * @param roles the roles assigned to this session, or {@code null} to use the default
+     * @param user the username for this session, or {@code null} until login assigns one
+     * @param roles the roles assigned to this session; ignored when {@code user} is {@code null}
      */
     public WebSession(String sessionId, String user, String[] roles) {
         super(sessionId, user, roles);

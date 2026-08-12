@@ -51,7 +51,7 @@ class DirUpdaterTest {
     void setUp() throws IOException {
         System.setProperty(JRM_DIR_PROP, tempDir.toString());
         Files.createDirectories(tempDir.resolve("users").resolve("JRomManager"));
-        session = new Session("dirupdater-test");
+        session = new Session("dirupdater-test", "JRomManager", new String[] { "admin" });
         progress = mock(ProgressHandler.class, withSettings().stubOnly());
         when(progress.isCancel()).thenReturn(false);
         resultUpdater = mock(ResultColUpdater.class);

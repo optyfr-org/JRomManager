@@ -283,9 +283,13 @@ public class Login extends SQL implements LoginService {
                 cache.clear();
                 setCachetime(System.currentTimeMillis());
             }
-            if (sessionid != null && cache.containsKey(username + ":" + sessionid))
-                return cache.get(username + ":" + sessionid);
-            else {
+            if (sessionid != null && cache.containsKey(username + ":" + sessionid)) {
+                final var identity = cache.get(username + ":" + sessionid);
+                // Re-bind WebSession user after HTTP session recreation or listener init.
+                if (sess != null && !sess.hasUser())
+                    sess.setUser(username, rolesFromIdentity(identity));
+                return identity;
+            } else {
                 final var credential = new CryptCredential(username, this);
                 if (credential.check(credentials)) {
                     final var principal = new UserPrincipal(credential.getUser().getLogin(), credential);
@@ -299,7 +303,8 @@ public class Login extends SQL implements LoginService {
                     final var identity = identityService.newUserIdentity(subject, principal, roles);
                     if (sessionid != null) {
                         cache.put(username + ":" + sessionid, identity);
-                        sess.setUser(username, roles);
+                        if (sess != null)
+                            sess.setUser(username, roles);
                     }
                     return identity;
                 }
@@ -308,6 +313,18 @@ public class Login extends SQL implements LoginService {
             cacheLock.unlock();
         }
         return null;
+    }
+
+    /**
+     * Extracts role names from a Jetty {@link UserIdentity} subject (RolePrincipal principals).
+     *
+     * @param identity authenticated identity
+     * @return role name array; never null
+     */
+    private static String[] rolesFromIdentity(final UserIdentity identity) {
+        if (identity == null || identity.getSubject() == null)
+            return new String[0];
+        return identity.getSubject().getPrincipals(RolePrincipal.class).stream().map(RolePrincipal::getName).toArray(String[]::new);
     }
 
     /**
