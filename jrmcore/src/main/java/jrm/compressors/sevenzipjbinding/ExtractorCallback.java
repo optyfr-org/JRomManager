@@ -3,6 +3,7 @@ package jrm.compressors.sevenzipjbinding;
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.nio.file.Path;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
@@ -97,14 +98,51 @@ public abstract class ExtractorCallback implements IArchiveExtractCallback {
                 rafs.get(index).close();
                 String path = (String) this.nArchive.getIInArchive().getProperty(index, PropID.PATH);
                 File tmpfile = tmpfiles.get(index);
-                File dstfile = new File(baseDir, path);
+                File dstfile = resolveContainedFile(baseDir, path);
                 FileUtils.forceMkdirParent(dstfile);
                 if (!dstfile.exists())
                     FileUtils.moveFile(tmpfile, dstfile);
             } catch (IOException e) {
-                Log.err(e.getMessage(), e);
+                throw new SevenZipException(e.getMessage(), e);
             }
         }
+    }
+
+    /**
+     * Resolves an archive entry path against the extraction root and rejects path-traversal entries (Zip Slip).
+     *
+     * @param baseDir extraction root directory
+     * @param entryPath archive-controlled entry path (from {@link PropID#PATH} or a caller-supplied name)
+     * @return destination file confined under {@code baseDir}
+     * @throws IOException if the entry is absolute, contains NULs, or would escape {@code baseDir}
+     */
+    public static File resolveContainedFile(final File baseDir, final String entryPath) throws IOException {
+        if (baseDir == null) {
+            throw new IOException("Extraction directory cannot be null");
+        }
+        if (entryPath == null || entryPath.isEmpty()) {
+            throw new IOException("Entry path cannot be null or empty");
+        }
+
+        final var normalizedEntry = entryPath.replace('\\', '/');
+        if (normalizedEntry.contains("\0")) {
+            throw new IOException("Entry path contains null byte: " + normalizedEntry);
+        }
+
+        final var hasWindowsDriveRoot = normalizedEntry.length() > 2
+            && Character.isLetter(normalizedEntry.charAt(0))
+            && normalizedEntry.charAt(1) == ':'
+            && (normalizedEntry.charAt(2) == '/' || normalizedEntry.charAt(2) == '\\');
+        if (normalizedEntry.startsWith("/") || normalizedEntry.startsWith("//") || hasWindowsDriveRoot) {
+            throw new IOException("Entry path cannot be absolute: " + normalizedEntry);
+        }
+
+        final Path basePath = baseDir.toPath().toAbsolutePath().normalize();
+        final Path resolved = basePath.resolve(normalizedEntry).normalize();
+        if (!resolved.startsWith(basePath)) {
+            throw new IOException("Entry path escapes temporary directory: " + normalizedEntry);
+        }
+        return resolved.toFile();
     }
 
     /**

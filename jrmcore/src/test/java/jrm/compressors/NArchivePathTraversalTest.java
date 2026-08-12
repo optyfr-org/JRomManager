@@ -6,8 +6,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,6 +21,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import jrm.compressors.sevenzipjbinding.ExtractorCallback;
 import jrm.security.Session;
 
 /**
@@ -253,6 +257,74 @@ class NArchivePathTraversalTest {
                     .isInstanceOf(IOException.class)
                     .hasMessageMatching(".*(escapes temporary directory|absolute).*");
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("resolveContainedFile Zip Slip protection")
+    class ResolveContainedFileTests {
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "../evil-outside.txt",
+            "../../evil-outside.txt",
+            "subdir/../../evil-outside.txt",
+            "/etc/passwd",
+            "C:/Windows/System32/evil.dll",
+            "file\0.txt"
+        })
+        @DisplayName("should reject traversal, absolute, and NUL entry paths")
+        void shouldRejectUnsafeEntryPaths(String maliciousEntry) {
+            final var baseDir = tempDir.resolve("extract-root").toFile();
+            assertThatThrownBy(() -> ExtractorCallback.resolveContainedFile(baseDir, maliciousEntry))
+                .isInstanceOf(IOException.class)
+                .hasMessageMatching(".*(escapes temporary directory|absolute|null byte).*");
+        }
+
+        @Test
+        @DisplayName("should accept safe relative entry paths")
+        void shouldAcceptSafeRelativePaths() throws IOException {
+            final var baseDir = Files.createDirectories(tempDir.resolve("extract-root"));
+            final var resolved = ExtractorCallback.resolveContainedFile(baseDir.toFile(), "subdir/safe.txt");
+            assertThat(resolved.toPath().normalize().toString().replace('\\', '/'))
+                .startsWith(baseDir.normalize().toString().replace('\\', '/'));
+            assertThat(resolved.getName()).isEqualTo("safe.txt");
+        }
+    }
+
+    @Nested
+    @DisplayName("full-archive extract Zip Slip protection")
+    class FullArchiveExtractTests {
+
+        @Test
+        @DisplayName("extract() must not create files outside extraction root from archive entry paths")
+        void fullExtractMustRejectZipSlipEntries() throws Exception {
+            final var archivePath = tempDir.resolve("zipslip.zip");
+            final var outsideTarget = tempDir.resolve("evil-outside.txt");
+            assertThat(outsideTarget).doesNotExist();
+
+            try (var zos = new ZipOutputStream(Files.newOutputStream(archivePath))) {
+                zos.putNextEntry(new ZipEntry("../../evil-outside.txt"));
+                zos.write("pwned".getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+                zos.putNextEntry(new ZipEntry("safe.txt"));
+                zos.write("ok".getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+            }
+
+            try (ZipArchive archive = new ZipArchive(session, archivePath.toFile(), true, null)) {
+                try {
+                    archive.extract();
+                } catch (IOException | RuntimeException expected) {
+                    assertThat(expected.getMessage() == null ? "" : expected.getMessage()
+                            + (expected.getCause() != null && expected.getCause().getMessage() != null
+                                    ? expected.getCause().getMessage() : ""))
+                            .matches("(?s).*(escapes temporary directory|absolute|null byte|SevenZip).*");
+                }
+            }
+
+            assertThat(outsideTarget).doesNotExist();
+            assertThat(tempDir.resolve("evil-outside.txt")).doesNotExist();
         }
     }
 }

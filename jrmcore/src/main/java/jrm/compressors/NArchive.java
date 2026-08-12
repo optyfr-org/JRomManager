@@ -307,7 +307,7 @@ abstract class NArchive extends NArchiveBase {
             final var simpleInArchive = getIInArchive().getSimpleInterface();
             for (final var item : simpleInArchive.getArchiveItems()) {
                 if (item.getPath().equals(entry)) {
-                    final var file = new File(baseDir, entry);
+                    final var file = ExtractorCallback.resolveContainedFile(baseDir, entry);
                     FileUtils.forceMkdirParent(file);
                     try (final var out = new RandomAccessFile(file, "rw")) //$NON-NLS-1$
                     {
@@ -328,7 +328,7 @@ abstract class NArchive extends NArchiveBase {
                 tmpfiles.put(i, file); // $NON-NLS-1$
                 rafs.put(i, new RandomAccessFile(file, "rw")); //$NON-NLS-1$
             } else {
-                final var dir = new File(baseDir, (String) getIInArchive().getProperty(i, PropID.PATH));
+                final var dir = ExtractorCallback.resolveContainedFile(baseDir, (String) getIInArchive().getProperty(i, PropID.PATH));
                 FileUtils.forceMkdir(dir);
             }
         }
@@ -582,37 +582,9 @@ abstract class NArchive extends NArchiveBase {
      * @throws IOException if the entry path is invalid or represents a path traversal attempt
      */
     private String validateAndNormalizeEntry(final String entry) throws IOException {
-        if (entry == null || entry.isEmpty()) {
-            throw new IOException("Entry path cannot be null or empty");
-        }
-
-        // Normalize Windows separators to forward slashes for cross-platform compatibility
-        final var normalizedEntry = entry.replace('\\', '/');
-
-        // Check for null bytes
-        if (normalizedEntry.contains("\0")) {
-            throw new IOException("Entry path contains null byte: " + normalizedEntry);
-        }
-
-        // Check for absolute paths (Unix-style or Windows-style)
-        final var hasWindowsDriveRoot = normalizedEntry.length() > 2
-            && Character.isLetter(normalizedEntry.charAt(0))
-            && normalizedEntry.charAt(1) == ':'
-            && normalizedEntry.charAt(2) == '/';
-        if (normalizedEntry.startsWith("/") || normalizedEntry.startsWith("//") || hasWindowsDriveRoot) {
-            throw new IOException("Entry path cannot be absolute: " + normalizedEntry);
-        }
-
-        // Normalize the entry path and resolve it against the temp directory
-        final var tempDirPath = getTempDir().toPath().toAbsolutePath().normalize();
-        final var entryPath = tempDirPath.resolve(normalizedEntry).normalize();
-
-        // Verify the resolved path is still within the temp directory
-        if (!entryPath.startsWith(tempDirPath)) {
-            throw new IOException("Entry path escapes temporary directory: " + normalizedEntry);
-        }
-
-        // Return the relative path from temp directory
-        return tempDirPath.relativize(entryPath).toString();
+        final var tempDir = getTempDir();
+        final var entryFile = ExtractorCallback.resolveContainedFile(tempDir, entry);
+        final var tempDirPath = tempDir.toPath().toAbsolutePath().normalize();
+        return tempDirPath.relativize(entryFile.toPath().toAbsolutePath().normalize()).toString();
     }
 }
