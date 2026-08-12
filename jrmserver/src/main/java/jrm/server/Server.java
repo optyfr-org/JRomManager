@@ -304,6 +304,9 @@ public class Server extends AbstractServer {
                 chain.doFilter(request, response);
             }), "*.js", EnumSet.of(DispatcherType.REQUEST));
 
+            // Simple server: never auto-admin at session create; elevate only for loopback peers.
+            context.addFilter(new FilterHolder(new LocalAdminFilter()), "/*", EnumSet.of(DispatcherType.REQUEST));
+
             context.addServlet(holderStatic(), "/");
 
             context.getSessionHandler().setMaxInactiveInterval(300);

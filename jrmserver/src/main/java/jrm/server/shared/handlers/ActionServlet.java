@@ -157,7 +157,7 @@ public class ActionServlet extends HttpServlet {
      * <p>
      * Creating an HTTP session is not enough: multi-user {@link WebSession}s stay without a user until login, and
      * {@link jrm.security.Session#getUser()} no longer invents an admin identity on server sessions. The simple
-     * single-user server assigns a local admin in {@link jrm.server.SessionListener} after session creation.
+     * single-user server elevates only loopback peers via {@link jrm.server.LocalAdminFilter} before this check runs.
      * </p>
      *
      * @param req  the HTTP request

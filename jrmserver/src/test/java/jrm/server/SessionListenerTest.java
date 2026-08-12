@@ -33,7 +33,7 @@ class SessionListenerTest {
     @DisplayName("sessionCreated (single-session mode)")
     class SessionCreatedSingleTest {
         @Test
-        @DisplayName("creates single-session WebSession with explicit local admin user")
+        @DisplayName("creates single-session WebSession without inventing a user")
         void createsSingleSession() {
             final HttpSession httpSession = mock(HttpSession.class);
             when(httpSession.getId()).thenReturn("single-test");
@@ -45,7 +45,7 @@ class SessionListenerTest {
 
             verify(httpSession).setAttribute(eq("session"), org.mockito.ArgumentMatchers.argThat(attr -> {
                 final WebSession ws = (WebSession) attr;
-                return ws.hasUser() && "JRomManager".equals(ws.getUser().getName()) && ws.getUser().isAdmin();
+                return !ws.hasUser();
             }));
         }
     }

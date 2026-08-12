@@ -81,8 +81,8 @@ public class SessionListener implements HttpSessionListener {
      * <ul>
      * <li>If {@code multi} is {@code true}, an unauthenticated multi-user {@link WebSession} is created (user assigned only after
      * successful login).</li>
-     * <li>If {@code multi} is {@code false}, a single-user {@link WebSession} is created and bound to the local admin identity used by
-     * the simple server after its access gate has accepted the request.</li>
+     * <li>If {@code multi} is {@code false}, an unauthenticated single-user {@link WebSession} is created. The simple server binds
+     * local admin only via {@link LocalAdminAccess} for loopback peers — never at session creation.</li>
      * </ul>
      * <p>
      * The newly created {@link WebSession} is stored in the session attributes under the key {@code "session"}, making it
@@ -99,9 +99,8 @@ public class SessionListener implements HttpSessionListener {
             // Unauthenticated until Login.setUser; do not invent admin/"server" roles.
             ws = new WebSession(se.getSession().getId(), null, null);
         } else {
+            // Unauthenticated until LocalAdminFilter elevates loopback requests.
             ws = new WebSession(se.getSession().getId());
-            // Simple server: explicit local admin after access control (not lazy null→admin).
-            ws.setUser("JRomManager", new String[] { "admin" });
         }
         se.getSession().setAttribute("session", ws);
     }
