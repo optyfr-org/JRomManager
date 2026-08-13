@@ -59,7 +59,7 @@ class DialogsBehaviorTest {
 
     /**
      * Verifies that {@link Dialogs#configureErrorAlert} sets the title,
-     * header text, and a VBox content containing the exception message and stack trace.
+     * header text, and a VBox content containing the exception type and message (no stack frames).
      */
     @Test
     @DisplayName("Should configure error alert with exception details")
@@ -114,13 +114,14 @@ class DialogsBehaviorTest {
                 .isNotNull()
                 .satisfies(vbox -> assertThat(vbox.getChildren()).hasSize(2));
         assertThat(labelTextRef.get())
-                .as("Label should say 'Stack Trace:'")
-                .isEqualTo("Stack Trace:");
+                .as("Label should say 'Details:'")
+                .isEqualTo("Details:");
         assertThat(textAreaTextRef.get())
-                .as("TextArea should contain stack trace")
+                .as("TextArea should contain exception type and message without stack frames")
                 .isNotNull()
                 .contains("RuntimeException")
-                .contains("Test error message");
+                .contains("Test error message")
+                .doesNotContain("\tat ");
     }
 
     /**
