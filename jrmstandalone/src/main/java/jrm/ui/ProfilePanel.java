@@ -49,6 +49,7 @@ import jrm.locale.Messages;
 import jrm.misc.Log;
 import jrm.profile.manager.Dir;
 import jrm.profile.manager.Import;
+import jrm.profile.manager.MameExecutable;
 import jrm.profile.manager.ProfileNFO;
 import jrm.profile.manager.ProfileNFOMame.MameStatus;
 import jrm.security.Session;
@@ -615,6 +616,8 @@ public class ProfilePanel extends JPanel {
      */
     private void importDat(final Session session, final boolean sl, List<Import> imprts) throws HeadlessException, IllegalArgumentException {
         for (val imprt : imprts) {
+            if (imprt.getFile() == null)
+                continue;
             if (!imprt.isMame()) {
                 final var currDir = ((FileTableModel) profilesList.getModel()).getCurrDir().getFile();
                 var fileRef = new AtomicReference<File>(new File(currDir, imprt.getFile().getName()));
@@ -643,7 +646,7 @@ public class ProfilePanel extends JPanel {
     private static final class ImportDatFileFilter extends FileFilter {
         @Override
         public boolean accept(final File f) {
-            return f.isDirectory() || FilenameUtils.isExtension(f.getName(), "exe") || f.canExecute(); //$NON-NLS-1$
+            return f.isDirectory() || MameExecutable.isLaunchable(f);
         }
 
         @Override

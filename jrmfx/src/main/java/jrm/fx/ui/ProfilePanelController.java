@@ -66,6 +66,7 @@ import jrm.misc.BreakException;
 import jrm.misc.Log;
 import jrm.profile.manager.Dir;
 import jrm.profile.manager.Import;
+import jrm.profile.manager.MameExecutable;
 import jrm.profile.manager.ProfileNFO;
 import jrm.profile.manager.ProfileNFOMame.MameStatus;
 import jrm.profile.manager.ProfileNFOStats.HaveNTotal;
@@ -543,7 +544,8 @@ public class ProfilePanelController implements Initializable {
         final var workdir = session.getUser().getSettings().getWorkPath().toFile();
         final var chooser = new FileChooser();
         final var filter = new ExtensionFilter(Messages.getString("MainFrame.DatFile"), "*.dat", "*.xml");
-        final var filter2 = new ExtensionFilter(Messages.getString("MainFrame.MameExecutable"), SystemUtils.IS_OS_WINDOWS ? "*mame*.exe" : "*mame*");
+        final var filter2 = new ExtensionFilter(Messages.getString("MainFrame.MameExecutable"),
+                SystemUtils.IS_OS_WINDOWS ? new String[] { "*mame*.exe", "*mess*.exe" } : new String[] { "*mame*", "*mess*" });
         chooser.getExtensionFilters().addAll(filter, filter2);
         chooser.setSelectedExtensionFilter(filter);
         Optional.ofNullable(session.getUser().getSettings().getProperty("MainFrame.ChooseExeOrDatToImport", workdir.getAbsolutePath())).map(File::new).filter(File::isDirectory)
@@ -607,6 +609,8 @@ public class ProfilePanelController implements Initializable {
         protected void succeeded() {
             this.close();
             for (final var imprt : imprts) {
+                if (imprt.imprt.getFile() == null)
+                    continue;
                 try {
                     importDat(imprt, sl);
                 } catch (IOException e) {
@@ -752,8 +756,9 @@ public class ProfilePanelController implements Initializable {
          */
         private List<File> searchDats(File file, List<File> files) {
             if (file.isFile()) {
+                final var name = file.getName().toLowerCase();
                 if (FilenameUtils.isExtension(file.getName(), "xml", "dat")
-                        || (file.getName().toLowerCase().contains("mame") && (FilenameUtils.isExtension(file.getName(), "exe") || file.canExecute())))
+                        || ((name.contains("mame") || name.contains("mess")) && MameExecutable.isLaunchable(file)))
                     files.add(file);
             } else if (file.isDirectory()) {
                 try (final var stream = Files.newDirectoryStream(file.toPath())) {

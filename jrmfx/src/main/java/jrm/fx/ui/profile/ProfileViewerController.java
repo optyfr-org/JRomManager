@@ -75,6 +75,7 @@ import jrm.profile.data.Samples;
 import jrm.profile.data.Software;
 import jrm.profile.data.SoftwareList;
 import jrm.profile.manager.Export.ExportType;
+import jrm.profile.manager.MameExecutable;
 import jrm.profile.manager.ProfileNFOMame;
 import jrm.profile.manager.ProfileNFOMame.MameStatus;
 import jrm.security.Session;
@@ -812,8 +813,8 @@ public class ProfileViewerController implements Initializable {
             return;
         }
         
-        if (!mame.getFile().exists() || !mame.getFile().canExecute()) {
-            Dialogs.showAlert("MAME executable does not exist or is not executable: " + mame.getFile().getAbsolutePath());
+        if (!MameExecutable.isLaunchable(mame.getFile())) {
+            Dialogs.showAlert("MAME executable does not exist or is not a native executable: " + mame.getFile().getAbsolutePath());
             return;
         }
         

@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.TransformerException;
@@ -100,8 +101,9 @@ public class Import implements UnitRenderer {
         xmldir.mkdir();
 
         final String ext = FilenameUtils.getExtension(file.getName());
-        if (!Sets.newHashSet("xml", "dat").contains(ext.toLowerCase()) && file.canExecute()) //$NON-NLS-1$ //$NON-NLS-2$
-        {
+        if (Sets.newHashSet("xml", "dat").contains(ext.toLowerCase())) { //$NON-NLS-1$ //$NON-NLS-2$
+            this.file = file;
+        } else if (MameExecutable.isLaunchable(file)) {
             try {
                 if ((romsFile = importMame(file, false, progress)) != null) {
                     slFile = sl ? importMame(file, true, progress) : null;
@@ -109,11 +111,13 @@ public class Import implements UnitRenderer {
                     isMame = true;
                 }
             } catch (DOMException | ParserConfigurationException | TransformerException | IOException e) {
-                // JOptionPane.showMessageDialog(null, e, "Exception", JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$
                 Log.err(e.getMessage(), e);
             }
-        } else
+        } else if (file.canExecute()) {
+            Log.warn(() -> "Rejected non-native or script file as MAME executable: " + file.getAbsolutePath());
+        } else {
             this.file = file;
+        }
 
     }
 
@@ -129,25 +133,36 @@ public class Import implements UnitRenderer {
      * @return the temporary file on disk containing the full XML printout, or {@code null} if an error occurred
      */
     public File importMame(final File file, final boolean sl, ProgressHandler progress) {
+        if (!MameExecutable.isLaunchable(file)) {
+            Log.warn(() -> "Rejected non-launchable file as MAME executable: " + (file == null ? "null" : file.getAbsolutePath()));
+            return null;
+        }
+        File tmpfile = null;
+        Process process = null;
         try {
-            final var tmpfile = IOUtils.createTempFile("JRM", sl ? ".jrm2" : ".jrm1").toFile(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+            final var exe = file.getCanonicalFile();
+            tmpfile = IOUtils.createTempFile("JRM", sl ? ".jrm2" : ".jrm1").toFile(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             tmpfile.deleteOnExit();
-            final var process = new ProcessBuilder(file.getAbsolutePath(), sl ? "-listsoftware" : "-listxml").directory(file.getAbsoluteFile().getParentFile()).start(); //$NON-NLS-1$ //$NON-NLS-2$
+            process = new ProcessBuilder(exe.getAbsolutePath(), sl ? "-listsoftware" : "-listxml") //$NON-NLS-1$ //$NON-NLS-2$
+                    .directory(exe.getParentFile())
+                    .redirectErrorStream(true)
+                    .start();
 
             var linecnt = 0;
             var size = 0;
+            final var header = new StringBuilder();
             try (final var out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tmpfile), StandardCharsets.UTF_8));
-                    BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8));) // $NON-NLS-1$
-                                                                                                                                      // //$NON-NLS-2$
-            {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
                 String line;
                 var xml = false;
                 while (null != (line = in.readLine())) {
-                    // we need to skip occasional garbage before the xml start tag
                     if (line.startsWith("<?xml")) //$NON-NLS-1$
                         xml = true;
                     if (xml) {
                         out.write(line + "\n"); //$NON-NLS-1$
+                        if (header.length() < 8192) {
+                            header.append(line).append('\n');
+                        }
                         size += line.getBytes(StandardCharsets.UTF_8).length;
                         progress.setProgress(null, null, null,
                                 (sl ? "Reading Softwares list" : "Reading roms list") + " / " + (++linecnt) + " lines / " + humanReadableByteCount(size, false));
@@ -155,12 +170,28 @@ public class Import implements UnitRenderer {
                 }
             }
             process.waitFor();
+            if (!MameExecutable.isMameListOutput(header, sl)) {
+                Log.warn(() -> "Rejected process output that is not MAME/MESS list XML: " + exe.getAbsolutePath());
+                Files.deleteIfExists(tmpfile.toPath());
+                return null;
+            }
             return tmpfile;
         } catch (final IOException e) {
             Log.err("Caught IO Exception", e); //$NON-NLS-1$
         } catch (final InterruptedException e) {
             Log.err("Caught Interrupted Exception", e); //$NON-NLS-1$
             Thread.currentThread().interrupt();
+        } finally {
+            if (process != null && process.isAlive()) {
+                process.destroyForcibly();
+            }
+        }
+        if (tmpfile != null) {
+            try {
+                Files.deleteIfExists(tmpfile.toPath());
+            } catch (IOException e) {
+                Log.err(e.getMessage(), e);
+            }
         }
         return null;
     }

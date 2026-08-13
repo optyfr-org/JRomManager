@@ -145,8 +145,7 @@ public final class ProfileNFOMame implements Serializable {
         final ObjectInputStream.GetField fields = stream.readFields();
         final File deserializedFile = (File) fields.get(FILE_STR, null); // $NON-NLS-1$
         
-        // Validate the deserialized MAME executable path to prevent arbitrary program execution
-        if (deserializedFile != null && !isValidMameExecutable(deserializedFile)) {
+        if (deserializedFile != null && !MameExecutable.isLaunchable(deserializedFile)) {
             Log.warn(() -> String.format("Rejected potentially malicious MAME executable path from deserialized profile metadata: %s", deserializedFile.getAbsolutePath()));
             file = null;
             modified = 0L;
@@ -163,41 +162,6 @@ public final class ProfileNFOMame implements Serializable {
         filesl = (File) fields.get(FILESL_STR, null); // $NON-NLS-1$
     }
     
-    /**
-     * Validates that a file path represents a legitimate MAME executable.
-     * This method performs security checks to prevent arbitrary program execution
-     * from untrusted deserialized profile metadata.
-     * 
-     * @param executableFile the file to validate
-     * @return {@code true} if the file appears to be a valid MAME executable; {@code false} otherwise
-     */
-    private static boolean isValidMameExecutable(final File executableFile) {
-        if (executableFile == null) {
-            return false;
-        }
-        
-        try {
-            // Normalize the path to prevent directory traversal attacks
-            final var canonicalPath = executableFile.getCanonicalPath();
-            final var canonicalFile = new File(canonicalPath);
-            
-            // Check if the file exists and is a regular file (not a directory or special file)
-            if (!canonicalFile.exists() || !canonicalFile.isFile()) {
-                return false;
-            }
-            
-            // Check if the file is executable
-            if (!canonicalFile.canExecute()) {
-                return false;
-            }
-            
-            return true;
-        } catch (IOException e) {
-            Log.err("Failed to validate MAME executable path", e);
-            return false;
-        }
-    }
-
     /**
      * Categorizes the physical existence, version synchronization, and integrity status of the configured MAME executable and its
      * corresponding extracted XML databases.
