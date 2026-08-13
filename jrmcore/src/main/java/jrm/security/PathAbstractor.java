@@ -23,6 +23,10 @@ import lombok.val;
  * @since 1.0
  */
 public class PathAbstractor {
+    private static final String SHARED2 = "shared";
+
+    private static final String USERS = "users";
+
     /**
      * Abstract path placeholder prefix for the shared folder.
      */
@@ -162,7 +166,7 @@ public class PathAbstractor {
     private static boolean isUnderSharedRoot(Session session, String strpath) {
         try {
             final Path path = Paths.get(strpath).toAbsolutePath().normalize();
-            final Path sharedRoot = session.getUser().getSettings().getBasePath().resolve("users").resolve("shared").toAbsolutePath()
+            final Path sharedRoot = session.getUser().getSettings().getBasePath().resolve(USERS).resolve(SHARED2).toAbsolutePath()
                     .normalize();
             return path.startsWith(sharedRoot);
         } catch (Exception _) {
@@ -217,7 +221,7 @@ public class PathAbstractor {
                 if (path.startsWith(wdir))
                     return Paths.get(WORK, wdir.relativize(path).toString());
                 else {
-                    val sdir = session.getUser().getSettings().getBasePath().resolve("users").resolve("shared");
+                    val sdir = session.getUser().getSettings().getBasePath().resolve(USERS).resolve(SHARED2);
                     if (path.startsWith(sdir))
                         return Paths.get(SHARED, sdir.relativize(path).toString());
                 }
@@ -283,7 +287,7 @@ public class PathAbstractor {
             if (!path.startsWith(basepath))
                 throw new SecurityException(FORGED_PATH);
         } else if (strpath.startsWith(SHARED)) {
-            val basepath = session.getUser().getSettings().getBasePath().resolve("users").resolve("shared");
+            val basepath = session.getUser().getSettings().getBasePath().resolve(USERS).resolve(SHARED2);
             path = Paths.get(strpath.replace(SHARED, basepath.toString())).toAbsolutePath().normalize();
             if (!path.startsWith(basepath))
                 throw new SecurityException(FORGED_PATH);

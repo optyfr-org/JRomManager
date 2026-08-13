@@ -354,7 +354,7 @@ public class UploadServlet extends HttpServlet {
             return isUnderWorkSubdir(resolved, workPath, "reports")
                     || isUnderWorkSubdir(resolved, workPath, "cache")
                     || isUnderWorkSubdir(resolved, workPath, "work");
-        } catch (final Exception e) { // Let normal path validation report resolution errors
+        } catch (final Exception _) { // Let normal path validation report resolution errors
             return false;
         }
     }
@@ -396,46 +396,61 @@ public class UploadServlet extends HttpServlet {
     @Override
     protected void doPut(final HttpServletRequest req, final HttpServletResponse resp) {
         if ("/upload/".equals(req.getRequestURI())) {
-            try {
-                val ws = (WebSession) req.getSession().getAttribute("session");
-                val pathAbstractor = new PathAbstractor(ws);
-                final var result = new Result();
-                final String filename = sanitizeHeader(req.getHeader("x-file-name"));
-                final String fileparent = sanitizeHeader(req.getHeader("x-file-parent"));
-                validateFilenameComponent(filename);
-                
-                // Prevent uploads that can poison Java deserialization cache/nfo paths
-                if (isProtectedCacheTarget(ws, pathAbstractor, fileparent, filename)) {
-                    result.status = 11;
-                    result.extstatus = "Uploads to protected cache locations are not permitted";
-                    resp.getWriter().write(new Gson().toJson(result));
-                    return;
-                }
-                
-                if (pathAbstractor.isWriteable(fileparent)) {
-                    final var dest = pathAbstractor.getAbsolutePath(fileparent).normalize().toAbsolutePath();
-                    final var filepath = dest.resolve(filename).normalize().toAbsolutePath();
-                    if (!filepath.startsWith(dest)) {
-                        throw new SecurityException("Invalid upload path");
-                    }
-                    Files.createDirectories(filepath.getParent());
-                    doUpload(req, result, filename, filepath);
-                    if (result.status != 3) {
-                        Log.debug(() -> result.status + " : " + result.extstatus);
-                        Files.delete(filepath);
-                    }
-                } else {
-                    result.status = 11;
-                    result.extstatus = "Is read only";
-                }
-                resp.getWriter().write(new Gson().toJson(result));
-            } catch (final SecurityException _) { // Path traversal or forgery attempt detected by PathAbstractor
-                getErrResult(resp);
-            } catch (final IOException e) {
-                internalError(resp, e);
-            }
-        } else
+            handlePutUpload(req, resp);
+        } else {
             superPost(req, resp);
+        }
+    }
+
+    private void handlePutUpload(final HttpServletRequest req, final HttpServletResponse resp) {
+        try {
+            val ws = (WebSession) req.getSession().getAttribute("session");
+            val pathAbstractor = new PathAbstractor(ws);
+            final var result = new Result();
+            final String filename = sanitizeHeader(req.getHeader("x-file-name"));
+            final String fileparent = sanitizeHeader(req.getHeader("x-file-parent"));
+            validateFilenameComponent(filename);
+            if (rejectProtectedCacheTarget(resp, result, ws, pathAbstractor, fileparent, filename)) {
+                return;
+            }
+            putFileIfWritable(req, result, pathAbstractor, fileparent, filename);
+            resp.getWriter().write(new Gson().toJson(result));
+        } catch (final SecurityException _) { // Path traversal or forgery attempt detected by PathAbstractor
+            getErrResult(resp);
+        } catch (final IOException e) {
+            internalError(resp, e);
+        }
+    }
+
+    private boolean rejectProtectedCacheTarget(final HttpServletResponse resp, final Result result, final WebSession ws,
+            final PathAbstractor pathAbstractor, final String fileparent, final String filename) throws IOException {
+        if (!isProtectedCacheTarget(ws, pathAbstractor, fileparent, filename)) {
+            return false;
+        }
+        result.status = 11;
+        result.extstatus = "Uploads to protected cache locations are not permitted";
+        resp.getWriter().write(new Gson().toJson(result));
+        return true;
+    }
+
+    private void putFileIfWritable(final HttpServletRequest req, final Result result, final PathAbstractor pathAbstractor,
+            final String fileparent, final String filename) throws IOException {
+        if (!pathAbstractor.isWriteable(fileparent)) {
+            result.status = 11;
+            result.extstatus = "Is read only";
+            return;
+        }
+        final var dest = pathAbstractor.getAbsolutePath(fileparent).normalize().toAbsolutePath();
+        final var filepath = dest.resolve(filename).normalize().toAbsolutePath();
+        if (!filepath.startsWith(dest)) {
+            throw new SecurityException("Invalid upload path");
+        }
+        Files.createDirectories(filepath.getParent());
+        doUpload(req, result, filename, filepath);
+        if (result.status != 3) {
+            Log.debug(() -> result.status + " : " + result.extstatus);
+            Files.delete(filepath);
+        }
     }
 
     private void getErrResult(final HttpServletResponse resp) {

@@ -279,40 +279,59 @@ public class Login extends SQL implements LoginService {
     private UserIdentity login(String username, Object credentials, String sessionid, WebSession sess) {
         cacheLock.lock();
         try {
-            if (60000 < (System.currentTimeMillis() - cachetime)) {
-                cache.clear();
-                setCachetime(System.currentTimeMillis());
+            evictStaleCache();
+            final var cached = cachedIdentity(username, sessionid, sess);
+            if (cached != null) {
+                return cached;
             }
-            if (sessionid != null && cache.containsKey(username + ":" + sessionid)) {
-                final var identity = cache.get(username + ":" + sessionid);
-                // Re-bind WebSession user after HTTP session recreation or listener init.
-                if (sess != null && !sess.hasUser())
-                    sess.setUser(username, rolesFromIdentity(identity));
-                return identity;
-            } else {
-                final var credential = new CryptCredential(username, this);
-                if (credential.check(credentials)) {
-                    final var principal = new UserPrincipal(credential.getUser().getLogin(), credential);
-                    final var subject = new Subject();
-                    subject.getPrincipals().add(principal);
-                    subject.getPublicCredentials().add(username + ":" + sessionid);
-                    String[] roles = credential.getUser().getRoles().split(";");
-                    for (String role : roles)
-                        subject.getPrincipals().add(new RolePrincipal(role));
-
-                    final var identity = identityService.newUserIdentity(subject, principal, roles);
-                    if (sessionid != null) {
-                        cache.put(username + ":" + sessionid, identity);
-                        if (sess != null)
-                            sess.setUser(username, roles);
-                    }
-                    return identity;
-                }
-            }
+            return authenticateAndCache(username, credentials, sessionid, sess);
         } finally {
             cacheLock.unlock();
         }
-        return null;
+    }
+
+    private static void evictStaleCache() {
+        if (60000 < (System.currentTimeMillis() - cachetime)) {
+            cache.clear();
+            setCachetime(System.currentTimeMillis());
+        }
+    }
+
+    private static UserIdentity cachedIdentity(String username, String sessionid, WebSession sess) {
+        if (sessionid == null) {
+            return null;
+        }
+        final var identity = cache.get(username + ":" + sessionid);
+        if (identity == null) {
+            return null;
+        }
+        if (sess != null && !sess.hasUser()) {
+            sess.setUser(username, rolesFromIdentity(identity));
+        }
+        return identity;
+    }
+
+    private UserIdentity authenticateAndCache(String username, Object credentials, String sessionid, WebSession sess) {
+        final var credential = new CryptCredential(username, this);
+        if (!credential.check(credentials)) {
+            return null;
+        }
+        final var principal = new UserPrincipal(credential.getUser().getLogin(), credential);
+        final var subject = new Subject();
+        subject.getPrincipals().add(principal);
+        subject.getPublicCredentials().add(username + ":" + sessionid);
+        final String[] roles = credential.getUser().getRoles().split(";");
+        for (String role : roles) {
+            subject.getPrincipals().add(new RolePrincipal(role));
+        }
+        final var identity = identityService.newUserIdentity(subject, principal, roles);
+        if (sessionid != null) {
+            cache.put(username + ":" + sessionid, identity);
+            if (sess != null) {
+                sess.setUser(username, roles);
+            }
+        }
+        return identity;
     }
 
     /**

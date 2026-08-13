@@ -72,6 +72,20 @@ public class GlobalActions {
         this.ws = ws;
     }
 
+    /** Destination path properties that must resolve and be writeable under the session sandbox. */
+    private static final Set<String> DEST_PATH_PROPERTIES = Set.of(
+            SettingsEnum.dir2dat_dst_file.toString(),
+            SettingsEnum.dir2dat_dst_file.name(),
+            SettingsEnum.dir2dat_lastdstdir.toString(),
+            SettingsEnum.dir2dat_lastdstdir.name());
+
+    /** Source/path properties that must resolve inside the session sandbox (read). */
+    private static final Set<String> SRC_PATH_PROPERTIES = Set.of(
+            SettingsEnum.dir2dat_src_dir.toString(),
+            SettingsEnum.dir2dat_src_dir.name(),
+            SettingsEnum.dir2dat_lastsrcdir.toString(),
+            SettingsEnum.dir2dat_lastsrcdir.name());
+
     /**
      * Updates global user settings based on incoming JSON properties.
      * <p>
@@ -88,8 +102,8 @@ public class GlobalActions {
      * </p>
      * <h4>Security:</h4>
      * <p>
-     * File path properties (e.g., {@code dir2dat.dst_file}, {@code dir2dat.src_dir}) are validated to ensure they remain within
-     * the user's workspace directory. Paths that attempt directory traversal or escape the workspace are rejected.
+     * File path properties (e.g., {@code dir2dat.dst_file}, {@code dir2dat.src_dir}) are validated to ensure they remain within the
+     * user's workspace directory. Paths that attempt directory traversal or escape the workspace are rejected.
      * </p>
      * <h4>Incoming JSON Structure:</h4>
      * 
@@ -129,20 +143,6 @@ public class GlobalActions {
      *
      * @param jso the incoming JSON message containing property updates
      */
-    /** Destination path properties that must resolve and be writeable under the session sandbox. */
-    private static final Set<String> DEST_PATH_PROPERTIES = Set.of(
-            SettingsEnum.dir2dat_dst_file.toString(),
-            SettingsEnum.dir2dat_dst_file.name(),
-            SettingsEnum.dir2dat_lastdstdir.toString(),
-            SettingsEnum.dir2dat_lastdstdir.name());
-
-    /** Source/path properties that must resolve inside the session sandbox (read). */
-    private static final Set<String> SRC_PATH_PROPERTIES = Set.of(
-            SettingsEnum.dir2dat_src_dir.toString(),
-            SettingsEnum.dir2dat_src_dir.name(),
-            SettingsEnum.dir2dat_lastsrcdir.toString(),
-            SettingsEnum.dir2dat_lastsrcdir.name());
-
     public void setProperty(JsonObject jso) {
         final Session session = ws.getSession();
         if (session == null || !session.hasUser()) {
@@ -152,25 +152,45 @@ public class GlobalActions {
         JsonObject pjso = jso.get(PARAMS).asObject();
         final var accepted = new JsonObject();
         for (Member m : pjso) {
-            JsonValue value = m.getValue();
-            String propertyName = canonicalizePropertyName(m.getName());
-
-            if (isPathProperty(m.getName()) || isPathProperty(propertyName)) {
-                String stringValue = value.isString() ? value.asString() : value.toString();
-                if (!isValidSandboxPath(stringValue, isDestPathProperty(m.getName()) || isDestPathProperty(propertyName))) {
-                    Log.err("Rejected property '" + propertyName + "': path escapes workspace: " + stringValue);
-                    continue;
-                }
-            }
-
-            if (value.isBoolean())
-                session.getUser().getSettings().setProperty(propertyName, value.asBoolean());
-            else if (value.isString())
-                session.getUser().getSettings().setProperty(propertyName, value.asString());
-            else
-                session.getUser().getSettings().setProperty(propertyName, value.toString());
-            accepted.add(propertyName, value);
+            applyProperty(session, accepted, m);
         }
+        persistAndNotify(session, accepted);
+    }
+
+    private void applyProperty(final Session session, final JsonObject accepted, final Member member) {
+        final JsonValue value = member.getValue();
+        final String propertyName = canonicalizePropertyName(member.getName());
+        if (!acceptPathProperty(member.getName(), propertyName, value)) {
+            return;
+        }
+        applySettingValue(session, propertyName, value);
+        accepted.add(propertyName, value);
+    }
+
+    private boolean acceptPathProperty(final String rawName, final String propertyName, final JsonValue value) {
+        if (!isPathProperty(rawName) && !isPathProperty(propertyName)) {
+            return true;
+        }
+        final String stringValue = value.isString() ? value.asString() : value.toString();
+        if (isValidSandboxPath(stringValue, isDestPathProperty(rawName) || isDestPathProperty(propertyName))) {
+            return true;
+        }
+        Log.err("Rejected property '" + propertyName + "': path escapes workspace: " + stringValue);
+        return false;
+    }
+
+    private static void applySettingValue(final Session session, final String propertyName, final JsonValue value) {
+        final var settings = session.getUser().getSettings();
+        if (value.isBoolean()) {
+            settings.setProperty(propertyName, value.asBoolean());
+        } else if (value.isString()) {
+            settings.setProperty(propertyName, value.asString());
+        } else {
+            settings.setProperty(propertyName, value.toString());
+        }
+    }
+
+    private void persistAndNotify(final Session session, final JsonObject accepted) {
         try {
             if (ws.isOpen()) {
                 session.getUser().getSettings().saveSettings();
@@ -207,9 +227,8 @@ public class GlobalActions {
     }
 
     /**
-     * Validates path settings via {@link PathAbstractor}: resolve abstract {@code %work}/{@code %shared}
-     * placeholders, reject forged/traversal paths, require write access for destinations, and keep
-     * destinations inside work (or shared for admins).
+     * Validates path settings via {@link PathAbstractor}: resolve abstract {@code %work}/{@code %shared} placeholders, reject
+     * forged/traversal paths, require write access for destinations, and keep destinations inside work (or shared for admins).
      */
     private boolean isValidSandboxPath(String pathString, boolean requireWrite) {
         if (pathString == null || pathString.isBlank())
