@@ -65,7 +65,10 @@ class ProfileNFOPathRebindTest {
         crafted.save(session);
 
         final File nfoFile = session.getUser().getSettings().getWorkFile(trustedProfile.getParentFile(), trustedProfile.getName(), ".nfo");
+
+        @SuppressWarnings("unused")
         final ProfileNFO attackerPayload = ProfileNFO.load(session, trustedProfile);
+        
         // Use reflection-free path: relocate would move NFO; instead write a fresh object via SignedObjectStore
         // by saving after temporarily pointing at victim through bind + manual field via delete target test helper.
         writeCraftedNfo(nfoFile, victim, outsideCompanion);

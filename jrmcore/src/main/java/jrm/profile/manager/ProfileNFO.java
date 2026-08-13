@@ -425,7 +425,7 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
      * @return the HTML formatted version string
      */
     public String getHTMLVersion() {
-        return toDocument(Optional.ofNullable(stats.getVersion()).map(this::toNoBR).orElse(toGray("???"))); //$NON-NLS-1$
+        return toDocument(Optional.ofNullable(stats.getVersion()).map(this::escape).map(this::toNoBR).orElse(toGray("???"))); //$NON-NLS-1$
     }
 
     /**
