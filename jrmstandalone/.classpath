@@ -36,7 +36,5 @@
 			<attribute name="test" value="true"/>
 		</attributes>
 	</classpathentry>
-	<classpathentry kind="lib" path="D:/GIT/JRomManager/jrmcore/build/libs/jrm-jrmcore-3.0.5.jar"/>
-	<classpathentry kind="lib" path="D:/GIT/JRomManager/res-icons/build/libs/jrm-res-icons-3.0.5.jar"/>
 	<classpathentry kind="output" path="bin/default"/>
 </classpath>
