@@ -103,7 +103,8 @@ repositories {
         url = uri("https://maven.pkg.github.com/optyfr/Jtrrntzip")
         credentials {
             username = "public"
-            password = "\u0067hp_6DEjEzjpKxxDeQ5s39Wfm3wOMRTrxH2L20xf"
+            // GitHub Packages token must be provided via GITHUB_TOKEN environment variable
+            password = System.getenv("GITHUB_TOKEN") ?: ""
         }
     }
     maven { url = "https://jitpack.io" }
@@ -147,7 +148,8 @@ subprojects {
             url = uri("https://maven.pkg.github.com/optyfr/Jtrrntzip")
             credentials {
                 username = "public"
-                password = "\u0067hp_6DEjEzjpKxxDeQ5s39Wfm3wOMRTrxH2L20xf"
+                // GitHub Packages token must be provided via GITHUB_TOKEN environment variable
+                password = System.getenv("GITHUB_TOKEN") ?: ""
             }
         }
         maven { url = "https://jitpack.io" }

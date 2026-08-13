@@ -35,6 +35,8 @@ jobs:
       run: chmod +x gradlew
       
     - name: Build with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew build -xtest
       
     - name: Releasing
@@ -51,6 +53,8 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: JPackage DEB with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew jpackage -PtargetPlatform=linux-x64 -PinstallerType=deb
         
     - name: Releasing DEB
@@ -66,6 +70,8 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: JPackage RPM with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew jpackage -PtargetPlatform=linux-x64 -PinstallerType=rpm
         
     - name: Releasing RPM
@@ -156,6 +162,8 @@ jobs:
         java-version: '25'
         
     - name: JPackage MSI with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew build jpackage -PtargetPlatform=win-x64 -PinstallerType=msi
         
     - name: Releasing
@@ -208,6 +216,8 @@ jobs:
       run: chmod +x gradlew
       
     - name: JPackage DMG with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew jpackage -PtargetPlatform=macos-x64 -PinstallerType=dmg
         
     - name: Releasing DMG
@@ -248,6 +258,8 @@ jobs:
       run: chmod +x gradlew
       
     - name: JPackage DMG with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew jpackage -PtargetPlatform=macos-aarch64 -PinstallerType=dmg
         
     - name: Releasing DMG

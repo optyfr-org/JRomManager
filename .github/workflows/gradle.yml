@@ -32,6 +32,8 @@ jobs:
         java-version: '25'
         
     - name: Build with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew build -xtest
 
     - name: Prepare Docker
