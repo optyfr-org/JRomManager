@@ -84,5 +84,7 @@ class ImportMameExecutionTest {
         assertThat(imprt.isMame()).isFalse();
         assertThat(imprt.getFile()).isNull();
         assertThat(imprt.importMame(cmd, false, progress)).isNull();
+        assertThat(imprt.canApplyMameUpdate(false)).isFalse();
+        assertThat(imprt.canApplyMameUpdate(true)).isFalse();
     }
 }

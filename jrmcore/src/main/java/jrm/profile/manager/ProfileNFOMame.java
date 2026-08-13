@@ -143,19 +143,7 @@ public final class ProfileNFOMame implements Serializable {
      */
     private void readObject(final java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
         final ObjectInputStream.GetField fields = stream.readFields();
-        final File deserializedFile = (File) fields.get(FILE_STR, null); // $NON-NLS-1$
-        
-        if (deserializedFile != null && !MameExecutable.isLaunchable(deserializedFile)) {
-            Log.warn(() -> String.format("Rejected potentially malicious MAME executable path from deserialized profile metadata: %s", deserializedFile.getAbsolutePath()));
-            file = null;
-            modified = 0L;
-            sl = false;
-            fileroms = null;
-            filesl = null;
-            return;
-        }
-        
-        file = deserializedFile;
+        file = (File) fields.get(FILE_STR, null); // $NON-NLS-1$
         modified = Optional.ofNullable((Long) fields.get(MODIFIED_STR, (Long) 0L)).orElse(0L); // $NON-NLS-1$
         sl = fields.get(SL_STR, false); // $NON-NLS-1$
         fileroms = (File) fields.get(FILEROMS_STR, null); // $NON-NLS-1$

@@ -608,15 +608,22 @@ public class ProfilePanelController implements Initializable {
         @Override
         protected void succeeded() {
             this.close();
+            var rejected = 0;
             for (final var imprt : imprts) {
-                if (imprt.imprt.getFile() == null)
+                if (imprt.imprt.getFile() == null) {
+                    rejected++;
                     continue;
+                }
                 try {
                     importDat(imprt, sl);
                 } catch (IOException e) {
                     Log.err(e.getMessage(), e);
                 }
             }
+            if (rejected > 0)
+                Dialogs.showAlert(rejected == 1
+                        ? "Could not import 1 selected file. Only DAT/XML files and native MAME/MESS executables are accepted."
+                        : "Could not import " + rejected + " selected files. Only DAT/XML files and native MAME/MESS executables are accepted.");
 
             final var theNode = profilesTree.getSelectionModel().getSelectedItem();
             if (theNode instanceof DirItem d) {
@@ -756,9 +763,7 @@ public class ProfilePanelController implements Initializable {
          */
         private List<File> searchDats(File file, List<File> files) {
             if (file.isFile()) {
-                final var name = file.getName().toLowerCase();
-                if (FilenameUtils.isExtension(file.getName(), "xml", "dat")
-                        || ((name.contains("mame") || name.contains("mess")) && MameExecutable.isLaunchable(file)))
+                if (FilenameUtils.isExtension(file.getName(), "xml", "dat") || MameExecutable.isLaunchable(file))
                     files.add(file);
             } else if (file.isDirectory()) {
                 try (final var stream = Files.newDirectoryStream(file.toPath())) {
@@ -885,6 +890,10 @@ public class ProfilePanelController implements Initializable {
          * @throws IOException if the ROMs or software-list files cannot be copied
          */
         private void updateFromMame(final Session session, final ProfileNFO nfo, Import imprt) throws IOException {
+            if (imprt == null || !imprt.canApplyMameUpdate(nfo.getMame().isSL())) {
+                Dialogs.showAlert("Could not update from MAME. The executable is missing, is not a native MAME/MESS binary, or did not return listxml data.");
+                return;
+            }
             nfo.getMame().deleteAlongside(nfo.getFile());
             nfo.getMame().setFileroms(new File(nfo.getFile().getParentFile(), imprt.getRomsFile().getName()));
             Files.copy(imprt.getRomsFile().toPath(), nfo.getMame().getFileroms().toPath(), StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);

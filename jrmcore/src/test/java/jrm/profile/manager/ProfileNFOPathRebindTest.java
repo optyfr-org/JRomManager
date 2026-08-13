@@ -113,6 +113,38 @@ class ProfileNFOPathRebindTest {
         assertThat(outsider).exists();
     }
 
+    @Test
+    @DisplayName("load keeps missing MAME path and sibling companions")
+    void loadKeepsMissingMamePathAndSiblingCompanions() throws Exception {
+        final Path profilesDir = session.getUser().getSettings().getWorkPath().resolve("xmlfiles");
+        Files.createDirectories(profilesDir);
+
+        final File profile = profilesDir.resolve("kept.dat").toFile();
+        Files.writeString(profile.toPath(), "profile");
+
+        final File sibling = profilesDir.resolve("kept-roms.xml").toFile();
+        Files.writeString(sibling.toPath(), "roms");
+
+        final File mameExe = tempDir.resolve("missing-mame.exe").toFile();
+        Files.write(mameExe.toPath(), new byte[] { 'M', 'Z', 0x00, 0x00 });
+
+        final ProfileNFO nfo = ProfileNFO.load(session, profile);
+        nfo.getMame().set(mameExe, true);
+        nfo.getMame().setFileroms(sibling);
+        nfo.save(session);
+        Files.delete(mameExe.toPath());
+
+        profile.setLastModified(System.currentTimeMillis() - 60_000L);
+        session.getUser().getSettings().getWorkFile(profile.getParentFile(), profile.getName(), ".nfo")
+                .setLastModified(System.currentTimeMillis());
+
+        final ProfileNFO loaded = ProfileNFO.load(session, profile);
+        assertThat(loaded.getMame().getFile()).isEqualTo(mameExe);
+        assertThat(loaded.getMame().getFileroms()).isEqualTo(sibling);
+        assertThat(loaded.getMame().isSL()).isTrue();
+        assertThat(loaded.getMame().getStatus()).isEqualTo(ProfileNFOMame.MameStatus.NOTFOUND);
+    }
+
     /**
      * Builds a ProfileNFO whose serialized {@code file} and MAME companion paths point at attacker-chosen locations.
      */

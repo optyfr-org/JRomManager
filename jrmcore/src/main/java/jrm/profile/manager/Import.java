@@ -195,4 +195,12 @@ public class Import implements UnitRenderer {
         }
         return null;
     }
+
+    /**
+     * @param sl {@code true} when software-list extracts are required
+     * @return {@code true} if this import produced the MAME extracts needed to update a profile
+     */
+    public boolean canApplyMameUpdate(final boolean sl) {
+        return isMame && romsFile != null && (!sl || slFile != null);
+    }
 }
