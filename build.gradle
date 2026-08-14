@@ -3,6 +3,7 @@ buildscript {
         resolutionStrategy {
             force 'io.airlift:aircompressor:[2.0.3,3.0)'
             dependencySubstitution {
+                substitute module('org.bouncycastle:bcpg-jdk15on') using module('org.bouncycastle:bcpg-jdk18on:[1.84,2.0)')
                 substitute module('org.bouncycastle:bcprov-jdk15on') using module('org.bouncycastle:bcprov-jdk18on:[1.84,2.0)')
             }
         }
