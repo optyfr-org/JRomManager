@@ -36,8 +36,8 @@ import jtrrntzip.TrrntZipStatus;
 /**
  * Regression tests for {@link DeserializationFilter}.
  * <p>
- * These tests verify that the allowlist used by the filter covers the full serialized object graphs produced by the
- * application's persisted cache and report formats. Future allowlist changes must not break loading of existing data.
+ * These tests verify that the allowlist used by the filter covers the full serialized object graphs produced by the application's
+ * persisted cache and report formats. Future allowlist changes must not break loading of existing data.
  * </p>
  */
 @DisplayName("DeserializationFilter tests")
@@ -48,6 +48,7 @@ class DeserializationFilterTest {
      */
     private static final class SecurityPackageGadget implements Serializable {
         private static final long serialVersionUID = 1L;
+        @SuppressWarnings("unused")
         private final String value = "gadget";
     }
 
@@ -55,7 +56,9 @@ class DeserializationFilterTest {
      * Serializes the given object to a byte array.
      *
      * @param object the object to serialize
+     * 
      * @return the serialized bytes
+     * 
      * @throws IOException if serialization fails
      */
     private static byte[] serialize(Object object) throws IOException {
@@ -70,7 +73,9 @@ class DeserializationFilterTest {
      * Deserializes the given bytes using {@link DeserializationFilter#createFilter()}.
      *
      * @param bytes the serialized bytes
+     * 
      * @return the deserialized object
+     * 
      * @throws IOException if deserialization fails
      * @throws ClassNotFoundException if a class cannot be resolved
      */
@@ -104,11 +109,12 @@ class DeserializationFilterTest {
         final var bytes = serialize(map);
         final HashMap<String, Object> restored = deserializeWithFilter(bytes);
 
-        assertThat(restored).isNotNull();
-        assertThat(restored.get("file")).isEqualTo(map.get("file"));
-        assertThat(restored.get("instant")).isEqualTo(map.get("instant"));
-        assertThat(restored.get("one")).isEqualTo(1L);
-        assertThat(restored.get("status")).isEqualTo(TrrntZipStatus.VALIDTRRNTZIP);
+        assertThat(restored)
+                .isNotNull()
+                .containsEntry("file", map.get("file"))
+                .containsEntry("instant", map.get("instant"))
+                .containsEntry("one", 1L)
+                .containsEntry("status", TrrntZipStatus.VALIDTRRNTZIP);
         assertThat(restored.get("stats")).usingRecursiveComparison().isEqualTo(map.get("stats"));
     }
 
@@ -130,7 +136,8 @@ class DeserializationFilterTest {
     @Test
     @DisplayName("should reject classes outside the allowlist")
     void shouldRejectClassesOutsideAllowlist() throws Exception {
-        final var original = java.net.URI.create("http://example.com/"); // java.net.URI is serializable but not in the allowlist //$NON-NLS-1$
+        final var original = java.net.URI.create("http://example.com/"); // java.net.URI is serializable but not in //$NON-NLS-1$
+                                                                         // the allowlist
         final var bytes = serialize(original);
 
         assertThatThrownBy(() -> deserializeWithFilter(bytes))
@@ -163,13 +170,14 @@ class DeserializationFilterTest {
         }
     }
 
-
     /**
      * Serializes then deserializes the supplied object using {@link DeserializationFilter#createFilter()}.
      *
      * @param <T> the object type
      * @param object the object to round-trip
+     * 
      * @return the deserialized object
+     * 
      * @throws Exception if serialization or deserialization fails
      */
     private static <T> T roundTrip(final T object) throws Exception {
@@ -195,6 +203,7 @@ class DeserializationFilterTest {
      * @param target the object to modify
      * @param fieldName the field name
      * @param value the value to set
+     * 
      * @throws Exception if reflection fails
      */
     private static void setField(final Object target, final String fieldName, final Object value) throws Exception {
@@ -208,7 +217,9 @@ class DeserializationFilterTest {
      *
      * @param parent the report or child node that owns the package-private method
      * @param title the child title
+     * 
      * @return the created child
+     * 
      * @throws Exception if reflection fails
      */
     private static Object addTrntChkReportChild(final Object parent, final String title) throws Exception {
@@ -222,6 +233,7 @@ class DeserializationFilterTest {
      *
      * @param child the child node
      * @param status the status to set
+     * 
      * @throws Exception if reflection fails
      */
     private static void setTrntChkReportChildStatus(final Object child, final TrntChkReport.Status status) throws Exception {

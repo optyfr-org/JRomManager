@@ -161,7 +161,7 @@ class NArchivePathTraversalTest {
                 
                 int result = archive.addStdIn(content, "subdir/file.txt");
                 
-                assertThat(result).isEqualTo(0);
+                assertThat(result).isZero();
             }
         }
 
@@ -175,7 +175,7 @@ class NArchivePathTraversalTest {
                 
                 int result = archive.addStdIn(content, "file.txt");
                 
-                assertThat(result).isEqualTo(0);
+                assertThat(result).isZero();
             }
         }
     }
@@ -288,7 +288,7 @@ class NArchivePathTraversalTest {
             final var resolved = ExtractorCallback.resolveContainedFile(baseDir.toFile(), "subdir/safe.txt");
             assertThat(resolved.toPath().normalize().toString().replace('\\', '/'))
                 .startsWith(baseDir.normalize().toString().replace('\\', '/'));
-            assertThat(resolved.getName()).isEqualTo("safe.txt");
+            assertThat(resolved).hasName("safe.txt");
         }
     }
 
