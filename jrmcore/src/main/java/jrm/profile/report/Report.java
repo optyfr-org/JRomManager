@@ -1030,7 +1030,7 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
     /**
      * Serializes the current report state data to a specific file destination with an HMAC integrity envelope.
      *
-     * @param session the user execution context (HMAC key is derived from the work path)
+     * @param session the user execution context (HMAC key is a per-user random secret)
      * @param file the destination File path
      */
     public void save(final Session session, final File file) {
@@ -1044,8 +1044,8 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
     /**
      * Restores a serialized report database instance from file storage.
      * <p>
-     * Prefer signed payloads written by {@link #save(Session, File)}. Legacy unsigned Java streams remain readable for backward
-     * compatibility and are still subject to the deserialization allowlist.
+     * Prefer signed payloads written by {@link #save(Session, File)}. Unsigned and legacy work-path HMAC
+     * streams are rejected; the scan is rerun and the report is rewritten in the signed format.
      * </p>
      *
      * @param session the user execution context

@@ -207,6 +207,55 @@ class UploadServletTest {
         }
 
         @Test
+        @DisplayName("init=1 with hmac key filename returns status 11")
+        void initHmacKeyFilenameBlocked() throws Exception {
+            Files.createDirectories(Path.of(System.getProperty("jrommanager.dir")).resolve("users").resolve("admin"));
+            final HttpSession httpSession = mock(HttpSession.class);
+            when(httpSession.getAttribute("session")).thenReturn(webSession);
+            final HttpServletRequest req = mock(HttpServletRequest.class);
+            lenient().when(req.getSession()).thenReturn(httpSession);
+            lenient().when(req.getRequestURI()).thenReturn("/upload/");
+            lenient().when(req.getParameter("init")).thenReturn("1");
+            lenient().when(req.getHeader("x-file-name")).thenReturn(".cache-hmac");
+            lenient().when(req.getHeader("x-file-parent")).thenReturn("%25work");
+            lenient().when(req.getHeader("x-file-size")).thenReturn("32");
+
+            final StringWriter writer = new StringWriter();
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            when(resp.getWriter()).thenReturn(new PrintWriter(writer));
+
+            servlet.doPost(req, resp);
+
+            final String json = writer.toString();
+            assertThat(json).contains("\"status\":11").contains("protected cache");
+        }
+
+        @Test
+        @DisplayName("init=1 with settings directory returns status 11")
+        void initSettingsDirectoryBlocked() throws Exception {
+            final var workPath = webSession.getUser().getSettings().getWorkPath();
+            Files.createDirectories(workPath.resolve("settings"));
+            final HttpSession httpSession = mock(HttpSession.class);
+            when(httpSession.getAttribute("session")).thenReturn(webSession);
+            final HttpServletRequest req = mock(HttpServletRequest.class);
+            lenient().when(req.getSession()).thenReturn(httpSession);
+            lenient().when(req.getRequestURI()).thenReturn("/upload/");
+            lenient().when(req.getParameter("init")).thenReturn("1");
+            lenient().when(req.getHeader("x-file-name")).thenReturn("admin.properties");
+            lenient().when(req.getHeader("x-file-parent")).thenReturn("%25work/settings");
+            lenient().when(req.getHeader("x-file-size")).thenReturn("100");
+
+            final StringWriter writer = new StringWriter();
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            when(resp.getWriter()).thenReturn(new PrintWriter(writer));
+
+            servlet.doPost(req, resp);
+
+            final String json = writer.toString();
+            assertThat(json).contains("\"status\":11").contains("protected cache");
+        }
+
+        @Test
         @DisplayName("init=1 with DirScan cache directory returns status 11")
         void initDirScanCacheDirectoryBlocked() throws Exception {
             final var workPath = webSession.getUser().getSettings().getWorkPath();

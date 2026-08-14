@@ -37,8 +37,8 @@ public final class DeserializationFilter {
      */
     public enum Mode {
         /**
-         * Full application allowlist ({@code jrm.*}, {@code jtrrntzip.*}, broad JDK prefixes).
-         * Used for profile caches, DirScan caches, and ProfileNFO.
+         * Profile/cache allowlist ({@code jrm.profile.*}, {@code jrm.batch.*}, {@code jtrrntzip.*}, JDK prefixes).
+         * Used for profile caches, DirScan caches, and ProfileNFO. Other {@code jrm.*} packages are rejected.
          */
         DEFAULT,
         /**
@@ -332,9 +332,9 @@ public final class DeserializationFilter {
             className.startsWith("java.math.") || //$NON-NLS-1$
             className.startsWith("java.time.") || //$NON-NLS-1$
             className.equals("java.io.File") || //$NON-NLS-1$
-            // Allow application-specific classes from jrm package and subpackages
-            className.startsWith("jrm.") || //$NON-NLS-1$
-            // Allow torrentzip status types used in container caches
+            // Only persisted profile/cache/report graphs — not jrm.security, compressors, io, server
+            className.startsWith("jrm.profile.") || //$NON-NLS-1$
+            className.startsWith("jrm.batch.") || //$NON-NLS-1$
             className.startsWith("jtrrntzip."); //$NON-NLS-1$
     }
 

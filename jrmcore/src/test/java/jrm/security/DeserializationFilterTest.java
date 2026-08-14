@@ -44,25 +44,11 @@ import jtrrntzip.TrrntZipStatus;
 class DeserializationFilterTest {
 
     /**
-     * Serializable holder that exercises the main classes found in persisted object graphs:
-     * {@link File}, {@link Instant}, {@link Map.Entry} arrays via {@link HashMap}, and {@link TrrntZipStatus}.
+     * Serializable holder used only to prove {@code jrm.security.*} is outside the DEFAULT allowlist.
      */
-    private static final class PersistedGraph implements Serializable {
+    private static final class SecurityPackageGadget implements Serializable {
         private static final long serialVersionUID = 1L;
-
-        private final File file;
-        private final Instant instant;
-        private final Map<String, Long> map;
-        private final TrrntZipStatus status;
-        private final Report.Stats stats;
-
-        PersistedGraph(File file, Instant instant, Map<String, Long> map, TrrntZipStatus status, Report.Stats stats) {
-            this.file = file;
-            this.instant = instant;
-            this.map = map;
-            this.status = status;
-            this.stats = stats;
-        }
+        private final String value = "gadget";
     }
 
     /**
@@ -108,26 +94,32 @@ class DeserializationFilterTest {
     @Test
     @DisplayName("should allow persisted object graph with File, Instant, HashMap, and TrrntZipStatus")
     void shouldAllowPersistedObjectGraph() throws Exception {
-        final var map = new HashMap<String, Long>();
+        final var map = new HashMap<String, Object>();
+        map.put("file", new File("test.dat"));
+        map.put("instant", Instant.parse("2024-01-01T00:00:00Z"));
         map.put("one", 1L);
-        map.put("two", 2L);
+        map.put("status", TrrntZipStatus.VALIDTRRNTZIP);
+        map.put("stats", new Report.Stats());
 
-        final var original = new PersistedGraph(
-                new File("test.dat"),
-                Instant.parse("2024-01-01T00:00:00Z"),
-                map,
-                TrrntZipStatus.VALIDTRRNTZIP,
-                new Report.Stats());
-
-        final var bytes = serialize(original);
-        final PersistedGraph restored = deserializeWithFilter(bytes);
+        final var bytes = serialize(map);
+        final HashMap<String, Object> restored = deserializeWithFilter(bytes);
 
         assertThat(restored).isNotNull();
-        assertThat(restored.file).isEqualTo(original.file);
-        assertThat(restored.instant).isEqualTo(original.instant);
-        assertThat(restored.map).containsExactlyInAnyOrderEntriesOf(original.map);
-        assertThat(restored.status).isEqualTo(original.status);
-        assertThat(restored.stats).usingRecursiveComparison().isEqualTo(original.stats);
+        assertThat(restored.get("file")).isEqualTo(map.get("file"));
+        assertThat(restored.get("instant")).isEqualTo(map.get("instant"));
+        assertThat(restored.get("one")).isEqualTo(1L);
+        assertThat(restored.get("status")).isEqualTo(TrrntZipStatus.VALIDTRRNTZIP);
+        assertThat(restored.get("stats")).usingRecursiveComparison().isEqualTo(map.get("stats"));
+    }
+
+    @Test
+    @DisplayName("default mode should reject non-profile jrm packages")
+    void defaultModeShouldRejectNonProfileJrmPackages() throws Exception {
+        final var bytes = serialize(new SecurityPackageGadget());
+
+        assertThatThrownBy(() -> deserializeWithFilter(bytes))
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("REJECTED");
     }
 
     /**
@@ -154,33 +146,20 @@ class DeserializationFilterTest {
     @Test
     @DisplayName("should allow custom depth limit to exceed the default")
     void shouldAllowCustomDepthLimit() throws Exception {
-        // Build a chain deeper than the default limit of 100.
-        DeepNode<Integer> original = null;
-        for (int i = 150; i >= 1; i--) {
-            original = new DeepNode<>(i, original);
+        java.util.ArrayList<Object> original = new java.util.ArrayList<>();
+        java.util.ArrayList<Object> current = original;
+        for (int i = 0; i < 150; i++) {
+            final var next = new java.util.ArrayList<>();
+            current.add(next);
+            current = next;
         }
+        current.add(42);
         final var bytes = serialize(original);
 
         try (final var ois = DeserializationFilter.openObjectInputStream(new ByteArrayInputStream(bytes), 200)) {
             @SuppressWarnings("unchecked")
-            final DeepNode<Integer> restored = (DeepNode<Integer>) ois.readObject();
+            final java.util.ArrayList<Object> restored = (java.util.ArrayList<Object>) ois.readObject();
             assertThat(restored).usingRecursiveComparison().isEqualTo(original);
-        }
-    }
-
-    /**
-     * Serializable recursive node used to exercise the depth limit.
-     */
-    private static final class DeepNode<T> implements Serializable {
-        private static final long serialVersionUID = 1L;
-        @SuppressWarnings("unused")
-        private final T value;
-        @SuppressWarnings("unused")
-        private final DeepNode<T> child;
-
-        DeepNode(T value, DeepNode<T> child) {
-            this.value = value;
-            this.child = child;
         }
     }
 

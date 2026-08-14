@@ -215,6 +215,25 @@ class RemoteFileChooserXMLResponseTest {
         }
 
         @Test
+        @DisplayName("add of hmac key name is rejected")
+        void addProtectedHmacKeyRejected() throws Exception {
+            final String xml = """
+                    <request>
+                      <operationType>add</operationType>
+                      <data>
+                        <context>listSrcDir</context>
+                        <root>%work</root>
+                        <parent>%work</parent>
+                        <Name>.cache-hmac</Name>
+                      </data>
+                    </request>
+                    """;
+            final String output = TestDataSets.processResponse(new RemoteFileChooserXMLResponse(TestDataSets.xmlRequest(session, xml)));
+            assertThat(output).contains("Protected cache location");
+            assertThat(session.getUser().getSettings().getWorkPath().resolve(".cache-hmac")).doesNotExist();
+        }
+
+        @Test
         @DisplayName("add creates a directory")
         void add() throws Exception {
             final String xml = """
@@ -316,6 +335,38 @@ class RemoteFileChooserXMLResponseTest {
             final String output = TestDataSets.processResponse(new RemoteFileChooserXMLResponse(TestDataSets.xmlRequest(session, xml)));
             assertThat(output).contains("<status>0</status>");
             assertThat(session.getUser().getSettings().getWorkPath().resolve("nested.txt")).exists();
+        }
+
+        @Test
+        @DisplayName("extract skips zip entries that target cache files")
+        void customExtractHereSkipsProtectedCacheEntries() throws Exception {
+            final Path zip = session.getUser().getSettings().getWorkPath().resolve("poison.zip");
+            try (final var zos = new ZipOutputStream(Files.newOutputStream(zip))) {
+                zos.putNextEntry(new ZipEntry("safe.txt"));
+                zos.write("ok".getBytes());
+                zos.closeEntry();
+                zos.putNextEntry(new ZipEntry("evil.dat.cache"));
+                zos.write("poison".getBytes());
+                zos.closeEntry();
+                zos.putNextEntry(new ZipEntry(".cache-hmac"));
+                zos.write(new byte[32]);
+                zos.closeEntry();
+            }
+            final String xml = """
+                    <request>
+                      <operationType>custom</operationType>
+                      <operationId>extract_here</operationId>
+                      <data>
+                        <root>%work</root>
+                        <Path>%work/poison.zip</Path>
+                      </data>
+                    </request>
+                    """;
+            final String output = TestDataSets.processResponse(new RemoteFileChooserXMLResponse(TestDataSets.xmlRequest(session, xml)));
+            assertThat(output).contains("<status>0</status>");
+            assertThat(session.getUser().getSettings().getWorkPath().resolve("safe.txt")).exists();
+            assertThat(session.getUser().getSettings().getWorkPath().resolve("evil.dat.cache")).doesNotExist();
+            assertThat(session.getUser().getSettings().getWorkPath().resolve(".cache-hmac")).doesNotExist();
         }
 
         @Test

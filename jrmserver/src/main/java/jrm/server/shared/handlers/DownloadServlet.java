@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jrm.misc.Log;
+import jrm.security.CachePathGuard;
 import jrm.security.PathAbstractor;
 import jrm.server.shared.WebSession;
 import lombok.val;
@@ -112,6 +113,10 @@ public class DownloadServlet extends HttpServlet {
             val path = req.getParameter("path");
             if (path != null) {
                 val file = pathAbstractor.getAbsolutePath(path);
+                if (CachePathGuard.isProtectedFile(ws, file)) {
+                    resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                    return;
+                }
                 if (Files.isRegularFile(file))
                     streamFile(resp, file);
                 else

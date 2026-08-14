@@ -107,6 +107,34 @@ class DownloadServletTest {
             verify(resp).setStatus(HttpServletResponse.SC_OK);
             assertThat(out.toByteArray()).isEqualTo("hello".getBytes());
         }
+
+        @Test
+        @DisplayName("hmac key file download is forbidden")
+        void hmacKeyDownloadForbidden() throws Exception {
+            final Path workDir = Path.of(System.getProperty("jrommanager.dir")).resolve("users").resolve("admin");
+            Files.createDirectories(workDir.resolve("settings"));
+            Files.write(workDir.resolve("settings").resolve(".cache-hmac"), new byte[32]);
+
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            final HttpServletRequest req = buildRequest("/download/", "%work/settings/.cache-hmac");
+            servlet.doPost(req, resp);
+
+            verify(resp).setStatus(HttpServletResponse.SC_FORBIDDEN);
+        }
+
+        @Test
+        @DisplayName("profile cache download is forbidden")
+        void cacheFileDownloadForbidden() throws Exception {
+            final Path workDir = Path.of(System.getProperty("jrommanager.dir")).resolve("users").resolve("admin");
+            Files.createDirectories(workDir);
+            Files.writeString(workDir.resolve("mame.dat.cache"), "poison");
+
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            final HttpServletRequest req = buildRequest("/download/", "%work/mame.dat.cache");
+            servlet.doPost(req, resp);
+
+            verify(resp).setStatus(HttpServletResponse.SC_FORBIDDEN);
+        }
     }
 
     @Nested

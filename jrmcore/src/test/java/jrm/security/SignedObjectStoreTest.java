@@ -7,6 +7,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.ObjectOutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -19,7 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
 /**
- * Tests for {@link SignedObjectStore}: signed round-trip, bare-stream rejection, and legacy DirScan HMAC envelopes.
+ * Tests for {@link SignedObjectStore}: signed round-trip, bare-stream rejection, and rejection of
+ * predictable work-path HMAC envelopes.
  */
 @DisplayName("SignedObjectStore tests")
 class SignedObjectStoreTest {
@@ -40,6 +42,7 @@ class SignedObjectStoreTest {
 
     @AfterEach
     void tearDown() {
+        CacheIntegrityKey.clearCache();
         System.clearProperty(JRM_DIR_PROP);
     }
 
@@ -55,6 +58,7 @@ class SignedObjectStoreTest {
 
         assertThat(loaded).containsExactlyInAnyOrderEntriesOf(original);
         assertThat(Files.readAllBytes(file.toPath())).startsWith((byte) 'J', (byte) 'R', (byte) 'M', (byte) 'H');
+        assertThat(Files.size(CacheIntegrityKey.keyFile(session))).isEqualTo(32);
     }
 
     @Test
@@ -73,11 +77,11 @@ class SignedObjectStoreTest {
     }
 
     @Test
-    @DisplayName("legacy length-prefixed HMAC envelope should still load")
-    void legacyLengthPrefixedHmacShouldLoad() throws Exception {
+    @DisplayName("legacy length-prefixed HMAC envelope should be rejected")
+    void legacyLengthPrefixedHmacShouldBeRejected() throws Exception {
         final var original = Map.of("legacy", true);
         final byte[] serialized = serialize(original);
-        final byte[] hmac = computeLegacyHmac(session, serialized);
+        final byte[] hmac = computeWorkPathHmac(session, serialized);
         final File file = tempDir.resolve("legacy-hmac.cache").toFile();
         try (final var out = Files.newOutputStream(file.toPath())) {
             out.write((hmac.length >> 24) & 0xFF);
@@ -88,9 +92,34 @@ class SignedObjectStoreTest {
             out.write(serialized);
         }
 
-        @SuppressWarnings("unchecked")
-        final Map<String, Boolean> loaded = (Map<String, Boolean>) SignedObjectStore.read(session, file);
-        assertThat(loaded).containsExactlyInAnyOrderEntriesOf(original);
+        assertThatThrownBy(() -> SignedObjectStore.read(session, file))
+                .isInstanceOf(SecurityException.class)
+                .hasMessageContaining("Legacy");
+    }
+
+    @Test
+    @DisplayName("JRMH envelope signed with work-path key should be rejected")
+    void workPathDerivedSignedPayloadShouldBeRejected() throws Exception {
+        final byte[] serialized = serialize("forged");
+        final byte[] hmac = computeWorkPathHmac(session, serialized);
+        final File file = tempDir.resolve("forged.cache").toFile();
+        try (final var out = Files.newOutputStream(file.toPath())) {
+            out.write(new byte[] { 'J', 'R', 'M', 'H', 1 });
+            out.write((hmac.length >> 24) & 0xFF);
+            out.write((hmac.length >> 16) & 0xFF);
+            out.write((hmac.length >> 8) & 0xFF);
+            out.write(hmac.length & 0xFF);
+            out.write(hmac);
+            out.write(serialized);
+        }
+
+        assertThatThrownBy(() -> SignedObjectStore.read(session, file))
+                .isInstanceOf(SecurityException.class)
+                .hasMessageContaining("integrity");
+        assertThat(Files.readAllBytes(CacheIntegrityKey.keyFile(session)))
+                .isNotEqualTo(java.security.MessageDigest.getInstance("SHA-256")
+                        .digest(("JRM-CACHE-INTEGRITY-" + session.getUser().getSettings().getWorkPath())
+                                .getBytes(StandardCharsets.UTF_8)));
     }
 
     @Test
@@ -115,9 +144,9 @@ class SignedObjectStoreTest {
         return baos.toByteArray();
     }
 
-    private static byte[] computeLegacyHmac(final Session session, final byte[] data) throws Exception {
+    private static byte[] computeWorkPathHmac(final Session session, final byte[] data) throws Exception {
         final var workPath = session.getUser().getSettings().getWorkPath().toString();
-        final var keyMaterial = ("JRM-CACHE-INTEGRITY-" + workPath).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        final var keyMaterial = ("JRM-CACHE-INTEGRITY-" + workPath).getBytes(StandardCharsets.UTF_8);
         final var key = java.security.MessageDigest.getInstance("SHA-256").digest(keyMaterial);
         final var mac = javax.crypto.Mac.getInstance("HmacSHA256");
         mac.init(new javax.crypto.spec.SecretKeySpec(key, "HmacSHA256"));

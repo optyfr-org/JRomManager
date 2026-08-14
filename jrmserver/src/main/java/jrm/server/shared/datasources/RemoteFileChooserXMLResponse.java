@@ -28,6 +28,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import jrm.misc.Log;
+import jrm.security.CachePathGuard;
 import jrm.server.shared.datasources.XMLRequest.Operation;
 import lombok.val;
 
@@ -310,6 +311,10 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
         Path parent = getParent(operation);
         String name = operation.getData("Name");
         Path entry = validateResolvedPath(parent, name);
+        if (isProtectedWrite(parent, name, entry)) {
+            failure("Protected cache location");
+            return;
+        }
         if (entry != null && name != null && Files.isDirectory(parent) && !Files.exists(entry)) {
             try {
                 Files.createDirectory(entry);
@@ -363,6 +368,10 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
         String oldname = operation.oldValues.get("Name");
         Path entry = validateResolvedPath(parent, name);
         Path oldentry = validateResolvedPath(parent, oldname);
+        if (isProtectedWrite(parent, name, entry) || isProtectedWrite(parent, oldname, oldentry)) {
+            failure("Protected cache location");
+            return;
+        }
         if (entry != null && oldentry != null && name != null && oldname != null && Files.isDirectory(parent) && Files.exists(oldentry) && !Files.exists(entry)) {
             try {
                 Files.move(oldentry, entry);
@@ -388,6 +397,10 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
         Path parent = getParent(operation);
         String name = operation.getData("Name");
         Path entry = validateResolvedPath(parent, name);
+        if (isProtectedWrite(parent, name, entry)) {
+            failure("Protected cache location");
+            return;
+        }
         if (entry != null && name != null && Files.exists(entry)) {
             try {
                 try (final var stream = Files.walk(entry)) {
@@ -427,6 +440,10 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
             if (operation.hasData("Path")) {
                 var zipfile = pathAbstractor.getAbsolutePath(operation.getData("Path"));
                 Path dest = zipfile.getParent().resolve(StringUtils.substring(zipfile.getFileName().toString(), 0, -4));
+                if (CachePathGuard.isProtectedLocation(request.getSession(), dest)) {
+                    failure("Protected cache location");
+                    return;
+                }
                 unzip(zipfile, dest);
                 success();
             } else
@@ -435,6 +452,10 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
             if (operation.hasData("Path")) {
                 var zipfile = pathAbstractor.getAbsolutePath(operation.getData("Path"));
                 Path dest = zipfile.getParent();
+                if (CachePathGuard.isProtectedLocation(request.getSession(), dest)) {
+                    failure("Protected cache location");
+                    return;
+                }
                 unzip(zipfile, dest);
                 success();
             } else
@@ -556,6 +577,13 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
      * 
      * @return the validated resolved path, or null if the path attempts to escape the parent directory
      */
+    private boolean isProtectedWrite(final Path parent, final String name, final Path entry) {
+        if (CachePathGuard.isProtectedTarget(request.getSession(), parent, name)) {
+            return true;
+        }
+        return entry != null && CachePathGuard.isProtectedFile(request.getSession(), entry);
+    }
+
     private Path validateResolvedPath(Path parent, String name) {
         if (name == null || name.isEmpty()) {
             return null;
@@ -649,6 +677,10 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
                     Path resolvedPath = normalizedOutputPath.resolve(entry.getName()).normalize();
                     if (!resolvedPath.startsWith(normalizedOutputPath)) {
                         Log.err("Skipping unsafe zip entry outside target dir: " + entry.getName());
+                        return;
+                    }
+                    if (CachePathGuard.isProtectedFile(request.getSession(), resolvedPath)) {
+                        Log.err("Skipping zip entry targeting a protected cache path: " + entry.getName());
                         return;
                     }
 

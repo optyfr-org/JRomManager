@@ -372,7 +372,7 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
      * Saves this report to the specified file using HMAC-signed object serialization. If an error occurs during the save process, a
      * warning message is logged.
      *
-     * @param session the active user session (HMAC key is derived from the work path)
+     * @param session the active user session (HMAC key is a per-user random secret)
      * @param file the file to which this report should be saved
      */
     public void save(final Session session, final File file) {
@@ -387,8 +387,8 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
      * Loads a TrntChkReport from the specified file using object deserialization. If an error occurs during the load process, a
      * warning message is logged and {@code null} is returned.
      * <p>
-     * Prefer signed payloads written by {@link #save(Session, File)}. Legacy unsigned Java streams remain readable for backward
-     * compatibility and are still subject to the deserialization allowlist.
+     * Prefer signed payloads written by {@link #save(Session, File)}. Unsigned and legacy work-path HMAC
+     * streams are rejected; the check is rerun and the report is rewritten in the signed format.
      * </p>
      *
      * @param session the active user session

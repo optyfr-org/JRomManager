@@ -18,6 +18,7 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jrm.misc.Log;
+import jrm.security.CachePathGuard;
 import jrm.security.PathAbstractor;
 import jrm.server.shared.WebSession;
 import lombok.val;
@@ -330,11 +331,9 @@ public class UploadServlet extends HttpServlet {
      * Rejects:
      * </p>
      * <ul>
-     * <li>Filenames ending in {@code .cache} or {@code .nfo} (profile/DirScan/ProfileNFO caches)</li>
-     * <li>Parents under the session work-tree {@code reports}, {@code cache}, or {@code work} directories</li>
+     * <li>Filenames ending in {@code .cache}, {@code .nfo}, {@code .results}, or the HMAC key name</li>
+     * <li>Parents under the session work-tree {@code reports}, {@code cache}, {@code work}, or {@code settings} directories</li>
      * </ul>
-     * Session users can derive the HMAC key from their work path, so authenticated envelopes alone are not
-     * sufficient when the attacker can also write the destination file.
      *
      * @param ws the active web session
      * @param pathAbstractor the path abstractor for resolving {@code fileparent}
@@ -345,31 +344,12 @@ public class UploadServlet extends HttpServlet {
      */
     boolean isProtectedCacheTarget(final WebSession ws, final PathAbstractor pathAbstractor, final String fileparent,
             final String filename) {
-        if (isProtectedCacheFilename(filename)) {
-            return true;
-        }
         try {
             final var resolved = pathAbstractor.getAbsolutePath(fileparent).toAbsolutePath().normalize();
-            final var workPath = ws.getUser().getSettings().getWorkPath().toAbsolutePath().normalize();
-            return isUnderWorkSubdir(resolved, workPath, "reports")
-                    || isUnderWorkSubdir(resolved, workPath, "cache")
-                    || isUnderWorkSubdir(resolved, workPath, "work");
-        } catch (final Exception _) { // Let normal path validation report resolution errors
-            return false;
+            return CachePathGuard.isProtectedTarget(ws, resolved, filename);
+        } catch (final Exception _) { // Fail closed: treat unresolvable destinations as protected
+            return true;
         }
-    }
-
-    private static boolean isProtectedCacheFilename(final String filename) {
-        if (filename == null || filename.isBlank()) {
-            return false;
-        }
-        final var lower = filename.toLowerCase();
-        return lower.endsWith(".cache") || lower.endsWith(".nfo");
-    }
-
-    private static boolean isUnderWorkSubdir(final Path resolved, final Path workPath, final String subdir) {
-        final var root = workPath.resolve(subdir).toAbsolutePath().normalize();
-        return resolved.startsWith(root);
     }
 
     /**
