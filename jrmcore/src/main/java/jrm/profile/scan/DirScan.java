@@ -235,7 +235,7 @@ public final class DirScan extends PathAbstractor {
     private void init7zJBinding() {
         if (!SevenZip.isInitializedSuccessfully()) {
             try {
-                SevenZip.initSevenZipFromPlatformJAR(session.getUser().getSettings().getTmpPath(true).toFile());
+                SevenZip.initSevenZipFromPlatformJAR(session.getUser().getSettings().getTmpPath(false).toFile());
             } catch (final Exception e) {
                 Log.err(e.getMessage(), e);
             }

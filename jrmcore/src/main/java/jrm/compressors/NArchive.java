@@ -160,7 +160,7 @@ abstract class NArchive extends NArchiveBase {
         this.session = session;
         this.cb = cb;
         if (!SevenZip.isInitializedSuccessfully())
-            SevenZip.initSevenZipFromPlatformJAR(session.getUser().getSettings().getTmpPath(true).toFile());
+            SevenZip.initSevenZipFromPlatformJAR(session.getUser().getSettings().getTmpPath(false).toFile());
         ext = FilenameUtils.getExtension(archive.getName());
         switch (ext.toLowerCase()) {
             case "zip": //$NON-NLS-1$
