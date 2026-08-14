@@ -44,8 +44,8 @@ public class TZipContainer extends ContainerAction {
     @Override
     public boolean doAction(final Session session, final ProgressHandler handler) {
         if (container.getType() == Container.Type.ZIP && format == FormatOptions.TZIP) {
-            handler.setProgress(toDocument(toNoBR(String.format(escape("TorrentZipping %s [%s]"), toBlue(escape(container.getRelAW().getFullName(container.getFile().getName()))), //$NON-NLS-1$
-                    toPurple(escape(container.getRelAW().getDescription()))))));
+            handler.setProgress(toDocument(toNoBR(String.format(escape("TorrentZipping %s [%s]"), toBlue(container.getRelAW().getFullName(container.getFile().getName())), //$NON-NLS-1$
+                    toPurple(container.getRelAW().getDescription())))));
             try {
                 if (container.getFile().exists()) {
                     final Set<TrrntZipStatus> status = new TorrentZip(new ProgressTZipCallBack(handler), new SimpleTorrentZipOptions()).process(container.getFile());

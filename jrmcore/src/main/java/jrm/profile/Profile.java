@@ -1805,7 +1805,7 @@ public class Profile implements Serializable, StatusRendererFactory {
             } else if (header.containsKey("name")) { //$NON-NLS-1$
                 nameBuilder.append(toBoldBlack(header.get("name"))); //$NON-NLS-1$
                 if (header.containsKey(VERSION)) // $NON-NLS-1$
-                    nameBuilder.append(" (").append(header.get(VERSION)).append(")"); //$NON-NLS-1$ //$NON-NLS-2$
+                    nameBuilder.append(" (").append(escape(header.get(VERSION))).append(")"); //$NON-NLS-1$ //$NON-NLS-2$
             }
         }
         final var strcntBuilder = new StringBuilder();

@@ -63,7 +63,7 @@ public class NeutralRenderer implements StatusRenderer {
      */
     @Override
     public String toLabel(CharSequence str, String webcolor, boolean bold, boolean italic) {
-        return "<label color=\"%s\" bold=\"%b\" italic=\"%b\">%s</label>".formatted(Optional.ofNullable(webcolor).orElse("black"), bold, italic, str);
+        return "<label color=\"%s\" bold=\"%b\" italic=\"%b\">%s</label>".formatted(Optional.ofNullable(webcolor).orElse("black"), bold, italic, escape(str));
     }
 
     /**

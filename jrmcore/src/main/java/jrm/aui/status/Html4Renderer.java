@@ -62,7 +62,7 @@ public class Html4Renderer implements StatusRenderer {
      */
     @Override
     public String toLabel(CharSequence str, String webcolor, boolean bold, boolean italic) {
-        String fstr = str.toString();
+        String fstr = escape(str);
         if (italic)
             fstr = "<i>" + fstr + "</i>";
         if (bold)

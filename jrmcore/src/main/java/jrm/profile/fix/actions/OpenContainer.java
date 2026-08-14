@@ -92,7 +92,7 @@ public class OpenContainer extends ContainerAction {
     @Override
     public boolean doAction(final Session session, final ProgressHandler handler) {
         handler.setProgress(toDocument(toNoBR(String.format(escape(session.getMsgs().getString("OpenContainer.Fixing")), //$NON-NLS-1$
-                toBlue(escape(container.getRelAW().getFullName(container.getFile().getName()))), toPurple(escape(container.getRelAW().getDescription()))))));
+                toBlue(container.getRelAW().getFullName(container.getFile().getName())), toPurple(container.getRelAW().getDescription())))));
         if (container.getType() == Container.Type.ZIP) {
             if (format == FormatOptions.ZIP || format == FormatOptions.TZIP) {
                 return doActionZip(session, handler);
