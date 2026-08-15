@@ -317,7 +317,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
             failure(PROTECTED_CACHE_LOCATION);
             return;
         }
-        if (entry != null && name != null && Files.isDirectory(parent) && !Files.exists(entry)) {
+        if (entry != null && Files.isDirectory(parent) && !Files.exists(entry)) {
             try {
                 Files.createDirectory(entry);
                 writeResponseSingle(parent, entry);
@@ -374,7 +374,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
             failure(PROTECTED_CACHE_LOCATION);
             return;
         }
-        if (entry != null && oldentry != null && name != null && oldname != null && Files.isDirectory(parent) && Files.exists(oldentry) && !Files.exists(entry)) {
+        if (entry != null && oldentry != null && Files.isDirectory(parent) && Files.exists(oldentry) && !Files.exists(entry)) {
             try {
                 Files.move(oldentry, entry);
                 writeResponseSingle(parent, entry);
@@ -403,7 +403,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
             failure(PROTECTED_CACHE_LOCATION);
             return;
         }
-        if (entry != null && name != null && Files.exists(entry)) {
+        if (entry != null && Files.exists(entry)) {
             try {
                 try (final var stream = Files.walk(entry)) {
                     stream.map(Path::toFile).sorted(Comparator.reverseOrder()).forEach(File::delete); // recursive dir delete
