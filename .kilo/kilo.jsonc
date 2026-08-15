@@ -1,25 +1,4 @@
 {
   "$schema": "https://app.kilo.ai/config.json",
-  "snapshot": false,
-  "mcp": {
-    "sonarqube": {
-      "type": "local",
-      "command": [
-        "docker",
-        "run",
-        "-i",
-        "--rm",
-        "-e",
-        "SONARQUBE_ORG=optyfr",
-        "-e",
-        "SONARQUBE_CLOUD_URL=https://sonarcloud.io",
-        "-e",
-        "SONARQUBE_TOKEN",
-        "-e",
-        "SONARQUBE_IDE_PORT=64120",
-        "mcp/sonarqube"
-      ],
-      "enabled": true
-    }
-  }
+  "snapshot": false
 }
