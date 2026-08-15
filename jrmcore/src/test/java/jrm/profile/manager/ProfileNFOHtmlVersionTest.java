@@ -27,7 +27,8 @@ class ProfileNFOHtmlVersionTest {
 
         final String html = nfo.getHTMLVersion();
 
-        assertThat(html).contains("&lt;b&gt;1.0&lt;/b&gt;");
-        assertThat(html).doesNotContain("<b>1.0</b>");
+        assertThat(html)
+                .contains("&lt;b&gt;1.0&lt;/b&gt;")
+                .doesNotContain("<b>1.0</b>");
     }
 }

@@ -49,7 +49,7 @@ class DeserializationFilterTest {
     private static final class SecurityPackageGadget implements Serializable {
         private static final long serialVersionUID = 1L;
         @SuppressWarnings("unused")
-        private final String value = "gadget";
+        private final String value = "gadget"; //NOSONAR
     }
 
     /**

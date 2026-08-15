@@ -50,9 +50,10 @@ class ProfileGetNameHtmlEscapeTest {
 
         final String html = profile.getName();
 
-        assertThat(html).contains("foo&amp;bar.dat");
-        assertThat(html).contains("&lt;img src=x onerror=alert(1)&gt;");
-        assertThat(html).doesNotContain("<img src=x onerror=alert(1)>");
+        assertThat(html)
+                .contains("foo&amp;bar.dat")
+                .contains("&lt;img src=x onerror=alert(1)&gt;")
+                .doesNotContain("<img src=x onerror=alert(1)>");
     }
 
     @Test
@@ -64,10 +65,11 @@ class ProfileGetNameHtmlEscapeTest {
 
         final String html = profile.getName();
 
-        assertThat(html).contains("&lt;b&gt;evil&lt;/b&gt;");
-        assertThat(html).contains("&lt;script&gt;alert(1)&lt;/script&gt;");
-        assertThat(html).doesNotContain("<b>evil</b>");
-        assertThat(html).doesNotContain("<script>alert(1)</script>");
+        assertThat(html)
+                .contains("&lt;b&gt;evil&lt;/b&gt;")
+                .contains("&lt;script&gt;alert(1)&lt;/script&gt;")
+                .doesNotContain("<b>evil</b>")
+                .doesNotContain("<script>alert(1)</script>");
     }
 
     private Path xmlfiles() throws Exception {

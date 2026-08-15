@@ -39,6 +39,8 @@ import lombok.val;
  */
 public class RemoteFileChooserXMLResponse extends XMLResponse {
 
+    private static final String PROTECTED_CACHE_LOCATION = "Protected cache location";
+
     /** XML attribute name for the parent directory path. */
     private static final String PARENT = "parent";
 
@@ -312,7 +314,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
         String name = operation.getData("Name");
         Path entry = validateResolvedPath(parent, name);
         if (isProtectedWrite(parent, name, entry)) {
-            failure("Protected cache location");
+            failure(PROTECTED_CACHE_LOCATION);
             return;
         }
         if (entry != null && name != null && Files.isDirectory(parent) && !Files.exists(entry)) {
@@ -369,7 +371,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
         Path entry = validateResolvedPath(parent, name);
         Path oldentry = validateResolvedPath(parent, oldname);
         if (isProtectedWrite(parent, name, entry) || isProtectedWrite(parent, oldname, oldentry)) {
-            failure("Protected cache location");
+            failure(PROTECTED_CACHE_LOCATION);
             return;
         }
         if (entry != null && oldentry != null && name != null && oldname != null && Files.isDirectory(parent) && Files.exists(oldentry) && !Files.exists(entry)) {
@@ -398,7 +400,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
         String name = operation.getData("Name");
         Path entry = validateResolvedPath(parent, name);
         if (isProtectedWrite(parent, name, entry)) {
-            failure("Protected cache location");
+            failure(PROTECTED_CACHE_LOCATION);
             return;
         }
         if (entry != null && name != null && Files.exists(entry)) {
@@ -433,35 +435,38 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
      */
     @Override
     protected void custom(Operation operation) throws XMLStreamException, IOException {
+        switch (operation.getOperationId().toString()) {
+            case "expand" -> customExpand(operation);
+            case "extract_subfolder" -> extractArchive(operation, true);
+            case "extract_here" -> extractArchive(operation, false);
+            default -> super.custom(operation);
+        }
+    }
 
-        if (operation.getOperationId().toString().equals("expand")) {
-            customExpand(operation);
-        } else if (operation.operationId.toString().equals("extract_subfolder")) {
-            if (operation.hasData("Path")) {
-                var zipfile = pathAbstractor.getAbsolutePath(operation.getData("Path"));
-                Path dest = zipfile.getParent().resolve(StringUtils.substring(zipfile.getFileName().toString(), 0, -4));
-                if (CachePathGuard.isProtectedLocation(request.getSession(), dest)) {
-                    failure("Protected cache location");
-                    return;
-                }
-                unzip(zipfile, dest);
-                success();
-            } else
-                failure("path missing");
-        } else if (operation.operationId.toString().equals("extract_here")) {
-            if (operation.hasData("Path")) {
-                var zipfile = pathAbstractor.getAbsolutePath(operation.getData("Path"));
-                Path dest = zipfile.getParent();
-                if (CachePathGuard.isProtectedLocation(request.getSession(), dest)) {
-                    failure("Protected cache location");
-                    return;
-                }
-                unzip(zipfile, dest);
-                success();
-            } else
-                failure("path missing");
-        } else
-            super.custom(operation);
+    /**
+     * Extracts the ZIP identified by {@code operation}'s {@code Path} data.
+     *
+     * @param operation the custom operation carrying the archive path
+     * @param subfolder {@code true} to extract into a sibling folder named after the archive; {@code false} to extract beside it
+     * @throws XMLStreamException if an error occurs while writing the XML response
+     * @throws IOException if an I/O error occurs while accessing the file system
+     */
+    private void extractArchive(Operation operation, boolean subfolder) throws XMLStreamException {
+        if (!operation.hasData("Path")) {
+            failure("path missing");
+            return;
+        }
+        var zipfile = pathAbstractor.getAbsolutePath(operation.getData("Path"));
+        Path dest = zipfile.getParent();
+        if (subfolder) {
+            dest = dest.resolve(StringUtils.substring(zipfile.getFileName().toString(), 0, -4));
+        }
+        if (CachePathGuard.isProtectedLocation(request.getSession(), dest)) {
+            failure(PROTECTED_CACHE_LOCATION);
+            return;
+        }
+        unzip(zipfile, dest);
+        success();
     }
 
     /**
@@ -670,36 +675,54 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
     private void unzip(Path zipfile, Path outputPath) {
         try (var zf = new ZipFile(zipfile.toFile())) {
             Path normalizedOutputPath = outputPath.toAbsolutePath().normalize();
-
-            Enumeration<? extends ZipEntry> zipEntries = zf.entries();
-            new EnumerationToIterator<>(zipEntries).forEachRemaining(entry -> {
-                try {
-                    Path resolvedPath = normalizedOutputPath.resolve(entry.getName()).normalize();
-                    if (!resolvedPath.startsWith(normalizedOutputPath)) {
-                        Log.err("Skipping unsafe zip entry outside target dir: " + entry.getName());
-                        return;
-                    }
-                    if (CachePathGuard.isProtectedFile(request.getSession(), resolvedPath)) {
-                        Log.err("Skipping zip entry targeting a protected cache path: " + entry.getName());
-                        return;
-                    }
-
-                    if (entry.isDirectory()) {
-                        if (!Files.exists(resolvedPath))
-                            Files.createDirectories(resolvedPath);
-                    } else {
-                        if (!Files.exists(resolvedPath.getParent()))
-                            Files.createDirectories(resolvedPath.getParent());
-                        Files.copy(zf.getInputStream(entry), resolvedPath, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                } catch (IOException ei) {
-                    Log.err(ei.getMessage(), ei);
-                }
-            });
+            new EnumerationToIterator<>(zf.entries()).forEachRemaining(entry -> extractZipEntry(zf, entry, normalizedOutputPath));
         } catch (IOException e) {
             Log.err(e.getMessage(), e);
         }
+    }
 
+    /**
+     * Extracts a single ZIP entry after Zip Slip and cache-path checks.
+     *
+     * @param zf the open ZIP file
+     * @param entry the entry to extract
+     * @param normalizedOutputPath the normalized destination root
+     */
+    private void extractZipEntry(ZipFile zf, ZipEntry entry, Path normalizedOutputPath) {
+        try {
+            Path resolvedPath = normalizedOutputPath.resolve(entry.getName()).normalize();
+            if (!isSafeExtractTarget(entry, resolvedPath, normalizedOutputPath)) {
+                return;
+            }
+            if (entry.isDirectory()) {
+                Files.createDirectories(resolvedPath);
+                return;
+            }
+            Files.createDirectories(resolvedPath.getParent());
+            try (var in = zf.getInputStream(entry)) {
+                Files.copy(in, resolvedPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException ei) {
+            Log.err(ei.getMessage(), ei);
+        }
+    }
+
+    /**
+     * @param entry the ZIP entry being considered
+     * @param resolvedPath the normalized destination path for {@code entry}
+     * @param normalizedOutputPath the normalized extraction root
+     * @return {@code true} if the entry may be written under {@code normalizedOutputPath}
+     */
+    private boolean isSafeExtractTarget(ZipEntry entry, Path resolvedPath, Path normalizedOutputPath) {
+        if (!resolvedPath.startsWith(normalizedOutputPath)) {
+            Log.err("Skipping unsafe zip entry outside target dir: " + entry.getName());
+            return false;
+        }
+        if (CachePathGuard.isProtectedFile(request.getSession(), resolvedPath)) {
+            Log.err("Skipping zip entry targeting a protected cache path: " + entry.getName());
+            return false;
+        }
+        return true;
     }
 
 }

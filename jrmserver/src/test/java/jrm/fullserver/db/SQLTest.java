@@ -138,7 +138,8 @@ class SQLTest {
             final var row = java.util.Map.<String, Object>of("id", 1);
             assertThatThrownBy(() -> sql.insert("t; DROP TABLE x", null, row))
                     .isInstanceOf(IllegalArgumentException.class);
-            assertThatThrownBy(() -> sql.insert("safe_table", null, java.util.Map.of("a;b", 1)))
+            final var unsafe = java.util.Map.<String, Object>of("a;b", 1);
+            assertThatThrownBy(() -> sql.insert("safe_table", null, unsafe))
                     .isInstanceOf(IllegalArgumentException.class);
             assertThatThrownBy(() -> sql.insert("safe_table", null, java.util.Map.of()))
                     .isInstanceOf(IllegalArgumentException.class);

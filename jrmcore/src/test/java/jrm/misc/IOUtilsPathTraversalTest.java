@@ -43,7 +43,7 @@ class IOUtilsPathTraversalTest {
         final Path base = Files.createDirectories(tempDir.resolve("base"));
         final Path resolved = IOUtils.resolveContainedPath(base, "subdir/safe.txt");
         assertThat(resolved.normalize().startsWith(base.toAbsolutePath().normalize())).isTrue();
-        assertThat(resolved.getFileName().toString()).isEqualTo("safe.txt");
+        assertThat(resolved.getFileName()).hasToString("safe.txt");
     }
 
     @Test

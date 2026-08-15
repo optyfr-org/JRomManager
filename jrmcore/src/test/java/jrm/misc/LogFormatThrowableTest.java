@@ -49,9 +49,9 @@ class LogFormatThrowableTest {
     @Test
     @DisplayName("Formatter appends throwable summary without stack frames")
     void formatterOmitsStackFrames() {
-        final var record = new LogRecord(Level.SEVERE, "failed");
-        record.setThrown(new RuntimeException("detail"));
-        final var line = new Log.Formatter().format(record);
+        final var logRecord = new LogRecord(Level.SEVERE, "failed");
+        logRecord.setThrown(new RuntimeException("detail"));
+        final var line = new Log.Formatter().format(logRecord);
         assertThat(line)
                 .contains("[SEVERE]")
                 .contains("failed")

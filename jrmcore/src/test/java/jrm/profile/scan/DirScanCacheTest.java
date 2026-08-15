@@ -98,8 +98,7 @@ class DirScanCacheTest {
         final var cacheDir = session.getUser().getSettings().getWorkPath().resolve("cache").toFile();
         assertThat(cacheDir).exists();
         final File[] cacheFiles = cacheDir.listFiles();
-        assertThat(cacheFiles).isNotNull();
-        assertThat(cacheFiles).anyMatch(File::isFile);
+        assertThat(cacheFiles).isNotNull().anyMatch(File::isFile);
 
         // Act: second scan of the same directory must load the cache
         logHandler.clear();
@@ -108,8 +107,8 @@ class DirScanCacheTest {
 
         // Assert: no InvalidClassException was logged
         assertThat(logHandler.getRecords())
-                .noneSatisfy(record -> {
-                    final Throwable thrown = record.getThrown();
+                .noneSatisfy(logRecord -> {
+                    final Throwable thrown = logRecord.getThrown();
                     assertThat(thrown)
                             .as("log record should not carry an InvalidClassException")
                             .satisfiesAnyOf(
@@ -125,8 +124,8 @@ class DirScanCacheTest {
         private final List<LogRecord> records = new ArrayList<>();
 
         @Override
-        public void publish(LogRecord record) {
-            records.add(record);
+        public void publish(LogRecord logRecord) {
+            records.add(logRecord);
         }
 
         @Override

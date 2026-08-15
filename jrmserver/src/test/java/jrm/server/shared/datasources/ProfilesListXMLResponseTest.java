@@ -146,7 +146,8 @@ class ProfilesListXMLResponseTest {
         assertThatThrownBy(() -> ProfilesListXMLResponse.resolveContainedFile(base, "..")).isInstanceOf(SecurityException.class);
         assertThatThrownBy(() -> ProfilesListXMLResponse.resolveContainedFile(base, "../x.xml")).isInstanceOf(SecurityException.class);
         assertThatThrownBy(() -> ProfilesListXMLResponse.resolveContainedFile(base, "a/b.xml")).isInstanceOf(SecurityException.class);
-        assertThatThrownBy(() -> ProfilesListXMLResponse.resolveContainedFile(base, base.resolve("x.xml").toString()))
+        final String absolute = base.resolve("x.xml").toString();
+        assertThatThrownBy(() -> ProfilesListXMLResponse.resolveContainedFile(base, absolute))
                 .isInstanceOf(SecurityException.class);
     }
 }

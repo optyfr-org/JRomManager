@@ -370,6 +370,36 @@ class RemoteFileChooserXMLResponseTest {
         }
 
         @Test
+        @DisplayName("extract skips zip entries that escape the destination directory")
+        void customExtractHereSkipsZipSlipEntries() throws Exception {
+            final Path work = session.getUser().getSettings().getWorkPath();
+            final Path zip = work.resolve("slip.zip");
+            try (final var zos = new ZipOutputStream(Files.newOutputStream(zip))) {
+                zos.putNextEntry(new ZipEntry("safe.txt"));
+                zos.write("ok".getBytes());
+                zos.closeEntry();
+                zos.putNextEntry(new ZipEntry("../evil-outside.txt"));
+                zos.write("slip".getBytes());
+                zos.closeEntry();
+            }
+            final String xml = """
+                    <request>
+                      <operationType>custom</operationType>
+                      <operationId>extract_here</operationId>
+                      <data>
+                        <root>%work</root>
+                        <Path>%work/slip.zip</Path>
+                      </data>
+                    </request>
+                    """;
+            final String output = TestDataSets.processResponse(new RemoteFileChooserXMLResponse(TestDataSets.xmlRequest(session, xml)));
+            assertThat(output).contains("<status>0</status>");
+            assertThat(work.resolve("safe.txt")).exists();
+            assertThat(work.resolveSibling("evil-outside.txt")).doesNotExist();
+            assertThat(work.getParent().resolve("evil-outside.txt")).doesNotExist();
+        }
+
+        @Test
         @DisplayName("custom extract_subfolder extracts a zip file into a subfolder")
         void customExtractSubfolder() throws Exception {
             final Path zip = session.getUser().getSettings().getWorkPath().resolve("archive.zip");

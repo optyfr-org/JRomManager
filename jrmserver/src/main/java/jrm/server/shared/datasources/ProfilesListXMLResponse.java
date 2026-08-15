@@ -107,20 +107,7 @@ public class ProfilesListXMLResponse extends XMLResponse {
                 Path dir = resolveParentDir(operation);
                 val src = pathAbstractor.getAbsolutePath(operation.getData("Src"));
                 if (Files.exists(src) && Files.isRegularFile(src)) {
-                    try {
-                        Path dst = resolveContainedFile(dir, operation.getData(FILE));
-                        if (!src.equals(dst))
-                            Files.copy(src, dst, StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);
-                        final var nfo = ProfileNFO.load(request.getSession(), dst.toFile());
-                        writer.writeStartElement(RESPONSE);
-                        writer.writeElement(STATUS, "0");
-                        writer.writeStartElement("data");
-                        writeRecord(nfo);
-                        writer.writeEndElement();
-                        writer.writeEndElement();
-                    } catch (IOException ex) {
-                        failure(ex.getMessage());
-                    }
+                    copyAndWriteProfile(dir, src, operation);
                 } else
                     failure("Source file does not exist");
             } catch (SecurityException ex) {
@@ -128,6 +115,23 @@ public class ProfilesListXMLResponse extends XMLResponse {
             }
         } else
             failure("Src is needed");
+    }
+
+    private void copyAndWriteProfile(Path dir, Path src, Operation operation) throws XMLStreamException {
+        try {
+            Path dst = resolveContainedFile(dir, operation.getData(FILE));
+            if (!src.equals(dst))
+                Files.copy(src, dst, StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);
+            final var nfo = ProfileNFO.load(request.getSession(), dst.toFile());
+            writer.writeStartElement(RESPONSE);
+            writer.writeElement(STATUS, "0");
+            writer.writeStartElement("data");
+            writeRecord(nfo);
+            writer.writeEndElement();
+            writer.writeEndElement();
+        } catch (IOException ex) {
+            failure(ex.getMessage());
+        }
     }
 
     /**

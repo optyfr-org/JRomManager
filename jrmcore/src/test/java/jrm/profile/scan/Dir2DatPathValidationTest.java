@@ -55,8 +55,9 @@ class Dir2DatPathValidationTest {
         final File src = tempDir.resolve("src").toFile();
         final File outside = tempDir.resolve("..").resolve("evil.dat").toAbsolutePath().normalize().toFile();
 
-        assertThatThrownBy(() -> new Dir2Dat(serverSession, src, outside, progress,
-                EnumSet.of(Options.USE_PARALLELISM), ExportType.MAME, Map.of()))
+        final var options = EnumSet.of(Options.USE_PARALLELISM);
+        final var attrs = Map.<String, String>of();
+        assertThatThrownBy(() -> new Dir2Dat(serverSession, src, outside, progress, options, ExportType.MAME, attrs))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("escapes workspace");
     }

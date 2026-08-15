@@ -103,10 +103,7 @@ public class MameExecutable {
             if (read >= 4 && magic[0] == 0x7F && magic[1] == 'E' && magic[2] == 'L' && magic[3] == 'F') {
                 return true;
             }
-            if (read >= 4 && isMachO(magic)) {
-                return true;
-            }
-            return false;
+            return read >= 4 && isMachO(magic);
         }
     }
 

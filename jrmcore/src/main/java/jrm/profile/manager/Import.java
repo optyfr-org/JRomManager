@@ -134,66 +134,152 @@ public class Import implements UnitRenderer {
      */
     public File importMame(final File file, final boolean sl, ProgressHandler progress) {
         if (!MameExecutable.isLaunchable(file)) {
-            Log.warn(() -> "Rejected non-launchable file as MAME executable: " + (file == null ? "null" : file.getAbsolutePath()));
+            Log.warn(() -> "Rejected non-launchable file as MAME executable: " + describeFile(file));
             return null;
         }
         File tmpfile = null;
         Process process = null;
         try {
             final var exe = file.getCanonicalFile();
-            tmpfile = IOUtils.createTempFile("JRM", sl ? ".jrm2" : ".jrm1").toFile(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-            tmpfile.deleteOnExit();
-            process = new ProcessBuilder(exe.getAbsolutePath(), sl ? "-listsoftware" : "-listxml") //$NON-NLS-1$ //$NON-NLS-2$
-                    .directory(exe.getParentFile())
-                    .redirectErrorStream(true)
-                    .start();
-
-            var linecnt = 0;
-            var size = 0;
-            final var header = new StringBuilder();
-            try (final var out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tmpfile), StandardCharsets.UTF_8));
-                    BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
-                String line;
-                var xml = false;
-                while (null != (line = in.readLine())) {
-                    if (line.startsWith("<?xml")) //$NON-NLS-1$
-                        xml = true;
-                    if (xml) {
-                        out.write(line + "\n"); //$NON-NLS-1$
-                        if (header.length() < 8192) {
-                            header.append(line).append('\n');
-                        }
-                        size += line.getBytes(StandardCharsets.UTF_8).length;
-                        progress.setProgress(null, null, null,
-                                (sl ? "Reading Softwares list" : "Reading roms list") + " / " + (++linecnt) + " lines / " + humanReadableByteCount(size, false));
-                    }
-                }
-            }
+            tmpfile = createMameTempFile(sl);
+            process = startMameListProcess(exe, sl);
+            final var header = captureMameListOutput(process, tmpfile, sl, progress);
             process.waitFor();
-            if (!MameExecutable.isMameListOutput(header, sl)) {
-                Log.warn(() -> "Rejected process output that is not MAME/MESS list XML: " + exe.getAbsolutePath());
-                Files.deleteIfExists(tmpfile.toPath());
-                return null;
-            }
-            return tmpfile;
+            return acceptMameListOutput(exe, tmpfile, header, sl);
         } catch (final IOException e) {
             Log.err("Caught IO Exception", e); //$NON-NLS-1$
         } catch (final InterruptedException e) {
             Log.err("Caught Interrupted Exception", e); //$NON-NLS-1$
             Thread.currentThread().interrupt();
         } finally {
-            if (process != null && process.isAlive()) {
-                process.destroyForcibly();
-            }
+            destroyIfAlive(process);
         }
-        if (tmpfile != null) {
-            try {
-                Files.deleteIfExists(tmpfile.toPath());
-            } catch (IOException e) {
-                Log.err(e.getMessage(), e);
-            }
-        }
+        deleteQuietly(tmpfile);
         return null;
+    }
+
+    /**
+     * @param file the rejected candidate, possibly {@code null}
+     * @return a path description suitable for log messages
+     */
+    private static String describeFile(final File file) {
+        return file == null ? "null" : file.getAbsolutePath();
+    }
+
+    /**
+     * @param sl {@code true} for software-list extract suffix {@code .jrm2}, otherwise {@code .jrm1}
+     * @return a new temporary file marked for deletion on JVM exit
+     * @throws IOException if the temporary file cannot be created
+     */
+    private static File createMameTempFile(final boolean sl) throws IOException {
+        final var tmpfile = IOUtils.createTempFile("JRM", sl ? ".jrm2" : ".jrm1").toFile(); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        tmpfile.deleteOnExit();
+        return tmpfile;
+    }
+
+    /**
+     * @param exe canonical MAME/MESS executable
+     * @param sl {@code true} to run {@code -listsoftware}, otherwise {@code -listxml}
+     * @return the started process with stderr merged into stdout
+     * @throws IOException if the process cannot be started
+     */
+    private static Process startMameListProcess(final File exe, final boolean sl) throws IOException {
+        return new ProcessBuilder(exe.getAbsolutePath(), sl ? "-listsoftware" : "-listxml") //$NON-NLS-1$ //$NON-NLS-2$
+                .directory(exe.getParentFile())
+                .redirectErrorStream(true)
+                .start();
+    }
+
+    /**
+     * Copies XML lines from the MAME process to {@code tmpfile} and captures a prefix for validation.
+     *
+     * @param process the running MAME list process
+     * @param tmpfile destination for captured XML
+     * @param sl {@code true} when reading a software list
+     * @param progress progress monitor updated with line and byte counts
+     * @return the captured XML header prefix
+     * @throws IOException if reading or writing fails
+     */
+    private StringBuilder captureMameListOutput(final Process process, final File tmpfile, final boolean sl, final ProgressHandler progress)
+            throws IOException {
+        var linecnt = 0;
+        var size = 0;
+        var xml = false;
+        final var header = new StringBuilder();
+        try (final var out = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(tmpfile), StandardCharsets.UTF_8));
+                BufferedReader in = new BufferedReader(new InputStreamReader(process.getInputStream(), StandardCharsets.UTF_8))) {
+            String line;
+            while (null != (line = in.readLine())) {
+                xml |= line.startsWith("<?xml"); //$NON-NLS-1$
+                if (!xml) {
+                    continue;
+                }
+                out.write(line + "\n"); //$NON-NLS-1$
+                appendHeader(header, line);
+                size += line.getBytes(StandardCharsets.UTF_8).length;
+                progress.setProgress(null, null, null,
+                        listProgressLabel(sl) + " / " + (++linecnt) + " lines / " + humanReadableByteCount(size, false));
+            }
+        }
+        return header;
+    }
+
+    /**
+     * @param header captured XML prefix
+     * @param line the next XML line
+     */
+    private static void appendHeader(final StringBuilder header, final String line) {
+        if (header.length() < 8192) {
+            header.append(line).append('\n');
+        }
+    }
+
+    /**
+     * @param sl {@code true} when reading a software list
+     * @return the progress label for the current extract mode
+     */
+    private static String listProgressLabel(final boolean sl) {
+        return sl ? "Reading Softwares list" : "Reading roms list";
+    }
+
+    /**
+     * @param exe canonical MAME/MESS executable used for log messages
+     * @param tmpfile captured output file
+     * @param header captured XML prefix
+     * @param sl {@code true} when {@code -listsoftware} was requested
+     * @return {@code tmpfile} if the header is valid MAME/MESS list XML; {@code null} after deleting {@code tmpfile}
+     * @throws IOException if the invalid output file cannot be deleted
+     */
+    private static File acceptMameListOutput(final File exe, final File tmpfile, final CharSequence header, final boolean sl) throws IOException {
+        if (MameExecutable.isMameListOutput(header, sl)) {
+            return tmpfile;
+        }
+        Log.warn(() -> "Rejected process output that is not MAME/MESS list XML: " + exe.getAbsolutePath());
+        Files.deleteIfExists(tmpfile.toPath());
+        return null;
+    }
+
+    /**
+     * @param process process to stop if still running; ignored when {@code null}
+     */
+    private static void destroyIfAlive(final Process process) {
+        if (process != null && process.isAlive()) {
+            process.destroyForcibly();
+        }
+    }
+
+    /**
+     * @param tmpfile temporary file to delete; ignored when {@code null}
+     */
+    private static void deleteQuietly(final File tmpfile) {
+        if (tmpfile == null) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(tmpfile.toPath());
+        } catch (IOException e) {
+            Log.err(e.getMessage(), e);
+        }
     }
 
     /**

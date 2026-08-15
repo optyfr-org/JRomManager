@@ -217,7 +217,7 @@ public final class SignedObjectStore {
         return baos.toByteArray();
     }
 
-    private static void verifyHmac(final Session session, final byte[] data, final byte[] expectedHmac) throws IOException {
+    private static void verifyHmac(final Session session, final byte[] data, final byte[] expectedHmac) {
         final var actualHmac = computeHmac(session, data);
         if (!MessageDigest.isEqual(expectedHmac, actualHmac)) {
             throw new SecurityException("Serialized object integrity check failed");
