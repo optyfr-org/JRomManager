@@ -1,12 +1,17 @@
 package jrm.server.shared.actions;
 
 import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Set;
 
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonObject.Member;
 import com.eclipsesource.json.JsonValue;
 
 import jrm.misc.Log;
+import jrm.misc.SettingsEnum;
+import jrm.security.PathAbstractor;
+import jrm.security.Session;
 
 /**
  * Handles WebSocket actions for global application settings and system operations.
@@ -67,6 +72,20 @@ public class GlobalActions {
         this.ws = ws;
     }
 
+    /** Destination path properties that must resolve and be writeable under the session sandbox. */
+    private static final Set<String> DEST_PATH_PROPERTIES = Set.of(
+            SettingsEnum.dir2dat_dst_file.toString(),
+            SettingsEnum.dir2dat_dst_file.name(),
+            SettingsEnum.dir2dat_lastdstdir.toString(),
+            SettingsEnum.dir2dat_lastdstdir.name());
+
+    /** Source/path properties that must resolve inside the session sandbox (read). */
+    private static final Set<String> SRC_PATH_PROPERTIES = Set.of(
+            SettingsEnum.dir2dat_src_dir.toString(),
+            SettingsEnum.dir2dat_src_dir.name(),
+            SettingsEnum.dir2dat_lastsrcdir.toString(),
+            SettingsEnum.dir2dat_lastsrcdir.name());
+
     /**
      * Updates global user settings based on incoming JSON properties.
      * <p>
@@ -80,6 +99,11 @@ public class GlobalActions {
      * </ul>
      * <p>
      * After updating all properties, the settings are persisted to disk and a confirmation message is sent back to the client.
+     * </p>
+     * <h4>Security:</h4>
+     * <p>
+     * File path properties (e.g., {@code dir2dat.dst_file}, {@code dir2dat.src_dir}) are validated to ensure they remain within the
+     * user's workspace directory. Paths that attempt directory traversal or escape the workspace are rejected.
      * </p>
      * <h4>Incoming JSON Structure:</h4>
      * 
@@ -114,31 +138,132 @@ public class GlobalActions {
      * <ul>
      * <li>If settings cannot be saved to disk, the error is logged via {@link Log#err(String, Throwable)}</li>
      * <li>If the WebSocket is closed, no confirmation message is sent</li>
+     * <li>If a file path property fails validation, it is rejected and logged</li>
      * </ul>
      *
      * @param jso the incoming JSON message containing property updates
      */
     public void setProperty(JsonObject jso) {
-        JsonObject pjso = jso.get(PARAMS).asObject();
-        for (Member m : pjso) {
-            JsonValue value = m.getValue();
-            if (value.isBoolean())
-                ws.getSession().getUser().getSettings().setProperty(m.getName(), value.asBoolean());
-            else if (value.isString())
-                ws.getSession().getUser().getSettings().setProperty(m.getName(), value.asString());
-            else
-                ws.getSession().getUser().getSettings().setProperty(m.getName(), value.toString());
+        final Session session = ws.getSession();
+        if (session == null || !session.hasUser()) {
+            Log.err("Rejected Global.setProperty: no authenticated user");
+            return;
         }
+        JsonObject pjso = jso.get(PARAMS).asObject();
+        final var accepted = new JsonObject();
+        for (Member m : pjso) {
+            applyProperty(session, accepted, m);
+        }
+        persistAndNotify(session, accepted);
+    }
+
+    private void applyProperty(final Session session, final JsonObject accepted, final Member member) {
+        final JsonValue value = member.getValue();
+        final String propertyName = canonicalizePropertyName(member.getName());
+        if (!acceptPathProperty(member.getName(), propertyName, value)) {
+            return;
+        }
+        applySettingValue(session, propertyName, value);
+        accepted.add(propertyName, value);
+    }
+
+    private boolean acceptPathProperty(final String rawName, final String propertyName, final JsonValue value) {
+        if (!isPathProperty(rawName) && !isPathProperty(propertyName)) {
+            return true;
+        }
+        final String stringValue = value.isString() ? value.asString() : value.toString();
+        if (isValidSandboxPath(stringValue, isDestPathProperty(rawName) || isDestPathProperty(propertyName))) {
+            return true;
+        }
+        Log.err("Rejected property '" + propertyName + "': path escapes workspace: " + stringValue);
+        return false;
+    }
+
+    private static void applySettingValue(final Session session, final String propertyName, final JsonValue value) {
+        final var settings = session.getUser().getSettings();
+        if (value.isBoolean()) {
+            settings.setProperty(propertyName, value.asBoolean());
+        } else if (value.isString()) {
+            settings.setProperty(propertyName, value.asString());
+        } else {
+            settings.setProperty(propertyName, value.toString());
+        }
+    }
+
+    private void persistAndNotify(final Session session, final JsonObject accepted) {
         try {
             if (ws.isOpen()) {
-                ws.getSession().getUser().getSettings().saveSettings();
+                session.getUser().getSettings().saveSettings();
                 final var rjso = new JsonObject();
                 rjso.add("cmd", "Global.updateProperty");
-                rjso.add(PARAMS, pjso);
+                rjso.add(PARAMS, accepted);
                 ws.send(rjso.toString());
             }
         } catch (IOException e) {
             Log.err(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Maps client/legacy property aliases (enum {@code name()}) to the canonical {@link SettingsEnum#toString()} key.
+     */
+    private static String canonicalizePropertyName(String propertyName) {
+        if (propertyName == null)
+            return null;
+        final SettingsEnum option = SettingsEnum.from(propertyName);
+        return option != null ? option.toString() : propertyName;
+    }
+
+    private static boolean isPathProperty(String propertyName) {
+        return isDestPathProperty(propertyName) || isSrcPathProperty(propertyName);
+    }
+
+    private static boolean isDestPathProperty(String propertyName) {
+        return propertyName != null && DEST_PATH_PROPERTIES.contains(propertyName);
+    }
+
+    private static boolean isSrcPathProperty(String propertyName) {
+        return propertyName != null && SRC_PATH_PROPERTIES.contains(propertyName);
+    }
+
+    /**
+     * Validates path settings via {@link PathAbstractor}: resolve abstract {@code %work}/{@code %shared} placeholders, reject
+     * forged/traversal paths, require write access for destinations, and keep destinations inside work (or shared for admins).
+     */
+    private boolean isValidSandboxPath(String pathString, boolean requireWrite) {
+        if (pathString == null || pathString.isBlank())
+            return true;
+        try {
+            final var session = ws.getSession();
+            final var resolved = requireWrite
+                    ? PathAbstractor.getWritableAbsolutePath(session, pathString)
+                    : PathAbstractor.getAbsolutePath(session, pathString);
+            if (requireWrite && !isInsideExportRoots(session, resolved))
+                throw new SecurityException("Forged path");
+            return true;
+        } catch (SecurityException e) {
+            Log.err("Failed to validate path: " + pathString + " (" + e.getMessage() + ")");
+            return false;
+        }
+    }
+
+    private static boolean isInsideExportRoots(Session session, Path absolute) {
+        try {
+            final Path work = session.getUser().getSettings().getWorkPath().toAbsolutePath().normalize();
+            final Path shared = session.getUser().getSettings().getBasePath().resolve("users").resolve("shared").toAbsolutePath().normalize();
+            final Path candidate = resolveExistingOrNormalized(absolute);
+            return candidate.startsWith(resolveExistingOrNormalized(work))
+                    || (session.getUser().isAdmin() && candidate.startsWith(resolveExistingOrNormalized(shared)));
+        } catch (Exception _) {
+            return false;
+        }
+    }
+
+    private static Path resolveExistingOrNormalized(Path path) {
+        try {
+            return path.toRealPath();
+        } catch (IOException _) {
+            return path.toAbsolutePath().normalize();
         }
     }
 

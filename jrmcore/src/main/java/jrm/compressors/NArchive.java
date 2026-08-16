@@ -160,7 +160,7 @@ abstract class NArchive extends NArchiveBase {
         this.session = session;
         this.cb = cb;
         if (!SevenZip.isInitializedSuccessfully())
-            SevenZip.initSevenZipFromPlatformJAR(session.getUser().getSettings().getTmpPath(true).toFile());
+            SevenZip.initSevenZipFromPlatformJAR(session.getUser().getSettings().getTmpPath(false).toFile());
         ext = FilenameUtils.getExtension(archive.getName());
         switch (ext.toLowerCase()) {
             case "zip": //$NON-NLS-1$
@@ -307,7 +307,7 @@ abstract class NArchive extends NArchiveBase {
             final var simpleInArchive = getIInArchive().getSimpleInterface();
             for (final var item : simpleInArchive.getArchiveItems()) {
                 if (item.getPath().equals(entry)) {
-                    final var file = new File(baseDir, entry);
+                    final var file = ExtractorCallback.resolveContainedFile(baseDir, entry);
                     FileUtils.forceMkdirParent(file);
                     try (final var out = new RandomAccessFile(file, "rw")) //$NON-NLS-1$
                     {
@@ -328,7 +328,7 @@ abstract class NArchive extends NArchiveBase {
                 tmpfiles.put(i, file); // $NON-NLS-1$
                 rafs.put(i, new RandomAccessFile(file, "rw")); //$NON-NLS-1$
             } else {
-                final var dir = new File(baseDir, (String) getIInArchive().getProperty(i, PropID.PATH));
+                final var dir = ExtractorCallback.resolveContainedFile(baseDir, (String) getIInArchive().getProperty(i, PropID.PATH));
                 FileUtils.forceMkdir(dir);
             }
         }
@@ -415,8 +415,9 @@ abstract class NArchive extends NArchiveBase {
      */
     @Override
     public File extract(final String entry) throws IOException {
-        extract(getTempDir(), entry);
-        final var result = new File(getTempDir(), entry);
+        final var validatedEntry = validateAndNormalizeEntry(entry);
+        extract(getTempDir(), validatedEntry);
+        final var result = new File(getTempDir(), validatedEntry);
         if (result.exists())
             return result;
         return null;
@@ -436,8 +437,9 @@ abstract class NArchive extends NArchiveBase {
      */
     @Override
     public InputStream extractStdOut(final String entry) throws IOException {
-        extract(getTempDir(), entry);
-        return new FileInputStream(new File(getTempDir(), entry));
+        final var validatedEntry = validateAndNormalizeEntry(entry);
+        extract(getTempDir(), validatedEntry);
+        return new FileInputStream(new File(getTempDir(), validatedEntry));
     }
 
     /**
@@ -458,33 +460,35 @@ abstract class NArchive extends NArchiveBase {
     public int add(final File baseDir, final String entry) throws IOException {
         if (readonly)
             return -1;
+        final var validatedEntry = validateAndNormalizeEntry(entry);
         if (baseDir.isFile())
-            FileUtils.copyFile(baseDir, new File(getTempDir(), entry));
+            FileUtils.copyFile(baseDir, new File(getTempDir(), validatedEntry));
         else if (!baseDir.equals(getTempDir()))
-            FileUtils.copyFile(new File(baseDir, entry), new File(getTempDir(), entry));
-        getToAdd().add(entry);
+            FileUtils.copyFile(new File(baseDir, entry), new File(getTempDir(), validatedEntry));
+        getToAdd().add(validatedEntry);
         return 0;
     }
 
     /**
      * Adds a file entry to the archive using an InputStream as the source. This method checks if the archive is in read-only mode,
-     * and if so, it returns -1 to indicate that the operation is not allowed. Otherwise, it copies the input stream to a file in
-     * the temporary directory with the specified entry name, adds the entry name to the list of entries to be added to the archive,
-     * and returns 0 to indicate success.
+     * and if so, it returns -1 to indicate that the operation is not allowed. Otherwise, it validates the entry path to prevent
+     * path traversal attacks, copies the input stream to a file in the temporary directory with the specified entry name, adds the
+     * entry name to the list of entries to be added to the archive, and returns 0 to indicate success.
      * 
      * @param src the InputStream containing the data for the new entry
      * @param entry the name of the entry to be added (including path within the archive)
      * 
      * @return 0 if the entry was successfully added, or -1 if the archive is in read-only mode
      * 
-     * @throws IOException if an error occurs while writing the input stream to a file
+     * @throws IOException if an error occurs while writing the input stream to a file or if the entry path is invalid
      */
     @Override
     public int addStdIn(final InputStream src, final String entry) throws IOException {
         if (readonly)
             return -1;
-        FileUtils.copyInputStreamToFile(src, new File(getTempDir(), entry));
-        getToAdd().add(entry);
+        final var validatedEntry = validateAndNormalizeEntry(entry);
+        FileUtils.copyInputStreamToFile(src, new File(getTempDir(), validatedEntry));
+        getToAdd().add(validatedEntry);
         return 0;
     }
 
@@ -560,5 +564,27 @@ abstract class NArchive extends NArchiveBase {
         if (File.separatorChar == '/')
             return entry.replace('\\', '/');
         return entry.replace('/', '\\');
+    }
+
+    /**
+     * Validates and normalizes an entry path to prevent path traversal attacks.
+     * This method ensures that the entry path:
+     * <ul>
+     * <li>Does not represent an absolute path</li>
+     * <li>Does not escape the temporary directory using ".." segments</li>
+     * <li>Does not contain null bytes or other dangerous characters</li>
+     * </ul>
+     * 
+     * @param entry the entry path to validate and normalize
+     * 
+     * @return the validated and normalized entry path
+     * 
+     * @throws IOException if the entry path is invalid or represents a path traversal attempt
+     */
+    private String validateAndNormalizeEntry(final String entry) throws IOException {
+        final var tempDir = getTempDir();
+        final var entryFile = ExtractorCallback.resolveContainedFile(tempDir, entry);
+        final var tempDirPath = tempDir.toPath().toAbsolutePath().normalize();
+        return tempDirPath.relativize(entryFile.toPath().toAbsolutePath().normalize()).toString();
     }
 }

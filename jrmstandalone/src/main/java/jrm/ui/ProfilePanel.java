@@ -49,6 +49,7 @@ import jrm.locale.Messages;
 import jrm.misc.Log;
 import jrm.profile.manager.Dir;
 import jrm.profile.manager.Import;
+import jrm.profile.manager.MameExecutable;
 import jrm.profile.manager.ProfileNFO;
 import jrm.profile.manager.ProfileNFOMame.MameStatus;
 import jrm.security.Session;
@@ -593,7 +594,12 @@ public class ProfilePanel extends JPanel {
      * @throws IOException
      */
     private void updateFromMame(final Session session, final ProfileNFO nfo, Import imprt) throws IOException {
-        nfo.getMame().delete();
+        if (imprt == null || !imprt.canApplyMameUpdate(nfo.getMame().isSL())) {
+            JOptionPane.showMessageDialog(ProfilePanel.this, "Could not update from MAME. The executable is missing, is not a native MAME/MESS binary, or did not return listxml data.",
+                    Messages.getString("ProfileViewer.Exception"), JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        nfo.getMame().deleteAlongside(nfo.getFile());
         nfo.getMame().setFileroms(new File(nfo.getFile().getParentFile(), imprt.getRomsFile().getName()));
         Files.copy(imprt.getRomsFile().toPath(), nfo.getMame().getFileroms().toPath(), StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);
         if (nfo.getMame().isSL()) {
@@ -614,7 +620,12 @@ public class ProfilePanel extends JPanel {
      * @throws IllegalArgumentException
      */
     private void importDat(final Session session, final boolean sl, List<Import> imprts) throws HeadlessException, IllegalArgumentException {
+        var rejected = 0;
         for (val imprt : imprts) {
+            if (imprt.getFile() == null) {
+                rejected++;
+                continue;
+            }
             if (!imprt.isMame()) {
                 final var currDir = ((FileTableModel) profilesList.getModel()).getCurrDir().getFile();
                 var fileRef = new AtomicReference<File>(new File(currDir, imprt.getFile().getName()));
@@ -638,12 +649,18 @@ public class ProfilePanel extends JPanel {
                             Messages.getString("MainFrame.ChooseFileName"), false)
                     .show(SwingUtilities.getWindowAncestor(ProfilePanel.this), chooser1 -> importDat(session, sl, imprt, chooser1.getSelectedFile()));
         }
+        if (rejected > 0)
+            JOptionPane.showMessageDialog(ProfilePanel.this,
+                    rejected == 1
+                            ? "Could not import 1 selected file. Only DAT/XML files and native MAME/MESS executables are accepted."
+                            : "Could not import " + rejected + " selected files. Only DAT/XML files and native MAME/MESS executables are accepted.",
+                    Messages.getString("MainFrame.MameExecutable"), JOptionPane.WARNING_MESSAGE);
     }
 
     private static final class ImportDatFileFilter extends FileFilter {
         @Override
         public boolean accept(final File f) {
-            return f.isDirectory() || FilenameUtils.isExtension(f.getName(), "exe") || f.canExecute(); //$NON-NLS-1$
+            return f.isDirectory() || MameExecutable.isLaunchable(f);
         }
 
         @Override

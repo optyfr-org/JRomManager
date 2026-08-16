@@ -39,7 +39,7 @@ class TrntChkReportTest {
     void setUp() throws IOException {
         System.setProperty(JRM_DIR_PROP, tempDir.toString());
         Files.createDirectories(tempDir.resolve("users").resolve("JRomManager"));
-        session = new Session("trntchk-report-test");
+        session = new Session("trntchk-report-test", "JRomManager", new String[] { "admin" });
     }
 
     @AfterEach
@@ -484,7 +484,7 @@ class TrntChkReportTest {
             parent.add("child1").setStatus(TrntChkReport.Status.MISSING);
 
             var reportFile = report.getReportFile(session);
-            report.save(reportFile);
+            report.save(session, reportFile);
 
             var loaded = TrntChkReport.load(session, srcFile);
 
@@ -508,7 +508,7 @@ class TrntChkReportTest {
             report.add("node");
 
             var reportFile = report.getReportFile(session);
-            report.save(reportFile);
+            report.save(session, reportFile);
 
             var loaded = TrntChkReport.load(session, srcFile);
 
@@ -525,6 +525,39 @@ class TrntChkReportTest {
         }
 
         @Test
+        @DisplayName("save and load deeply nested child chain should preserve all nodes")
+        void saveAndLoadDeeplyNestedChildChainShouldPreserveAllNodes() {
+            var srcFile = new File("deep.torrent");
+            var report = new TrntChkReport(srcFile);
+            // Build a chain deeper than the default 100-object depth limit.
+            // This mimics the nested Child graph that torrent-check reports can produce piece-by-piece.
+            var root = report.add("Piece 1");
+            var current = root;
+            for (int i = 2; i <= 200; i++) {
+                current = current.add("Piece " + i);
+            }
+
+            var reportFile = report.getReportFile(session);
+            report.save(session, reportFile);
+
+            var loaded = TrntChkReport.load(session, srcFile);
+
+            assertThat(loaded).isNotNull();
+            assertThat(loaded.getNodes()).hasSize(1);
+            int depth = 0;
+            current = loaded.getNodes().get(0);
+            while (current != null) {
+                depth++;
+                var children = current.getChildren();
+                if (children == null || children.isEmpty()) {
+                    break;
+                }
+                current = children.get(0);
+            }
+            assertThat(depth).isEqualTo(200);
+        }
+
+        @Test
         @DisplayName("save should create report file in reports directory")
         void saveShouldCreateReportFileInReportsDirectory() {
             var srcFile = new File("my-torrent.torrent");
@@ -532,7 +565,7 @@ class TrntChkReportTest {
             report.add("node");
 
             var reportFile = report.getReportFile(session);
-            report.save(reportFile);
+            report.save(session, reportFile);
 
             assertThat(reportFile).exists();
         }

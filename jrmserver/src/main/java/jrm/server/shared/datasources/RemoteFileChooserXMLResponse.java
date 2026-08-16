@@ -27,7 +27,9 @@ import javax.xml.stream.XMLStreamException;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import jrm.misc.IOUtils;
 import jrm.misc.Log;
+import jrm.security.CachePathGuard;
 import jrm.server.shared.datasources.XMLRequest.Operation;
 import lombok.val;
 
@@ -37,6 +39,8 @@ import lombok.val;
  * expanding paths.
  */
 public class RemoteFileChooserXMLResponse extends XMLResponse {
+
+    private static final String PROTECTED_CACHE_LOCATION = "Protected cache location";
 
     /** XML attribute name for the parent directory path. */
     private static final String PARENT = "parent";
@@ -309,8 +313,12 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
             options = new Options(operation.getData(CONTEXT));
         Path parent = getParent(operation);
         String name = operation.getData("Name");
-        Path entry = parent.resolve(name);
-        if (name != null && Files.isDirectory(parent) && !Files.exists(entry)) {
+        Path entry = validateResolvedPath(parent, name);
+        if (isProtectedWrite(parent, name, entry)) {
+            failure(PROTECTED_CACHE_LOCATION);
+            return;
+        }
+        if (entry != null && Files.isDirectory(parent) && !Files.exists(entry)) {
             try {
                 Files.createDirectory(entry);
                 writeResponseSingle(parent, entry);
@@ -361,9 +369,13 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
         Path parent = getParent(operation);
         String name = operation.getData("Name");
         String oldname = operation.oldValues.get("Name");
-        Path entry = parent.resolve(name);
-        Path oldentry = parent.resolve(oldname);
-        if (name != null && oldname != null && Files.isDirectory(parent) && Files.exists(oldentry) && !Files.exists(entry)) {
+        Path entry = validateResolvedPath(parent, name);
+        Path oldentry = validateResolvedPath(parent, oldname);
+        if (isProtectedWrite(parent, name, entry) || isProtectedWrite(parent, oldname, oldentry)) {
+            failure(PROTECTED_CACHE_LOCATION);
+            return;
+        }
+        if (entry != null && oldentry != null && Files.isDirectory(parent) && Files.exists(oldentry) && !Files.exists(entry)) {
             try {
                 Files.move(oldentry, entry);
                 writeResponseSingle(parent, entry);
@@ -387,8 +399,12 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
             options = new Options(operation.getData(CONTEXT));
         Path parent = getParent(operation);
         String name = operation.getData("Name");
-        Path entry = parent.resolve(name);
-        if (name != null && Files.exists(entry)) {
+        Path entry = validateResolvedPath(parent, name);
+        if (isProtectedWrite(parent, name, entry)) {
+            failure(PROTECTED_CACHE_LOCATION);
+            return;
+        }
+        if (entry != null && Files.exists(entry)) {
             try {
                 try (final var stream = Files.walk(entry)) {
                     stream.map(Path::toFile).sorted(Comparator.reverseOrder()).forEach(File::delete); // recursive dir delete
@@ -420,27 +436,38 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
      */
     @Override
     protected void custom(Operation operation) throws XMLStreamException, IOException {
+        switch (operation.getOperationId().toString()) {
+            case "expand" -> customExpand(operation);
+            case "extract_subfolder" -> extractArchive(operation, true);
+            case "extract_here" -> extractArchive(operation, false);
+            default -> super.custom(operation);
+        }
+    }
 
-        if (operation.getOperationId().toString().equals("expand")) {
-            customExpand(operation);
-        } else if (operation.operationId.toString().equals("extract_subfolder")) {
-            if (operation.hasData("Path")) {
-                var zipfile = pathAbstractor.getAbsolutePath(operation.getData("Path"));
-                Path dest = zipfile.getParent().resolve(StringUtils.substring(zipfile.getFileName().toString(), 0, -4));
-                unzip(zipfile, dest);
-                success();
-            } else
-                failure("path missing");
-        } else if (operation.operationId.toString().equals("extract_here")) {
-            if (operation.hasData("Path")) {
-                var zipfile = pathAbstractor.getAbsolutePath(operation.getData("Path"));
-                Path dest = zipfile.getParent();
-                unzip(zipfile, dest);
-                success();
-            } else
-                failure("path missing");
-        } else
-            super.custom(operation);
+    /**
+     * Extracts the ZIP identified by {@code operation}'s {@code Path} data.
+     *
+     * @param operation the custom operation carrying the archive path
+     * @param subfolder {@code true} to extract into a sibling folder named after the archive; {@code false} to extract beside it
+     * @throws XMLStreamException if an error occurs while writing the XML response
+     * @throws IOException if an I/O error occurs while accessing the file system
+     */
+    private void extractArchive(Operation operation, boolean subfolder) throws XMLStreamException {
+        if (!operation.hasData("Path")) {
+            failure("path missing");
+            return;
+        }
+        var zipfile = pathAbstractor.getAbsolutePath(operation.getData("Path"));
+        Path dest = zipfile.getParent();
+        if (subfolder) {
+            dest = dest.resolve(StringUtils.substring(zipfile.getFileName().toString(), 0, -4));
+        }
+        if (CachePathGuard.isProtectedLocation(request.getSession(), dest)) {
+            failure(PROTECTED_CACHE_LOCATION);
+            return;
+        }
+        unzip(zipfile, dest);
+        success();
     }
 
     /**
@@ -547,6 +574,47 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
     }
 
     /**
+     * Validates that a resolved path remains within the parent directory boundary.
+     * This method prevents path traversal attacks by ensuring that the resolved path,
+     * after normalization, starts with the parent directory path.
+     *
+     * @param parent the parent directory that should contain the resolved path
+     * @param name the name or relative path to resolve against the parent
+     * 
+     * @return the validated resolved path, or null if the path attempts to escape the parent directory
+     */
+    private boolean isProtectedWrite(final Path parent, final String name, final Path entry) {
+        if (CachePathGuard.isProtectedTarget(request.getSession(), parent, name)) {
+            return true;
+        }
+        return entry != null && CachePathGuard.isProtectedFile(request.getSession(), entry);
+    }
+
+    private Path validateResolvedPath(Path parent, String name) {
+        if (name == null || name.isEmpty()) {
+            return null;
+        }
+        try {
+            // Normalize the parent path to establish the security boundary
+            Path normalizedParent = parent.toAbsolutePath().normalize();
+            
+            // Resolve the name against the parent and normalize the result
+            Path resolvedPath = normalizedParent.resolve(name).normalize();
+            
+            // Verify the resolved path stays within the parent directory
+            if (!resolvedPath.startsWith(normalizedParent)) {
+                Log.err("Path traversal attempt detected: " + name + " escapes parent directory");
+                return null;
+            }
+            
+            return resolvedPath;
+        } catch (Exception e) {
+            Log.err("Error validating path: " + e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
      * Writes the parent and root path information to the XML response.
      *
      * @param parent the parent directory path to write
@@ -608,32 +676,41 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
     private void unzip(Path zipfile, Path outputPath) {
         try (var zf = new ZipFile(zipfile.toFile())) {
             Path normalizedOutputPath = outputPath.toAbsolutePath().normalize();
-
-            Enumeration<? extends ZipEntry> zipEntries = zf.entries();
-            new EnumerationToIterator<>(zipEntries).forEachRemaining(entry -> {
-                try {
-                    Path resolvedPath = normalizedOutputPath.resolve(entry.getName()).normalize();
-                    if (!resolvedPath.startsWith(normalizedOutputPath)) {
-                        Log.err("Skipping unsafe zip entry outside target dir: " + entry.getName());
-                        return;
-                    }
-
-                    if (entry.isDirectory()) {
-                        if (!Files.exists(resolvedPath))
-                            Files.createDirectories(resolvedPath);
-                    } else {
-                        if (!Files.exists(resolvedPath.getParent()))
-                            Files.createDirectories(resolvedPath.getParent());
-                        Files.copy(zf.getInputStream(entry), resolvedPath, StandardCopyOption.REPLACE_EXISTING);
-                    }
-                } catch (IOException ei) {
-                    Log.err(ei.getMessage(), ei);
-                }
-            });
+            new EnumerationToIterator<>(zf.entries()).forEachRemaining(entry -> extractZipEntry(zf, entry, normalizedOutputPath));
         } catch (IOException e) {
             Log.err(e.getMessage(), e);
         }
+    }
 
+    /**
+     * Extracts a single ZIP entry after Zip Slip and cache-path checks.
+     *
+     * @param zf the open ZIP file
+     * @param entry the entry to extract
+     * @param normalizedOutputPath the normalized destination root
+     */
+    private void extractZipEntry(ZipFile zf, ZipEntry entry, Path normalizedOutputPath) {
+        try {
+            Path resolvedPath = IOUtils.resolveContainedPath(normalizedOutputPath, entry.getName());
+            if (!resolvedPath.startsWith(normalizedOutputPath)) {
+                Log.err("Skipping unsafe zip entry outside target dir: " + entry.getName());
+                return;
+            }
+            if (CachePathGuard.isProtectedFile(request.getSession(), resolvedPath)) {
+                Log.err("Skipping zip entry targeting a protected cache path: " + entry.getName());
+                return;
+            }
+            if (entry.isDirectory()) {
+                Files.createDirectories(resolvedPath);
+                return;
+            }
+            Files.createDirectories(resolvedPath.getParent());
+            try (var in = zf.getInputStream(entry)) {
+                Files.copy(in, resolvedPath, StandardCopyOption.REPLACE_EXISTING);
+            }
+        } catch (IOException ei) {
+            Log.err(ei.getMessage(), ei);
+        }
     }
 
 }

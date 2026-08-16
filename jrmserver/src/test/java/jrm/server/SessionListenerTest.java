@@ -2,7 +2,6 @@ package jrm.server;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -34,7 +33,7 @@ class SessionListenerTest {
     @DisplayName("sessionCreated (single-session mode)")
     class SessionCreatedSingleTest {
         @Test
-        @DisplayName("creates single-session WebSession and stores as attribute")
+        @DisplayName("creates single-session WebSession without inventing a user")
         void createsSingleSession() {
             final HttpSession httpSession = mock(HttpSession.class);
             when(httpSession.getId()).thenReturn("single-test");
@@ -44,7 +43,10 @@ class SessionListenerTest {
             final SessionListener listener = new SessionListener(false);
             listener.sessionCreated(event);
 
-            verify(httpSession).setAttribute(eq("session"), any(WebSession.class));
+            verify(httpSession).setAttribute(eq("session"), org.mockito.ArgumentMatchers.argThat(attr -> {
+                final WebSession ws = (WebSession) attr;
+                return !ws.hasUser();
+            }));
         }
     }
 
@@ -52,7 +54,7 @@ class SessionListenerTest {
     @DisplayName("sessionCreated (multi-session mode)")
     class SessionCreatedMultiTest {
         @Test
-        @DisplayName("creates multi-session WebSession and stores as attribute")
+        @DisplayName("creates multi-session WebSession without inventing a user")
         void createsMultiSession() {
             final HttpSession httpSession = mock(HttpSession.class);
             when(httpSession.getId()).thenReturn("multi-test");
@@ -62,7 +64,10 @@ class SessionListenerTest {
             final SessionListener listener = new SessionListener(true);
             listener.sessionCreated(event);
 
-            verify(httpSession).setAttribute(eq("session"), any(WebSession.class));
+            verify(httpSession).setAttribute(eq("session"), org.mockito.ArgumentMatchers.argThat(attr -> {
+                final WebSession ws = (WebSession) attr;
+                return !ws.hasUser();
+            }));
         }
     }
 

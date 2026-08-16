@@ -7,9 +7,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
@@ -53,6 +52,7 @@ class ActionServletTest {
         when(httpSession.getAttribute("session")).thenReturn(webSession);
         final HttpServletRequest req = mock(HttpServletRequest.class);
         lenient().when(req.getSession()).thenReturn(httpSession);
+        lenient().when(req.getSession(true)).thenReturn(httpSession);
         lenient().when(req.getRequestURI()).thenReturn(uri);
         lenient().when(req.getContentLengthLong()).thenReturn(contentLengthLong);
         lenient().when(req.getContentLength()).thenReturn(contentLength);
@@ -138,6 +138,26 @@ class ActionServletTest {
             servlet.doPost(req, resp);
             verify(resp).setStatus(HttpServletResponse.SC_OK);
         }
+
+        @Test
+        @DisplayName("session without authenticated user returns SC_UNAUTHORIZED")
+        void unauthenticatedWebSession() throws Exception {
+            final WebSession unauth = new WebSession("unauth-action");
+            final HttpSession httpSession = mock(HttpSession.class);
+            when(httpSession.getAttribute("session")).thenReturn(unauth);
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            final String jsonCmd = "{\"cmd\":\"Global.setProperty\",\"params\":{\"x\":\"y\"}}";
+            final byte[] body = jsonCmd.getBytes(StandardCharsets.UTF_8);
+            final HttpServletRequest req = mock(HttpServletRequest.class);
+            when(req.getRequestURI()).thenReturn("/actions/cmd");
+            when(req.getSession(true)).thenReturn(httpSession);
+            lenient().when(req.getContentLengthLong()).thenReturn((long) body.length);
+            lenient().when(req.getContentLength()).thenReturn(body.length);
+            lenient().when(req.getContentType()).thenReturn("application/json");
+            servlet.doPost(req, resp);
+            verify(resp).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            assertThat(unauth.hasUser()).isFalse();
+        }
     }
 
     @Nested
@@ -151,9 +171,24 @@ class ActionServletTest {
             when(httpSession.getAttribute("session")).thenReturn(webSession);
             final HttpServletRequest req = mock(HttpServletRequest.class);
             when(req.getSession()).thenReturn(httpSession);
+            when(req.getSession(true)).thenReturn(httpSession);
             when(req.getRequestURI()).thenReturn("/actions/unknown");
             servlet.doGet(req, resp);
             verify(resp).setStatus(HttpServletResponse.SC_NOT_IMPLEMENTED);
+        }
+
+        @Test
+        @DisplayName("unauthenticated GET returns SC_UNAUTHORIZED")
+        void unauthenticatedGet() throws Exception {
+            final WebSession unauth = new WebSession("unauth-get");
+            final HttpSession httpSession = mock(HttpSession.class);
+            when(httpSession.getAttribute("session")).thenReturn(unauth);
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            final HttpServletRequest req = mock(HttpServletRequest.class);
+            when(req.getSession(true)).thenReturn(httpSession);
+            when(req.getRequestURI()).thenReturn("/actions/init");
+            servlet.doGet(req, resp);
+            verify(resp).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
     }
 
@@ -190,15 +225,32 @@ class ActionServletTest {
     @DisplayName("sendResp")
     class SendRespTest {
         @Test
-        @DisplayName("sends message with content length and application/json")
+        @DisplayName("sends message with content length, json charset and nosniff")
         void sendMessage() throws Exception {
-            final StringWriter writer = new StringWriter();
+            final ByteArrayOutputStream out = new ByteArrayOutputStream();
             final HttpServletResponse resp = mock(HttpServletResponse.class);
-            when(resp.getWriter()).thenReturn(new PrintWriter(writer));
+            when(resp.getOutputStream()).thenReturn(new jakarta.servlet.ServletOutputStream() {
+                @Override
+                public void write(final int b) {
+                    out.write(b);
+                }
+
+                @Override
+                public boolean isReady() {
+                    return true;
+                }
+
+                @Override
+                public void setWriteListener(final jakarta.servlet.WriteListener writeListener) {
+                    // no-op
+                }
+            });
             servlet.sendResp(resp, "{\"cmd\":\"test\"}");
-            verify(resp).setContentType("application/json");
+            verify(resp).setContentType("application/json;charset=UTF-8");
+            verify(resp).setCharacterEncoding("UTF-8");
+            verify(resp).setHeader("X-Content-Type-Options", "nosniff");
             verify(resp).setStatus(HttpServletResponse.SC_OK);
-            assertThat(writer).hasToString("{\"cmd\":\"test\"}");
+            assertThat(out.toString(StandardCharsets.UTF_8)).isEqualTo("{\"cmd\":\"test\"}");
         }
 
         @Test
@@ -206,6 +258,8 @@ class ActionServletTest {
         void sendNullMessage() throws Exception {
             final HttpServletResponse resp = mock(HttpServletResponse.class);
             servlet.sendResp(resp, null);
+            verify(resp).setContentType("application/json;charset=UTF-8");
+            verify(resp).setHeader("X-Content-Type-Options", "nosniff");
             verify(resp).setContentLength(0);
         }
     }

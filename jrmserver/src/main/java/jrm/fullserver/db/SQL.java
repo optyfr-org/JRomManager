@@ -8,6 +8,7 @@ import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -197,6 +198,7 @@ public abstract class SQL implements SQLUtils, Closeable {
      */
     @Override
     public Long count(String select, Object... args) throws SQLException {
+        select = requireSelectStatement(select);
         if (!supportsArrayParams() && findArrayParam(args) != -1) {
             val selectRef = new AtomicReference<String>(select);
             val argsRef = new AtomicReference<Object[]>(args);
@@ -204,6 +206,7 @@ public abstract class SQL implements SQLUtils, Closeable {
             select = selectRef.get();
             args = argsRef.get();
         }
+        // select is validated as a single SELECT; values must use prepared args, not concatenation
         return getLongValue("SELECT COUNT(*) FROM (" + select + ") AS T", args);
     }
 
@@ -220,6 +223,7 @@ public abstract class SQL implements SQLUtils, Closeable {
      */
     @Override
     public Long countTbl(String table, String context) throws SQLException {
+        // table/context are validated SQL identifiers (see requireSqlIdentifier); not bindable as parameters
         return getLongValue("SELECT COUNT(*) FROM " + getSQLTable(table, context));
     }
 
@@ -529,18 +533,29 @@ public abstract class SQL implements SQLUtils, Closeable {
     /**
      * Executes a SQL INSERT statement, inserting the specified map of column names and values into the specified table.
      * <p>
-     * This method dynamically constructs the INSERT query using the provided map's keys as columns and their corresponding values,
-     * executing the operation via the query runner.
+     * Table/schema/column names are validated SQL identifiers ({@link SQLUtils#requireSqlIdentifier}); values are bound as
+     * prepared-statement parameters and never concatenated into the SQL text.
      *
      * @param table the name of the table to insert into
      * @param context the optional context used to resolve the fully qualified table name
      * @param toset the map containing the column names and their corresponding values to insert
      * 
      * @throws SQLException if a database access error occurs or query execution fails
+     * @throws IllegalArgumentException if {@code toset} is null/empty or any identifier is unsafe
      */
     public void insert(String table, String context, final Map<String, Object> toset) throws SQLException {
-        qryRunner.update(db, "INSERT INTO " + getSQLTable(table, context) + " (" + makeCols(toset.keySet()) + ") VALUES(" + appendParam(toset.size()) + ")",
-                toset.values().toArray());
+        if (toset == null || toset.isEmpty())
+            throw new IllegalArgumentException("insert requires at least one column");
+        final var columns = new ArrayList<String>(toset.size());
+        final var values = new Object[toset.size()];
+        var i = 0;
+        for (final var entry : toset.entrySet()) {
+            columns.add(entry.getKey());
+            values[i++] = entry.getValue();
+        }
+        // identifiers validated via getSQLTable/makeCols; values bound as ?
+        qryRunner.update(db, "INSERT INTO " + getSQLTable(table, context) + " (" + makeCols(columns) + ") VALUES(" + appendParam(values.length) + ")",
+                values);
     }
 
     /**
@@ -608,7 +623,7 @@ public abstract class SQL implements SQLUtils, Closeable {
      */
     @Override
     public void dropTable(final String table) throws SQLException {
-        qryRunner.update(db, "DROP TABLE IF EXISTS " + table);
+        qryRunner.update(db, "DROP TABLE IF EXISTS " + backquote(table));
     }
 
     /**

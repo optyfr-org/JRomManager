@@ -1,7 +1,5 @@
 package jrm.fx.ui.controls;
 
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.util.Optional;
 
 import javafx.scene.Node;
@@ -14,6 +12,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import jrm.fx.ui.JRMScene;
 import jrm.fx.ui.MainFrame;
+import jrm.misc.Log;
 import lombok.experimental.UtilityClass;
 
 /**
@@ -28,7 +27,7 @@ public @UtilityClass class Dialogs {
     private static final String ICO = "/jrm/resicons/rom.png";
 
     /**
-     * Shows an error dialog with the exception message and stack trace.
+     * Shows an error dialog with the exception type, message, and cause chain (no stack frames).
      *
      * @param e the exception to display
      */
@@ -53,11 +52,12 @@ public @UtilityClass class Dialogs {
 
         final var dialogPaneContent = new VBox();
 
-        final var label = new Label("Stack Trace:");
+        final var label = new Label("Details:");
 
-        final var stackTrace = getStackTrace(e);
+        final var details = formatException(e);
         TextArea textArea = new TextArea();
-        textArea.setText(stackTrace);
+        textArea.setText(details);
+        textArea.setEditable(false);
 
         dialogPaneContent.getChildren().addAll(label, textArea);
 
@@ -163,15 +163,12 @@ public @UtilityClass class Dialogs {
     }
 
     /**
-     * Extracts the stack trace from an exception as a string.
+     * Formats an exception for display: type, message, and cause chain without stack frames.
      *
      * @param e the exception
-     * @return the formatted stack trace
+     * @return the formatted exception summary
      */
-    private static String getStackTrace(Throwable e) {
-        final var sw = new StringWriter();
-        final var pw = new PrintWriter(sw);
-        e.printStackTrace(pw);
-        return sw.toString();
+    private static String formatException(Throwable e) {
+        return Log.formatThrowable(e);
     }
 }

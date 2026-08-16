@@ -12,10 +12,13 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,7 +60,7 @@ class TorrentCheckerTest {
     void setUp() throws IOException {
         System.setProperty(JRM_DIR_PROP, tempDir.toString());
         Files.createDirectories(tempDir.resolve("users").resolve("JRomManager"));
-        session = new Session("torrent-checker-test");
+        session = new Session("torrent-checker-test", "JRomManager", new String[] { "admin" });
         session.getUser().getSettings().setProperty(SettingsEnum.use_parallelism, false);
         progress = mock(ProgressHandler.class, withSettings().stubOnly());
         when(progress.isCancel()).thenReturn(false);
@@ -146,6 +149,36 @@ class TorrentCheckerTest {
 
         files.add(file1);
         files.add(file2);
+
+        info.add(new BByteString("files"), files);
+        root.add(new BByteString("info"), info);
+
+        Path torrentFile = tempDir.resolve(name + ".torrent");
+        Files.write(torrentFile, root.bencode());
+        return torrentFile;
+    }
+
+    /**
+     * Creates a multi-file torrent whose path uses {@code ..} to escape the destination directory.
+     */
+    private Path createTraversalMultiFileTorrent(String name) throws IOException {
+        BDictionary root = new BDictionary();
+        BDictionary info = new BDictionary();
+
+        info.add(new BByteString("name"), new BByteString(name));
+        info.add(new BByteString("piece length"), new BInt(16384L));
+        info.add(new BByteString("pieces"), new BByteString(new byte[20]));
+
+        BList files = new BList();
+
+        BDictionary file1 = new BDictionary();
+        file1.add(new BByteString("length"), new BInt(500L));
+        BList path1 = new BList();
+        path1.add(new BByteString(".."));
+        path1.add(new BByteString("evil-outside.txt"));
+        file1.add(new BByteString("path"), path1);
+
+        files.add(file1);
 
         info.add(new BByteString("files"), files);
         root.add(new BByteString("info"), info);
@@ -484,6 +517,67 @@ class TorrentCheckerTest {
 
             assertThatCode(() -> new TorrentChecker<>(session, progress, sdrl, jrm.io.torrent.options.TrntChkMode.FILENAME,
                     updater, Set.of(TorrentChecker.Options.DETECTARCHIVEDFOLDERS))).doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("FILESIZE REMOVEWRONGSIZEDFILES must not delete paths outside destDir")
+        void removeWrongSizedFilesMustRejectPathTraversal() throws IOException {
+            var torrentFile = createTraversalMultiFileTorrent("path-slip");
+            var dstDir = tempDir.resolve("dst-path-slip");
+            Files.createDirectories(dstDir);
+
+            var outsideTarget = tempDir.resolve("evil-outside.txt");
+            Files.write(outsideTarget, new byte[42]); // wrong size vs torrent length 500
+
+            var sdr = new SrcDstResult(torrentFile.toString(), dstDir.toString());
+            sdr.setSelected(true);
+            var sdrl = new SDRList<SrcDstResult>();
+            sdrl.add(sdr);
+
+            assertThatCode(() -> new TorrentChecker<>(session, progress, sdrl, jrm.io.torrent.options.TrntChkMode.FILESIZE,
+                    updater, Set.of(TorrentChecker.Options.REMOVEWRONGSIZEDFILES))).doesNotThrowAnyException();
+
+            assertThat(outsideTarget).exists().hasSize(42);
+        }
+
+        @Test
+        @DisplayName("DETECTARCHIVEDFOLDERS must not extract Zip Slip paths outside destDir")
+        void detectArchivedFoldersMustRejectZipSlipEntries() throws IOException {
+            var torrentFile = createNestedMultiFileTorrent("zipslip");
+            var dstDir = tempDir.resolve("dst-zipslip");
+            Files.createDirectories(dstDir);
+
+            // detectArchives looks for <first-component>.zip beside the expected folder
+            var maliciousZip = dstDir.resolve("subdir.zip");
+            var outsideTarget = tempDir.resolve("evil-outside.txt");
+            assertThat(outsideTarget).doesNotExist();
+
+            try (var zos = new ZipOutputStream(Files.newOutputStream(maliciousZip))) {
+                zos.putNextEntry(new ZipEntry("../../evil-outside.txt"));
+                zos.write("pwned".getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+                zos.putNextEntry(new ZipEntry("safe.txt"));
+                zos.write("ok".getBytes(StandardCharsets.UTF_8));
+                zos.closeEntry();
+            }
+
+            var sdr = new SrcDstResult(torrentFile.toString(), dstDir.toString());
+            sdr.setSelected(true);
+            var sdrl = new SDRList<SrcDstResult>();
+            sdrl.add(sdr);
+
+            assertThatCode(() -> new TorrentChecker<>(session, progress, sdrl, jrm.io.torrent.options.TrntChkMode.FILENAME,
+                    updater, Set.of(TorrentChecker.Options.DETECTARCHIVEDFOLDERS))).doesNotThrowAnyException();
+
+            assertThat(outsideTarget).doesNotExist();
+            assertThat(tempDir.resolve("evil-outside.txt")).doesNotExist();
+            // Safe entries under the extraction root may still be written before a bad entry aborts
+            var extractedRoot = dstDir.resolve("subdir");
+            if (Files.isDirectory(extractedRoot)) {
+                assertThat(extractedRoot.resolve("safe.txt")).satisfiesAnyOf(
+                        p -> assertThat(p).doesNotExist(),
+                        p -> assertThat(p).exists().hasContent("ok"));
+            }
         }
     }
 

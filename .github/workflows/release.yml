@@ -23,6 +23,7 @@ jobs:
       with:
         lfs: true
         submodules: true
+        persist-credentials: false
         
     - name: Set up JDK 25
       uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -34,6 +35,8 @@ jobs:
       run: chmod +x gradlew
       
     - name: Build with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew build -xtest
       
     - name: Releasing
@@ -50,6 +53,8 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: JPackage DEB with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew jpackage -PtargetPlatform=linux-x64 -PinstallerType=deb
         
     - name: Releasing DEB
@@ -65,6 +70,8 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: JPackage RPM with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew jpackage -PtargetPlatform=linux-x64 -PinstallerType=rpm
         
     - name: Releasing RPM
@@ -117,7 +124,14 @@ jobs:
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
       
-    - name: Login to Docker Hub
+    - name: Login to Docker hardened images registry
+      uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+      with:
+        registry: dhi.io
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        
+    - name: Login to Docker Hub registry
       uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
       with:
         username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -146,6 +160,7 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       with:
         submodules: true
+        persist-credentials: false
         
     - name: Set up JDK 25
       uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -154,6 +169,8 @@ jobs:
         java-version: '25'
         
     - name: JPackage MSI with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew build jpackage -PtargetPlatform=win-x64 -PinstallerType=msi
         
     - name: Releasing
@@ -194,6 +211,7 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       with:
         submodules: true
+        persist-credentials: false
         
     - name: Set up JDK 25
       uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -205,6 +223,8 @@ jobs:
       run: chmod +x gradlew
       
     - name: JPackage DMG with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew jpackage -PtargetPlatform=macos-x64 -PinstallerType=dmg
         
     - name: Releasing DMG
@@ -233,6 +253,7 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       with:
         submodules: true
+        persist-credentials: false
         
     - name: Set up JDK 25
       uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
@@ -244,6 +265,8 @@ jobs:
       run: chmod +x gradlew
       
     - name: JPackage DMG with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: ./gradlew jpackage -PtargetPlatform=macos-aarch64 -PinstallerType=dmg
         
     - name: Releasing DMG

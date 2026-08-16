@@ -42,6 +42,7 @@ import jrm.profile.data.SoftwareList;
 import jrm.profile.manager.Export;
 import jrm.profile.manager.Export.ExportType;
 import jrm.profile.scan.DirScan.Options;
+import jrm.security.PathAbstractor;
 import jrm.security.Session;
 import jrm.xml.EnhancedXMLStreamWriter;
 import jrm.xml.SimpleAttribute;
@@ -87,11 +88,53 @@ public class Dir2Dat {
      * @param options the scanning option ruleset filter configuration
      * @param type the target DAT file serialization style format
      * @param headers custom key-value pairs to write in the XML DAT header block
+     * @throws IllegalArgumentException if server mode and the destination escapes the write sandbox
      */
     public Dir2Dat(final Session session, File srcdir, File dstdat, final ProgressHandler progress, Set<Options> options, ExportType type, Map<String, String> headers) {
         this.session = session;
+        requireWritableDestination(dstdat);
         DirScan srcDirScan = new DirScan(session, srcdir, progress, options);
         write(dstdat, srcDirScan, progress, options, type, headers);
+    }
+
+    /**
+     * In server mode, destination must be writeable under the session and stay inside the user
+     * work path or (admins only) the shared root. Desktop sessions are unrestricted.
+     */
+    private void requireWritableDestination(File dstdat) {
+        if (dstdat == null)
+            throw new IllegalArgumentException("Destination file is required");
+        if (!session.isServer())
+            return;
+        try {
+            final Path absolute = dstdat.toPath().toAbsolutePath().normalize();
+            PathAbstractor.requireWriteable(session, absolute);
+            if (!isInsideExportRoots(absolute))
+                throw new SecurityException("Forged path");
+        } catch (SecurityException e) {
+            throw new IllegalArgumentException("Destination file path escapes workspace: " + dstdat.getAbsolutePath(), e);
+        }
+    }
+
+    private boolean isInsideExportRoots(Path absolute) {
+        try {
+            final Path work = session.getUser().getSettings().getWorkPath().toAbsolutePath().normalize();
+            final Path shared = session.getUser().getSettings().getBasePath().resolve("users").resolve("shared").toAbsolutePath().normalize();
+            final Path candidate = resolveExistingOrNormalized(absolute);
+            final Path workReal = resolveExistingOrNormalized(work);
+            final Path sharedReal = resolveExistingOrNormalized(shared);
+            return candidate.startsWith(workReal) || (session.getUser().isAdmin() && candidate.startsWith(sharedReal));
+        } catch (Exception _) {
+            return false;
+        }
+    }
+
+    private static Path resolveExistingOrNormalized(Path path) {
+        try {
+            return path.toRealPath();
+        } catch (IOException _) {
+            return path.toAbsolutePath().normalize();
+        }
     }
 
     /**

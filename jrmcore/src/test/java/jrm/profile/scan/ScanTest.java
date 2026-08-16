@@ -297,7 +297,7 @@ class ScanTest {
         @BeforeEach
         void setUp() {
             System.setProperty(JRM_DIR_PROP, tempDir.toString());
-            session = new Session("scan-validation");
+            session = new Session("scan-validation", "JRomManager", new String[] { "admin" });
             handler = mock(ProgressHandler.class);
             when(handler.isCancel()).thenReturn(false);
         }
@@ -483,7 +483,7 @@ class ScanTest {
             System.setProperty(JRM_DIR_PROP, tempDir.toString());
             // The backup source directory is always added by Scan.initSrcDirs; pre-create it so the DirScan over it is cheap.
             Files.createDirectories(tempDir.resolve("users").resolve("JRomManager").resolve("backup"));
-            session = new Session("scan-e2e");
+            session = new Session("scan-e2e", "JRomManager", new String[] { "admin" });
             handler = mock(ProgressHandler.class, withSettings().stubOnly());
             when(handler.isCancel()).thenReturn(false);
             when(handler.getInputStream(org.mockito.ArgumentMatchers.any(), org.mockito.ArgumentMatchers.any()))

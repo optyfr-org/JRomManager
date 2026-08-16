@@ -9,8 +9,6 @@
 package jrm.misc;
 
 import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -35,7 +33,7 @@ import lombok.NonNull;
 public class Log {
     /**
      * Custom log record formatter that outputs logs using a formatted timestamp, logging level, the message, and any associated
-     * stack traces.
+     * throwable summary (type, message, cause chain; no stack frames).
      */
     public static class Formatter extends java.util.logging.Formatter {
 
@@ -52,8 +50,7 @@ public class Log {
         private static final DateTimeFormatter TIMESTAMP_FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
 
         /**
-         * Formats the given log record into a single-line string with a trailing newline. Supports formatting embedded exception
-         * stack traces.
+         * Formats the given log record into a string with a trailing newline. Embedded throwables are summarized without stack frames.
          * 
          * @param theRecord the log record to format
          * 
@@ -65,15 +62,39 @@ public class Log {
             String message = formatMessage(theRecord);
             var throwableMsg = "";
             if (theRecord.getThrown() != null) {
-                final var sw = new StringWriter();
-                final var pw = new PrintWriter(sw);
-                pw.println();
-                theRecord.getThrown().printStackTrace(pw);
-                pw.close();
-                throwableMsg = sw.toString();
+                throwableMsg = System.lineSeparator() + formatThrowable(theRecord.getThrown());
             }
             return String.format("[%s] [%s] %s%s%n", timestamp, theRecord.getLevel().getName(), message, throwableMsg);
         }
+    }
+
+    /**
+     * Formats a throwable as type, message, and cause chain without stack frames.
+     * Avoids leaking internal paths, frames, and architecture details into logs or UI.
+     *
+     * @param thrown the throwable to format; may be {@code null}
+     * @return a multi-line summary, or empty string if {@code thrown} is null
+     */
+    public static String formatThrowable(Throwable thrown) {
+        if (thrown == null) {
+            return "";
+        }
+        final var sb = new StringBuilder();
+        var current = thrown;
+        var first = true;
+        while (current != null) {
+            if (!first) {
+                sb.append(System.lineSeparator()).append("Caused by: ");
+            }
+            sb.append(current.getClass().getName());
+            final var msg = current.getMessage();
+            if (msg != null && !msg.isEmpty()) {
+                sb.append(": ").append(msg);
+            }
+            first = false;
+            current = current.getCause();
+        }
+        return sb.toString();
     }
 
     /**

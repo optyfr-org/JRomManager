@@ -1,7 +1,7 @@
 package jrm.server.shared.actions;
 
-import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.time.Instant;
 import java.util.EnumSet;
 import java.util.HashMap;
@@ -14,6 +14,7 @@ import jrm.profile.manager.Export.ExportType;
 import jrm.profile.scan.Dir2Dat;
 import jrm.profile.scan.DirScan;
 import jrm.profile.scan.DirScan.Options;
+import jrm.security.PathAbstractor;
 import jrm.server.shared.WebSession;
 import jrm.server.shared.Worker;
 
@@ -130,11 +131,14 @@ public class Dir2DatActions {
      * <p>
      * This method performs the core logic of the Dir2Dat operation, including loading settings, creating a scanner instance, and handling
      * progress and cancellation.
-     * </p>
+     * <h4>Security:</h4>
+     * <p>
+     * Source paths are resolved with {@link PathAbstractor#getAbsolutePath(jrm.security.Session, String)}; destinations use
+     * {@link PathAbstractor#getWritableAbsolutePath(jrm.security.Session, String)} so forged paths and non-writeable locations
+     * (e.g. {@code %shared} for non-admins) cannot reach {@code FileOutputStream}. Failures cancel the operation with a warning.
      * <h4>Thread Safety:</h4>
      * <p>
      * This method is designed to run in a separate thread, allowing for non-blocking execution of the transformation process.
-     * </p>
      * 
      * @param jso the JSON message containing transformation parameters and settings
      */
@@ -145,6 +149,7 @@ public class Dir2DatActions {
             String srcdir = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_src_dir);
             String dstdat = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_dst_file);
             String format = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_format);
+
             JsonObject opts = jso.get("params").asObject().get("options").asObject();
             EnumSet<DirScan.Options> options = getOptions(opts);
             HashMap<String, String> headers = new HashMap<>();
@@ -154,7 +159,7 @@ public class Dir2DatActions {
                     headers.put(m.getName(), m.getValue().asString());
             });
             if (srcdir != null && dstdat != null)
-                new Dir2Dat(ws.getSession(), new File(srcdir), new File(dstdat), session.getWorker().progress, options, ExportType.valueOf(format), headers);
+                runDir2Dat(session, srcdir, dstdat, format, options, headers);
         } catch (BreakException _) {
             // user cancelled action
         } finally {
@@ -164,6 +169,29 @@ public class Dir2DatActions {
             session.getWorker().progress.close();
             session.getWorker().progress = null;
             session.setLastAction(Instant.now());
+        }
+    }
+
+    /**
+     * Resolves abstract paths through {@link PathAbstractor}, enforces write access on the
+     * destination, then runs {@link Dir2Dat}. Settings may hold {@code %work/...} /
+     * {@code %shared/...} placeholders and must never be passed raw to {@code FileOutputStream}.
+     * {@link Dir2Dat} re-checks the final destination stays under work/shared roots.
+     */
+    private void runDir2Dat(WebSession session, String srcdir, String dstdat, String format,
+            EnumSet<DirScan.Options> options, HashMap<String, String> headers) {
+        try {
+            final Path validatedSrcDir = PathAbstractor.getAbsolutePath(session, srcdir);
+            final Path validatedDstDat = PathAbstractor.getWritableAbsolutePath(session, dstdat);
+
+            new Dir2Dat(session, validatedSrcDir.toFile(), validatedDstDat.toFile(), session.getWorker().progress,
+                    options, ExportType.valueOf(format), headers);
+        } catch (SecurityException e) {
+            Log.err(() -> "Path validation failed for Dir2Dat operation: " + e.getMessage(), e);
+            new GlobalActions(ws).warn("Invalid source directory or destination file path. Operation cancelled for security reasons.");
+        } catch (IllegalArgumentException e) {
+            Log.err(() -> "Dir2Dat destination rejected: " + e.getMessage(), e);
+            new GlobalActions(ws).warn("Destination file path is outside the allowed workspace. Operation cancelled.");
         }
     }
 

@@ -145,7 +145,8 @@ public class LongPollingReqMgr implements ActionsMgr {
         if (session != null) {
             if (session.getCurrProfile() != null)
                 session.getCurrProfile().saveSettings();
-            session.getUser().getSettings().saveSettings();
+            if (session.hasUser())
+                session.getUser().getSettings().saveSettings();
             session = null;
         }
     }

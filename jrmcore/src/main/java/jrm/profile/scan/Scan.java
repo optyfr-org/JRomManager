@@ -360,14 +360,14 @@ public class Scan extends PathAbstractor {
         else
             workdir = WORK_BACKUP;
         if (!workdir.equals(WORK_BACKUP))
-            srcdirs.add(PathAbstractor.getAbsolutePath(profile.getSession(), workdir).toFile()); // $NON-NLS-1$
+            srcdirs.add(PathAbstractor.getWritableAbsolutePath(profile.getSession(), workdir).toFile()); // $NON-NLS-1$
         final String gworkdir;
         if (Boolean.TRUE.equals(profile.getSession().getUser().getSettings().getProperty(ProfileSettingsEnum.backup_dest_dir_enabled, Boolean.class)))
             gworkdir = profile.getSession().getUser().getSettings().getProperty(ProfileSettingsEnum.backup_dest_dir);
         else
             gworkdir = WORK_BACKUP;
         if (!gworkdir.equals(WORK_BACKUP) && !gworkdir.equals(workdir))
-            srcdirs.add(PathAbstractor.getAbsolutePath(profile.getSession(), gworkdir).toFile()); // $NON-NLS-1$
+            srcdirs.add(PathAbstractor.getWritableAbsolutePath(profile.getSession(), gworkdir).toFile()); // $NON-NLS-1$
         srcdirs.add(new File(profile.getSession().getUser().getSettings().getWorkPath().toFile(), "backup")); //$NON-NLS-1$
         return srcdirs;
     }
@@ -386,10 +386,14 @@ public class Scan extends PathAbstractor {
             final String samplesDstDirTxt = profile.getProperty(ProfileSettingsEnum.samples_dest_dir); // $NON-NLS-1$ //$NON-NLS-2$
             if (samplesDstDirTxt.isEmpty())
                 throw new ScanException("Samples dst dir is empty");
-            final var samplesDstDir = getAbsolutePath(samplesDstDirTxt).toFile();
-            if (!samplesDstDir.isDirectory())
-                throw new ScanException("Samples dst dir is not a directory");
-            return samplesDstDir;
+            try {
+                final var samplesDstDir = getWritableAbsolutePath(samplesDstDirTxt).toFile();
+                if (!samplesDstDir.isDirectory())
+                    throw new ScanException("Samples dst dir is not a directory");
+                return samplesDstDir;
+            } catch (SecurityException e) {
+                throw new ScanException(e.getMessage());
+            }
         }
         return null;
     }
@@ -411,7 +415,11 @@ public class Scan extends PathAbstractor {
             final String swdisksDstDirTxt = profile.getProperty(ProfileSettingsEnum.swdisks_dest_dir); // $NON-NLS-1$ //$NON-NLS-2$
             if (swdisksDstDirTxt.isEmpty())
                 throw new ScanException("Software Disks dst dir is empty");
-            swdisksDstDir = getAbsolutePath(swdisksDstDirTxt).toFile();
+            try {
+                swdisksDstDir = getWritableAbsolutePath(swdisksDstDirTxt).toFile();
+            } catch (SecurityException e) {
+                throw new ScanException(e.getMessage());
+            }
         } else
             swdisksDstDir = new File(swromsDstDir.getAbsolutePath());
         return swdisksDstDir;
@@ -434,7 +442,11 @@ public class Scan extends PathAbstractor {
             final String swromsDstDirTxt = profile.getProperty(ProfileSettingsEnum.swroms_dest_dir); // $NON-NLS-1$ //$NON-NLS-2$
             if (swromsDstDirTxt.isEmpty())
                 throw new ScanException("Software roms dst dir is empty");
-            swromsDstDir = getAbsolutePath(swromsDstDirTxt).toFile();
+            try {
+                swromsDstDir = getWritableAbsolutePath(swromsDstDirTxt).toFile();
+            } catch (SecurityException e) {
+                throw new ScanException(e.getMessage());
+            }
         } else
             swromsDstDir = new File(romsDstDir.getAbsolutePath());
         return swromsDstDir;
@@ -457,7 +469,11 @@ public class Scan extends PathAbstractor {
             final String disksDstDirTxt = profile.getProperty(ProfileSettingsEnum.disks_dest_dir); // $NON-NLS-1$ //$NON-NLS-2$
             if (disksDstDirTxt.isEmpty())
                 throw new ScanException("Disks dst dir is empty");
-            disksDstDir = getAbsolutePath(disksDstDirTxt).toFile();
+            try {
+                disksDstDir = getWritableAbsolutePath(disksDstDirTxt).toFile();
+            } catch (SecurityException e) {
+                throw new ScanException(e.getMessage());
+            }
         } else
             disksDstDir = new File(romsDstDir.getAbsolutePath());
         return disksDstDir;
@@ -476,10 +492,14 @@ public class Scan extends PathAbstractor {
         final String dstDirTxt = profile.getProperty(ProfileSettingsEnum.roms_dest_dir); // $NON-NLS-1$ //$NON-NLS-2$
         if (dstDirTxt.isEmpty())
             throw new ScanException("dst dir is empty");
-        final File romsDstDir = getAbsolutePath(dstDirTxt).toFile();
-        if (!romsDstDir.isDirectory())
-            throw new ScanException("dst dir is not a directory");
-        return romsDstDir;
+        try {
+            final File romsDstDir = getWritableAbsolutePath(dstDirTxt).toFile();
+            if (!romsDstDir.isDirectory())
+                throw new ScanException("dst dir is not a directory");
+            return romsDstDir;
+        } catch (SecurityException e) {
+            throw new ScanException(e.getMessage());
+        }
     }
 
     /**

@@ -40,6 +40,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 import jrm.misc.GlobalSettings;
+import jrm.misc.ProfileSettings;
 import jrm.misc.ProfileSettingsEnum;
 import jrm.profile.Profile;
 import jrm.profile.data.Driver;
@@ -1707,7 +1708,8 @@ class ScannerPanelControllerTest {
         runOnFxThread(() -> {
             Profile mockProfile = TestApp.controller.session.getCurrProfile();
             when(mockProfile.getProperty(ProfileSettingsEnum.automation_scan)).thenReturn(ScanAutomation.SCAN_REPORT_FIX.name());
-            when(mockProfile.getSettings()).thenReturn(mock(jrm.misc.ProfileSettings.class));
+            final ProfileSettings mock = mock(jrm.misc.ProfileSettings.class);
+            when(mockProfile.getSettings()).thenReturn(mock);
 
             TestApp.controller.initAutomationSettings(TestApp.controller.session);
 
@@ -1724,7 +1726,8 @@ class ScannerPanelControllerTest {
         runOnFxThread(() -> {
             Profile mockProfile = TestApp.controller.session.getCurrProfile();
             when(mockProfile.getProperty(ProfileSettingsEnum.automation_scan)).thenReturn(ScanAutomation.SCAN.name());
-            when(mockProfile.getSettings()).thenReturn(mock(jrm.misc.ProfileSettings.class));
+            final ProfileSettings mock = mock(jrm.misc.ProfileSettings.class);
+            when(mockProfile.getSettings()).thenReturn(mock);
 
             TestApp.controller.initAutomationSettings(TestApp.controller.session);
 

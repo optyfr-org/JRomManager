@@ -1,0 +1,17 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"java.configuration.updateBuildConfiguration": "automatic",
+		"java.compile.nullAnalysis.mode": "automatic",
+		"chat.tools.terminal.autoApprove": {
+			"New-Item": true
+		},
+		"java.dependency.packagePresentation": "hierarchical",
+		"java.format.settings.url": "JRomManager/.vscode/java-formatter.xml",
+		"java.settings.url": ""
+	}
+}

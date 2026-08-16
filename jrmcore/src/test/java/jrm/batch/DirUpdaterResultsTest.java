@@ -36,7 +36,7 @@ class DirUpdaterResultsTest {
     void setUp() throws IOException {
         System.setProperty(JRM_DIR_PROP, tempDir.toString());
         Files.createDirectories(tempDir.resolve("users").resolve("JRomManager"));
-        session = new Session("dirupdater-results-test");
+        session = new Session("dirupdater-results-test", "JRomManager", new String[] { "admin" });
     }
 
     @AfterEach

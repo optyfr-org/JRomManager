@@ -183,7 +183,7 @@ class ScanFixTest {
         void setUp() throws IOException {
             System.setProperty(ScanTestSupport.JRM_DIR_PROP, tempDir.toString());
             Files.createDirectories(tempDir.resolve("users").resolve("JRomManager").resolve("backup"));
-            session = new Session("scanfix-scan");
+            session = new Session("scanfix-scan", "JRomManager", new String[] { "admin" });
             handler = nonCancellingHandler();
             datFile = Path.of(MAME_DAT_PATH).toFile();
             assertThat(datFile).exists();
@@ -274,7 +274,7 @@ class ScanFixTest {
             sharedWorkDir = Files.createTempDirectory("jrm-allgames");
             System.setProperty(ScanTestSupport.JRM_DIR_PROP, sharedWorkDir.toString());
             Files.createDirectories(sharedWorkDir.resolve("users").resolve("JRomManager").resolve("backup"));
-            session = new Session("scanfix-allgames");
+            session = new Session("scanfix-allgames", "JRomManager", new String[] { "admin" });
             handler = nonCancellingHandler();
             final var datFile = Path.of(MAME_DAT_PATH).toFile();
             assertThat(datFile).exists();
@@ -384,7 +384,7 @@ class ScanFixTest {
         void setUp() throws IOException {
             System.setProperty(ScanTestSupport.JRM_DIR_PROP, tempDir.toString());
             Files.createDirectories(tempDir.resolve("users").resolve("JRomManager").resolve("backup"));
-            session = new Session("scanfix-fix");
+            session = new Session("scanfix-fix", "JRomManager", new String[] { "admin" });
             session.setMsgs(fullBundle());
             handler = nonCancellingHandler();
             datFile = Path.of(MAME_DAT_PATH).toFile();
@@ -460,7 +460,7 @@ class ScanFixTest {
             System.setProperty(ScanTestSupport.JRM_DIR_PROP, workDir.toString());
             try {
                 Files.createDirectories(workDir.resolve("users").resolve("JRomManager").resolve("backup"));
-                final var session = new Session("scanfix-merge-real");
+                final var session = new Session("scanfix-merge-real", "JRomManager", new String[] { "admin" });
                 final var handler = nonCancellingHandler();
                 final var datFile = Path.of(MAME_DAT_PATH).toFile();
                 final var romsDir = Files.createDirectories(workDir.resolve("roms"));
@@ -494,7 +494,7 @@ class ScanFixTest {
             System.setProperty(ScanTestSupport.JRM_DIR_PROP, workDir.toString());
             try {
                 Files.createDirectories(workDir.resolve("users").resolve("JRomManager").resolve("backup"));
-                final var session = new Session("scanfix-merge-synth");
+                final var session = new Session("scanfix-merge-synth", "JRomManager", new String[] { "admin" });
                 final var handler = nonCancellingHandler();
 
                 final var fixtures = buildSyntheticParentCloneFixtures(workDir);

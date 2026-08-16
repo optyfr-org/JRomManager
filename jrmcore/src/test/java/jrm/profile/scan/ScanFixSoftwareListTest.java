@@ -219,7 +219,7 @@ class ScanFixSoftwareListTest {
             System.setProperty(ScanTestSupport.JRM_DIR_PROP, tempDir.toString());
             Files.createDirectories(tempDir.resolve("users").resolve("JRomManager").resolve("backup"));
 
-            session = new Session("scanfix-swlist");
+            session = new Session("scanfix-swlist", "JRomManager", new String[] { "admin" });
             session.setMsgs(fullBundle());
             handler = nonCancellingHandler();
 

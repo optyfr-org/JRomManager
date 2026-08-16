@@ -84,6 +84,7 @@ import jrm.profile.data.SoftwareList;
 import jrm.profile.filter.Keywords;
 import jrm.profile.manager.Export;
 import jrm.profile.manager.Export.ExportType;
+import jrm.profile.manager.MameExecutable;
 import jrm.profile.manager.ProfileNFOMame;
 import jrm.profile.manager.ProfileNFOMame.MameStatus;
 import jrm.security.Session;
@@ -634,6 +635,21 @@ public class ProfileViewer extends JDialog {
      */
     private void launchMame(final Anyware ware, final Profile profile) throws HeadlessException {
         final ProfileNFOMame mame = profile.getNfo().getMame();
+        
+        // Validate MAME executable before launching to prevent arbitrary program execution
+        if (mame.getFile() == null) {
+            JOptionPane.showMessageDialog(ProfileViewer.this, "MAME executable is not configured for this profile.", 
+                    Messages.getString("ProfileViewer.Exception"), JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        if (!MameExecutable.isLaunchable(mame.getFile())) {
+            JOptionPane.showMessageDialog(ProfileViewer.this, 
+                    "MAME executable does not exist or is not a native executable: " + mame.getFile().getAbsolutePath(), 
+                    Messages.getString("ProfileViewer.Exception"), JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
         String[] args = null;
         if (ware instanceof Software) {
             args = getMameArgsSofware(ware, profile, mame, args);

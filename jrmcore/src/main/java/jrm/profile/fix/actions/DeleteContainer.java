@@ -18,6 +18,7 @@ import jrm.locale.Messages;
 import jrm.misc.Log;
 import jrm.profile.data.Container;
 import jrm.profile.scan.options.FormatOptions;
+import jrm.security.PathAbstractor;
 import jrm.security.Session;
 import lombok.val;
 
@@ -55,7 +56,11 @@ public class DeleteContainer extends ContainerAction {
 
     @Override
     public boolean doAction(final Session session, final ProgressHandler handler) {
-        handler.setProgress(toDocument(toNoBR(String.format(escape(session.getMsgs().getString("DeleteContainer.Deleting")), toBlue(escape(container.getFile().getName())))))); //$NON-NLS-1$
+        handler.setProgress(toDocument(toNoBR(String.format(escape(session.getMsgs().getString("DeleteContainer.Deleting")), toBlue(container.getFile().getName()))))); //$NON-NLS-1$
+        if (!PathAbstractor.isWriteable(session, container.getFile().toPath())) {
+            Log.err(() -> String.format("write access denied for delete %s", container.getFile()));
+            return false;
+        }
         if (container.getType() == Container.Type.ZIP || container.getType() == Container.Type.SEVENZIP || container.getType() == Container.Type.UNK) {
             try {
                 return Files.deleteIfExists(container.getFile().toPath());

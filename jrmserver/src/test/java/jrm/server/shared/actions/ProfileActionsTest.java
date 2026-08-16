@@ -21,6 +21,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import com.eclipsesource.json.JsonObject;
 
+import jrm.misc.ProfileSettingsEnum;
 import jrm.server.shared.TestDataSets;
 import jrm.server.shared.TestWebSessions;
 import jrm.server.shared.WebSession;
@@ -130,6 +131,42 @@ class ProfileActionsTest {
             assertThat(webSession.getCurrProfile().getProperty("filter_missing", false)).isTrue();
             assertThat(webSession.getCurrProfile().getProperty("some_count", 0)).isEqualTo(42);
             assertThat(webSession.getCurrProfile().getProperty("some_path", "")).isEqualTo("%work/roms");
+        }
+
+        @Test
+        @DisplayName("non-admin cannot set roms_dest_dir to %shared")
+        void nonAdminCannotSetSharedDest() {
+            webSession = TestWebSessions.newSession("profile-actions-user", "user", new String[] { "user" });
+            when(mgr.getSession()).thenReturn(webSession);
+            TestDataSets.loadA5200Profile(webSession);
+            final String before = webSession.getCurrProfile().getProperty(ProfileSettingsEnum.roms_dest_dir);
+
+            final JsonObject params = new JsonObject();
+            params.add(ProfileSettingsEnum.roms_dest_dir.toString(), "%shared");
+            final JsonObject jso = new JsonObject();
+            jso.add("cmd", "Profile.setProperty");
+            jso.add("params", params);
+
+            new ProfileActions(mgr).setProperty(jso);
+
+            assertThat(webSession.getCurrProfile().getProperty(ProfileSettingsEnum.roms_dest_dir)).isEqualTo(before);
+            assertThat(sentMessages.stream().anyMatch(m -> m.contains("Write access denied"))).isTrue();
+        }
+
+        @Test
+        @DisplayName("admin can set roms_dest_dir to %shared")
+        void adminCanSetSharedDest() {
+            TestDataSets.loadA5200Profile(webSession);
+
+            final JsonObject params = new JsonObject();
+            params.add(ProfileSettingsEnum.roms_dest_dir.toString(), "%shared");
+            final JsonObject jso = new JsonObject();
+            jso.add("cmd", "Profile.setProperty");
+            jso.add("params", params);
+
+            new ProfileActions(mgr).setProperty(jso);
+
+            assertThat(webSession.getCurrProfile().getProperty(ProfileSettingsEnum.roms_dest_dir)).isEqualTo("%shared");
         }
 
     }

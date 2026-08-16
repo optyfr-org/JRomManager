@@ -90,7 +90,12 @@ public interface ActionsMgr extends SessionStub {
     public default void processActions(ActionsMgr mgr, JsonObject jso) {
         try {
             if (jso != null) {
-                mgr.getSession().setLastAction(Instant.now());
+                final WebSession session = mgr.getSession();
+                if (session == null || !session.hasUser()) {
+                    Log.err(() -> "Rejected command without authenticated user: " + jso.getString("cmd", "unknown"));
+                    return;
+                }
+                session.setLastAction(Instant.now());
                 switch (jso.getString("cmd", "unknown")) {
                     case "Global.setProperty" -> new GlobalActions(mgr).setProperty(jso);
                     case "Global.getMemory" -> new GlobalActions(mgr).setMemory(jso);

@@ -83,6 +83,10 @@ If you just want to recompile sources without using an IDE (Eclipse), here are t
        - OpenJDK 14 installed (for jpackage)
 - Download code using `git clone --recursive https://github.com/optyfr/JRomManager`
 - `cd JRomManager`
+- Set the `GITHUB_TOKEN` environment variable with a GitHub Personal Access Token that has read access to GitHub Packages:
+    - Unix: `export GITHUB_TOKEN=your_token_here`
+    - Windows: `set GITHUB_TOKEN=your_token_here`
+    - Note: This token is required to access the Jtrrntzip dependency from GitHub Packages
 - run
     - Unix: `sh ./gradlew build`
     - Windows: `.\gradlew.bat build`

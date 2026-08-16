@@ -2,3 +2,12 @@
 /.gradle/
 /build/
 /.classpath
+*/.classpath
+jrmcli/.classpath
+jrmfx/.classpath
+jrmserver/.classpath
+jrmstandalone/.classpath
+/.project
+*/.project
+/.settings/
+*/.settings/

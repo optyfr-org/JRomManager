@@ -74,6 +74,23 @@ class GlobalActionsTest {
             assertThat(sentMessages.get(0)).contains("bool.prop");
             assertThat(sentMessages.get(0)).contains("string.prop");
         }
+
+        @Test
+        @DisplayName("rejects setProperty when session has no authenticated user")
+        void rejectsUnauthenticated() {
+            webSession = new WebSession("global-unauth");
+            when(mgr.getSession()).thenReturn(webSession);
+            final JsonObject params = new JsonObject();
+            params.add("evil.prop", "pwned");
+            final JsonObject jso = new JsonObject();
+            jso.add("cmd", "Global.setProperty");
+            jso.add("params", params);
+
+            new GlobalActions(mgr).setProperty(jso);
+
+            assertThat(sentMessages).isEmpty();
+            assertThat(webSession.hasUser()).isFalse();
+        }
     }
 
     @Nested

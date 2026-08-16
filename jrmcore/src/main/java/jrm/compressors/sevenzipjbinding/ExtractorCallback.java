@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
 
+import jrm.misc.IOUtils;
 import jrm.misc.Log;
 import net.sf.sevenzipjbinding.ExtractAskMode;
 import net.sf.sevenzipjbinding.ExtractOperationResult;
@@ -97,14 +98,26 @@ public abstract class ExtractorCallback implements IArchiveExtractCallback {
                 rafs.get(index).close();
                 String path = (String) this.nArchive.getIInArchive().getProperty(index, PropID.PATH);
                 File tmpfile = tmpfiles.get(index);
-                File dstfile = new File(baseDir, path);
+                File dstfile = resolveContainedFile(baseDir, path);
                 FileUtils.forceMkdirParent(dstfile);
                 if (!dstfile.exists())
                     FileUtils.moveFile(tmpfile, dstfile);
             } catch (IOException e) {
-                Log.err(e.getMessage(), e);
+                throw new SevenZipException(e.getMessage(), e);
             }
         }
+    }
+
+    /**
+     * Resolves an archive entry path against the extraction root and rejects path-traversal entries (Zip Slip).
+     *
+     * @param baseDir extraction root directory
+     * @param entryPath archive-controlled entry path (from {@link PropID#PATH} or a caller-supplied name)
+     * @return destination file confined under {@code baseDir}
+     * @throws IOException if the entry is absolute, contains NULs, or would escape {@code baseDir}
+     */
+    public static File resolveContainedFile(final File baseDir, final String entryPath) throws IOException {
+        return IOUtils.resolveContainedFile(baseDir, entryPath);
     }
 
     /**

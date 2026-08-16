@@ -8,16 +8,11 @@
  */
 package jrm.profile.scan;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.Closeable;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
+import java.security.NoSuchAlgorithmException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.FileSystems;
@@ -29,7 +24,6 @@ import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -71,6 +65,7 @@ import jrm.profile.scan.options.FormatOptions;
 import jrm.profile.scan.options.FormatOptions.Ext;
 import jrm.security.PathAbstractor;
 import jrm.security.Session;
+import jrm.security.SignedObjectStore;
 import jtrrntzip.DummyLogCallback;
 import jtrrntzip.SimpleTorrentZipOptions;
 import jtrrntzip.TorrentZip;
@@ -101,6 +96,8 @@ public final class DirScan extends PathAbstractor {
      * Default string prefix indicating glob path matching.
      */
     private static final String GLOB = "glob:";
+    
+    
     /**
      * List of found {@link Container}s.
      */
@@ -238,7 +235,7 @@ public final class DirScan extends PathAbstractor {
     private void init7zJBinding() {
         if (!SevenZip.isInitializedSuccessfully()) {
             try {
-                SevenZip.initSevenZipFromPlatformJAR(session.getUser().getSettings().getTmpPath(true).toFile());
+                SevenZip.initSevenZipFromPlatformJAR(session.getUser().getSettings().getTmpPath(false).toFile());
             } catch (final Exception e) {
                 Log.err(e.getMessage(), e);
             }
@@ -469,13 +466,13 @@ public final class DirScan extends PathAbstractor {
                         (int) (j.addAndGet(1 + (int) (c.getSize() >> 20)) * 100.0 / max.get())), j.get());
             } catch (final IOException e) {
                 c.setLoaded(0);
-                Log.err("IOException when scanning", e); //$NON-NLS-1$
+                Log.err("IOException when scanning", e);
             } catch (final BreakException _) {
                 c.setLoaded(0);
                 handler.doCancel();
             } catch (final Exception e) {
                 c.setLoaded(0);
-                Log.err("Other Exception when listing", e); //$NON-NLS-1$
+                Log.err("Other Exception when listing", e);
             }
             return;
         })) {
@@ -1691,21 +1688,21 @@ public final class DirScan extends PathAbstractor {
     }
 
     /**
-     * Serializes current scans properties to the computed cache file.
+     * Serializes current scans properties to the computed cache file with integrity protection.
      * 
      * @param file root folder file
      * @param options options configurations
      */
     private void save(final File file, Set<Options> options) {
-        try (final var oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(getCacheFile(session, file, options))))) {
-            oos.writeObject(containersByName);
+        try {
+            SignedObjectStore.write(session, getCacheFile(session, file, options), containersByName);
         } catch (final Exception _) {
             // ignore
         }
     }
 
     /**
-     * Deserializes previous runs properties from disk.
+     * Deserializes previous runs properties from disk with integrity verification.
      * 
      * @param file root directory file
      * @param options options configurations
@@ -1715,16 +1712,16 @@ public final class DirScan extends PathAbstractor {
     @SuppressWarnings("unchecked")
     private Map<String, Container> load(final File file, Set<Options> options) {
         final var cachefile = getCacheFile(session, file, options);
-        try (final var ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(cachefile)))) {
+        try {
             handler.clearInfos();
             handler.setProgress(String.format(Messages.getString("DirScan.LoadingScanCache"), getRelativePath(file.toPath())), 0); //$NON-NLS-1$
-            return (Map<String, Container>) ois.readObject();
-        } catch (final Exception _) {
-            // ignore
+            return (Map<String, Container>) SignedObjectStore.read(session, cachefile);
+        } catch (final Exception e) {
+            Log.info(() -> "Failed to load cache file: " + cachefile.getAbsolutePath() + " (" + e.getMessage() + ")");
         }
         return Collections.synchronizedMap(new HashMap<>());
     }
-
+    
     /**
      * Provides a collection iterator over all discovered container systems.
      * 

@@ -1,12 +1,6 @@
 package jrm.batch;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,7 +19,9 @@ import jrm.misc.Log;
 import jrm.profile.report.FilterOptions;
 import jrm.profile.report.ReportIntf;
 import jrm.profile.report.Subject;
+import jrm.security.DeserializationFilter;
 import jrm.security.Session;
+import jrm.security.SignedObjectStore;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.experimental.Accessors;
@@ -34,6 +30,15 @@ import lombok.experimental.Accessors;
 public final class TrntChkReport implements Serializable, StatusRendererFactory, ReportIntf<TrntChkReport> {
     /** the serial version UID for serialization compatibility */
     private static final long serialVersionUID = 4L;
+
+    /**
+     * Maximum object graph depth allowed when deserializing a torrent-check report.
+     * <p>
+     * {@link TorrentChecker#checkBlocksFile} nests one {@link Child} per torrent piece, so the depth limit must be high enough
+     * to accommodate large torrents without rejecting legitimate reports.
+     * </p>
+     */
+    private static final int MAX_DESERIALIZATION_DEPTH = 1_000_000;
 
     /**
      * the atomic counter for generating unique IDs for Child nodes (not serialized)
@@ -364,14 +369,15 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
     }
 
     /**
-     * Saves this report to the specified file using object serialization. If an error occurs during the save process, a warning
-     * message is logged.
+     * Saves this report to the specified file using HMAC-signed object serialization. If an error occurs during the save process, a
+     * warning message is logged.
      *
+     * @param session the active user session (HMAC key is a per-user random secret)
      * @param file the file to which this report should be saved
      */
-    public void save(final File file) {
-        try (final ObjectOutputStream oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(file)))) {
-            oos.writeObject(TrntChkReport.this);
+    public void save(final Session session, final File file) {
+        try {
+            SignedObjectStore.write(session, file, TrntChkReport.this);
         } catch (final Exception e) {
             Log.warn(e.getMessage());
         }
@@ -380,6 +386,10 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
     /**
      * Loads a TrntChkReport from the specified file using object deserialization. If an error occurs during the load process, a
      * warning message is logged and {@code null} is returned.
+     * <p>
+     * Prefer signed payloads written by {@link #save(Session, File)}. Unsigned and legacy work-path HMAC
+     * streams are rejected; the check is rerun and the report is rewritten in the signed format.
+     * </p>
      *
      * @param session the active user session
      * @param file the file from which to load the report
@@ -387,14 +397,17 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
      * @return the loaded TrntChkReport, or {@code null} if an error occurs during loading
      */
     public static TrntChkReport load(final Session session, final File file) {
-        try (final ObjectInputStream ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(ReportIntf.getReportFile(session, file))))) {
-            final TrntChkReport report = (TrntChkReport) ois.readObject();
+        try {
+            final var reportFile = ReportIntf.getReportFile(session, file);
+            final TrntChkReport report = (TrntChkReport) SignedObjectStore.read(session, reportFile,
+                    DeserializationFilter.Mode.REPORT, MAX_DESERIALIZATION_DEPTH);
             report.file = file;
-            report.fileModified = ReportIntf.getReportFile(session, file).lastModified();
+            report.fileModified = reportFile.lastModified();
             return report;
         } catch (final Exception e) {
             Log.warn(e.getMessage());
             // may fail to load because serialized classes did change since last cache save
+            // or when deserialization filter rejects malicious content
         }
         return null;
     }

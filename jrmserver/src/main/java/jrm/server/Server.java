@@ -74,12 +74,16 @@ public class Server extends AbstractServer {
      */
     private static int httpPort = HTTP_PORT_DEFAULT;
 
-    /** Default bind address for the server (all network interfaces). */
-    private static final String BIND_DEFAULT = "0.0.0.0";
+    /**
+     * Default bind address for the simple (unauthenticated) server: loopback only. The simple server has no login; binding all
+     * interfaces would expose admin settings and actions on the network. Use {@code -b 0.0.0.0} or {@code JRM_SERVER_BIND} only when
+     * the host is otherwise firewalled (e.g. Docker publishes a single port).
+     */
+    private static final String BIND_DEFAULT = "127.0.0.1";
 
     /**
-     * The IP address or hostname to which the server socket will be bound. Defaults to {@value #BIND_DEFAULT} (all interfaces). Can
-     * be overridden via command-line arguments or environment properties.
+     * The IP address or hostname to which the server socket will be bound. Defaults to {@value #BIND_DEFAULT} (loopback). Can be
+     * overridden via command-line arguments or environment properties.
      */
     private static String bind = BIND_DEFAULT;
 
@@ -183,6 +187,7 @@ public class Server extends AbstractServer {
         Optional.ofNullable(env.getProperty("jrm.server.clientpath", jArgs.clientPath)).ifPresent(v -> jArgs.clientPath = v);
         Optional.ofNullable(env.getProperty("jrm.server.workpath", jArgs.workPath)).ifPresent(v -> jArgs.workPath = v);
         Optional.ofNullable(env.getProperty("jrm.server.debug", jArgs.debug)).ifPresent(v -> jArgs.debug = v);
+        Optional.ofNullable(env.getProperty("jrm.server.log.level", jArgs.debug)).ifPresent(v -> jArgs.debug = v);
         Optional.ofNullable(env.getProperty("jrm.server.http", jArgs.httpPort)).ifPresent(v -> jArgs.httpPort = v);
         Optional.ofNullable(env.getProperty("jrm.server.bind", jArgs.bind)).ifPresent(v -> jArgs.bind = v);
     }
@@ -299,6 +304,9 @@ public class Server extends AbstractServer {
                 }
                 chain.doFilter(request, response);
             }), "*.js", EnumSet.of(DispatcherType.REQUEST));
+
+            // Simple server: never auto-admin at session create; elevate only for loopback peers.
+            context.addFilter(new FilterHolder(new LocalAdminFilter()), "/*", EnumSet.of(DispatcherType.REQUEST));
 
             context.addServlet(holderStatic(), "/");
 

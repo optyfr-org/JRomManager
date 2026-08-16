@@ -8,12 +8,9 @@
  */
 package jrm.profile.manager;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InvalidClassException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.ObjectStreamField;
@@ -44,7 +41,9 @@ import org.xml.sax.helpers.DefaultHandler;
 
 import jrm.aui.status.StatusRendererFactory;
 import jrm.misc.Log;
+import jrm.security.DeserializationFilter;
 import jrm.security.Session;
+import jrm.security.SignedObjectStore;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -242,6 +241,10 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
     /**
      * Loads metadata properties from an existing .nfo file if present and fresh, otherwise instantiates a new empty ProfileNFO for
      * the supplied profile file.
+     * <p>
+     * <b>Security:</b> This method applies {@link DeserializationFilter} to prevent arbitrary code execution via malicious .nfo
+     * files.
+     * </p>
      * 
      * @param session the current active security session
      * @param file the profile database file
@@ -252,15 +255,38 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
         final var filenfo = ProfileNFO.getFileNfo(session, file);
         if (filenfo.lastModified() >= file.lastModified()) // $NON-NLS-1$
         {
-            try (final var ois = new ObjectInputStream(new BufferedInputStream(new FileInputStream(filenfo)))) {
-                ProfileNFO nfo = (ProfileNFO) ois.readObject();
-                if (nfo.file != null)
+            try {
+                final ProfileNFO nfo = (ProfileNFO) SignedObjectStore.read(session, filenfo);
+                if (nfo != null) {
+                    // Never trust filesystem paths from serialized NFO; bind to the caller-resolved profile path.
+                    nfo.bindToProfileFile(file);
                     return nfo;
+                }
+            } catch (final InvalidClassException e) {
+                Log.err("Deserialization security violation detected in .nfo file: " + filenfo.getAbsolutePath() + " - " + e.getMessage(), e);
             } catch (final Exception e) {
                 Log.err(e.getMessage(), e);
             }
         }
         return new ProfileNFO(file);
+    }
+
+    /**
+     * Rebinds this NFO to a server-resolved profile path and drops any deserialized companion paths
+     * that do not live beside that profile. Prevents crafted .nfo payloads from redirecting delete/save.
+     *
+     * @param profileFile the trusted profile database file path
+     */
+    void bindToProfileFile(final File profileFile) {
+        this.file = profileFile;
+        if (name == null || name.isBlank())
+            name = profileFile.getName();
+        if (mame == null)
+            mame = new ProfileNFOMame();
+        else
+            mame.retainOnlySiblingPaths(profileFile);
+        if (stats == null)
+            stats = new ProfileNFOStats();
     }
 
     /**
@@ -278,8 +304,8 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
             } catch (ParserConfigurationException | TransformerException | IOException e) {
                 Log.err(e.getMessage(), e);
             }
-        try (final var oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(ProfileNFO.getFileNfo(session, file))))) {
-            oos.writeObject(this);
+        try {
+            SignedObjectStore.write(session, ProfileNFO.getFileNfo(session, file), this);
         } catch (final Exception e) {
             Log.err(e.getMessage(), e);
         }
@@ -381,7 +407,7 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
     public boolean delete() {
         try {
             if (Files.deleteIfExists(file.toPath())) {
-                mame.delete();
+                mame.deleteAlongside(file);
                 Files.deleteIfExists(Paths.get(file.getAbsolutePath() + ".cache"));
                 Files.deleteIfExists(Paths.get(file.getAbsolutePath() + ".nfo"));
                 Files.deleteIfExists(Paths.get(file.getAbsolutePath() + ".properties"));
@@ -399,7 +425,7 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
      * @return the HTML formatted version string
      */
     public String getHTMLVersion() {
-        return toDocument(Optional.ofNullable(stats.getVersion()).map(this::toNoBR).orElse(toGray("???"))); //$NON-NLS-1$
+        return toDocument(Optional.ofNullable(stats.getVersion()).map(this::escape).map(this::toNoBR).orElse(toGray("???"))); //$NON-NLS-1$
     }
 
     /**

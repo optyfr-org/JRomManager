@@ -30,17 +30,78 @@ import org.apache.commons.lang3.math.NumberUtils;
 public interface SQLUtils {
 
     /**
-     * Backquotes a name for use in SQL statements. This method adds backticks around the name to prevent conflicts with reserved
-     * keywords and to allow for special characters in names. If the name is null, it returns null.
+     * Validates a SQL identifier (table, schema, or column name). Only unquoted-safe characters are allowed so identifiers
+     * cannot be used for SQL injection when embedded in statements. Null is accepted (callers may treat it as optional).
+     *
+     * @param name the identifier to validate
+     *
+     * @return the same name when valid, or null when input is null
+     *
+     * @throws IllegalArgumentException if the name is blank or contains characters other than letters, digits, and underscore
+     */
+    default String requireSqlIdentifier(String name) {
+        if (name == null)
+            return null;
+        if (name.isBlank())
+            throw new IllegalArgumentException("SQL identifier must not be blank");
+        final int len = name.length();
+        for (var i = 0; i < len; i++) {
+            final char c = name.charAt(i);
+            if (c == '_' || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
+                continue;
+            throw new IllegalArgumentException("Invalid SQL identifier: " + name);
+        }
+        if (name.charAt(0) >= '0' && name.charAt(0) <= '9')
+            throw new IllegalArgumentException("Invalid SQL identifier: " + name);
+        return name;
+    }
+
+    /**
+     * Backquotes a name for use in SQL statements after validating it as a safe identifier. Adds backticks around the name to
+     * prevent conflicts with reserved keywords. If the name is null, it returns null.
      * 
      * @param name The name to be backquoted.
      * 
      * @return The backquoted name, or null if the input name is null.
+     * 
+     * @throws IllegalArgumentException if the name is not a valid SQL identifier
      */
     default String backquote(String name) {
+        name = requireSqlIdentifier(name);
         if (name == null)
-            return name;
+            return null;
         return "`" + name + "`";
+    }
+
+    /**
+     * Ensures a SQL fragment used as a count subquery is a single SELECT statement. Rejects multi-statement input and
+     * non-SELECT statements so untrusted strings cannot be concatenated into {@code count}.
+     *
+     * @param select the SQL SELECT fragment (bind parameters via {@code ?} only)
+     *
+     * @return the trimmed select statement
+     *
+     * @throws IllegalArgumentException if the fragment is null, blank, not a SELECT, or contains a statement separator
+     */
+    default String requireSelectStatement(String select) {
+        if (select == null || select.isBlank())
+            throw new IllegalArgumentException("SQL select must not be blank");
+        final String trimmed = select.strip();
+        if (trimmed.indexOf(';') >= 0)
+            throw new IllegalArgumentException("SQL select must be a single statement");
+        final int len = trimmed.length();
+        var i = 0;
+        if (len >= 2 && trimmed.charAt(0) == '(') {
+            // allow optional outer parentheses around the select
+            while (i < len && (trimmed.charAt(i) == '(' || Character.isWhitespace(trimmed.charAt(i))))
+                i++;
+        }
+        if (len - i < 6 || !trimmed.regionMatches(true, i, "SELECT", 0, 6))
+            throw new IllegalArgumentException("SQL select must start with SELECT");
+        final char after = i + 6 < len ? trimmed.charAt(i + 6) : ' ';
+        if (!Character.isWhitespace(after) && after != '(' && after != '*')
+            throw new IllegalArgumentException("SQL select must start with SELECT");
+        return trimmed;
     }
 
     /**
@@ -330,6 +391,7 @@ public interface SQLUtils {
      * @throws SQLException If an error occurs while retrieving database metadata.
      */
     default String getSQLTable(String table, String context) throws SQLException {
+        // identifiers validated in backquote/requireSqlIdentifier; cannot be bound as JDBC parameters
         if (context != null && getDb().getMetaData().supportsSchemasInDataManipulation())
             return backquote(context) + '.' + backquote(table);
         return backquote(table);

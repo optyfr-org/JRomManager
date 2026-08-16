@@ -149,7 +149,7 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
             result = checkFiles(progress, sdr, src, dst, report, tfiles);
         else
             result = checkBlocks(progress, sdr, src, dst, report, torrent, tfiles);
-        report.save(report.getReportFile(session));
+        report.save(session, report.getReportFile(session));
         return result;
     }
 
@@ -204,7 +204,6 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
      */
     private String checkFiles(final ProgressHandler progress, final T sdr, final File src, final File dst, final TrntChkReport report, final List<TorrentFile> tfiles)
             throws IOException {
-        String result;
         CheckFilesData data = new CheckFilesData(tfiles);
 
         processing.addAndGet(data.total);
@@ -216,16 +215,13 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
         }
         int removedFiles = removeUnknownFiles(report, data.paths, sdr, options.contains(Options.REMOVEUNKNOWNFILES) && !progress.isCancel());
         if (data.ok == data.total) {
-            if (removedFiles > 0)
-                result = toDocument(toBoldBlue(session.getMsgs().getString(TORRENT_CHECKER_RESULT_COMPLETE)));
-            else
-                result = toDocument(toBoldGreen(session.getMsgs().getString(TORRENT_CHECKER_RESULT_COMPLETE)));
-        } else if (mode == TrntChkMode.FILENAME)
-            result = String.format(session.getMsgs().getString("TorrentChecker.ResultFileName"), data.ok * 100.0 / data.total, data.missingFiles, removedFiles); //$NON-NLS-1$
-        else
-            result = String.format(session.getMsgs().getString("TorrentChecker.ResultFileSize"), data.ok * 100.0 / data.total, humanReadableByteCount(data.missingBytes, false), //$NON-NLS-1$
-                    data.wrongSizedFiles, removedFiles);
-        return result;
+            return formatCompleteResult(removedFiles);
+        }
+        if (mode == TrntChkMode.FILENAME) {
+            return String.format(session.getMsgs().getString("TorrentChecker.ResultFileName"), data.ok * 100.0 / data.total, data.missingFiles, removedFiles); //$NON-NLS-1$
+        }
+        return String.format(session.getMsgs().getString("TorrentChecker.ResultFileSize"), data.ok * 100.0 / data.total, humanReadableByteCount(data.missingBytes, false), //$NON-NLS-1$
+                data.wrongSizedFiles, removedFiles);
     }
 
     /**
@@ -246,31 +242,48 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
     private void checkFilesFile(CheckFilesData data, final File src, final File dst, TorrentFile tfile, final TrntChkReport report, final ProgressHandler progress)
             throws IOException {
         current.incrementAndGet();
-        var file = dst.toPath();
-        for (String path : tfile.getFileDirs())
-            file = file.resolve(path);
-        data.paths.add(file.toAbsolutePath());
-        final var identity = Paths.get(".");
-        final Child node = report.add(tfile.getFileDirs().stream().map(Paths::get).reduce(identity, Path::resolve).toString());
+        final Path destRoot = dst.toPath().toAbsolutePath().normalize();
+        final Path file;
+        try {
+            file = resolveTorrentEntry(destRoot, tfile.getFileDirs());
+        } catch (IOException e) {
+            final Child node = report.add(String.join("/", tfile.getFileDirs()));
+            recordMissingFile(data, node, tfile);
+            progress.setProgress(toDocument(toPurple(src.getAbsolutePath())), -1, null, e.getMessage());
+            progress.setProgress2(current + "/" + processing, current.get(), processing.get()); //$NON-NLS-1$
+            return;
+        }
+        data.paths.add(file);
+        final Child node = report.add(destRoot.relativize(file).toString());
         progress.setProgress(toDocument(toPurple(src.getAbsolutePath())), -1, null, file.toString());
         progress.setProgress2(current + "/" + processing, current.get(), processing.get()); //$NON-NLS-1$
         if (Files.exists(file)) {
-            if (mode == TrntChkMode.FILENAME || Files.size(file) == (node.getData().setLength(tfile.getFileLength()).getLength())) {
-                data.ok++;
-                node.setStatus(Status.OK);
-            } else {
-                if (options.contains(Options.REMOVEWRONGSIZEDFILES))
-                    Files.delete(file);
-                data.wrongSizedFiles++;
-                data.missingBytes += (node.getData().setLength(tfile.getFileLength()).getLength());
-                node.setStatus(Status.SIZE);
-            }
+            checkExistingFile(data, file, node, tfile);
         } else {
-            if (mode == TrntChkMode.FILENAME)
-                data.missingFiles++;
-            else
-                data.missingBytes += (node.getData().setLength(tfile.getFileLength()).getLength());
-            node.setStatus(Status.MISSING);
+            recordMissingFile(data, node, tfile);
+        }
+    }
+
+    private void recordMissingFile(final CheckFilesData data, final Child node, final TorrentFile tfile) {
+        if (mode == TrntChkMode.FILENAME) {
+            data.missingFiles++;
+        } else {
+            data.missingBytes += node.getData().setLength(tfile.getFileLength()).getLength();
+        }
+        node.setStatus(Status.MISSING);
+    }
+
+    private void checkExistingFile(final CheckFilesData data, final Path file, final Child node, final TorrentFile tfile) throws IOException {
+        if (mode == TrntChkMode.FILENAME || Files.size(file) == node.getData().setLength(tfile.getFileLength()).getLength()) {
+            data.ok++;
+            node.setStatus(Status.OK);
+        } else {
+            if (options.contains(Options.REMOVEWRONGSIZEDFILES)) {
+                Files.delete(file);
+            }
+            data.wrongSizedFiles++;
+            data.missingBytes += node.getData().setLength(tfile.getFileLength()).getLength();
+            node.setStatus(Status.SIZE);
         }
     }
 
@@ -371,16 +384,7 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
                     return "cancelled...";
             }
             progress.setProgress2(String.format(session.getMsgs().getString(TORRENT_CHECKER_PIECE_PROGRESSION), current.get(), processing.get()), current.get(), processing.get()); // $NON-NLS-1$
-            if (data.valid.get()) {
-                if (Hex.encodeHexString(data.md.digest()).equalsIgnoreCase(data.pieces.get(data.pieceCnt - 1))) {
-                    data.pieceValid++;
-                    data.block.setStatus(Status.OK);
-                } else
-                    data.block.setStatus(Status.SHA1);
-            } else {
-                data.missingBytes += data.pieceLength - data.toGo;
-                data.block.setStatus(Status.SKIPPED);
-            }
+            applyPieceHash(data, data.pieceLength - data.toGo);
             data.block.getData().setLength(data.pieceLength - data.toGo);
             Log.info(String.format("piece counted %d, given %d, valid %d, completion=%.02f%%%n", data.pieceCnt, data.pieces.size(), data.pieceValid, //$NON-NLS-1$
                     data.pieceValid * 100.0 / data.pieceCnt));
@@ -388,13 +392,11 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
             Log.info(String.format("last piece len : %d%n", data.pieceLength - data.toGo)); //$NON-NLS-1$
             int removedFiles = removeUnknownFiles(report, data.paths, sdr, options.contains(Options.REMOVEUNKNOWNFILES) && !progress.isCancel());
             if (data.pieceValid == data.pieceCnt) {
-                if (removedFiles > 0)
-                    result = toDocument(toBoldBlue(session.getMsgs().getString(TORRENT_CHECKER_RESULT_COMPLETE)));
-                else
-                    result = toDocument(toBoldGreen(session.getMsgs().getString(TORRENT_CHECKER_RESULT_COMPLETE)));
-            } else
+                result = formatCompleteResult(removedFiles);
+            } else {
                 result = String.format(session.getMsgs().getString("TorrentChecker.ResultSHA1"), data.pieceValid * 100.0 / data.pieceCnt, //$NON-NLS-1$
                         humanReadableByteCount(data.missingBytes, false), data.wrongSizedFiles.get(), removedFiles);
+            }
         } catch (Exception ex) {
             result = ex.getMessage();
         }
@@ -418,51 +420,80 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
      */
     private void checkBlocksFile(final CheckBlocksData data, final File src, final File dst, TorrentFile tfile, final TrntChkReport report, final ProgressHandler progress)
             throws IOException {
-        var file = dst.toPath();
-        for (String path : tfile.getFileDirs())
-            file = file.resolve(path);
-        data.paths.add(file.toAbsolutePath());
-        final var identity = Paths.get(".");
-        data.node = data.block.add(tfile.getFileDirs().stream().map(Paths::get).reduce(identity, Path::resolve).toString());
-        try (BufferedInputStream in = getFileStram(options, data.wrongSizedFiles, data.node, data.valid, tfile, file)) {
-            progress.setProgress(toDocument(toPurple(src.getAbsolutePath())), -1, null, file.toString());
-            long flen = (data.node.getData().setLength(tfile.getFileLength()).getLength());
+        final Path destRoot = dst.toPath().toAbsolutePath().normalize();
+        final Path resolved = resolveBlocksFile(data, destRoot, tfile);
+        try (BufferedInputStream in = resolved == null ? null
+                : getFileStram(options, data.wrongSizedFiles, data.node, data.valid, tfile, resolved)) {
+            progress.setProgress(toDocument(toPurple(src.getAbsolutePath())), -1, null, resolved != null ? resolved.toString() : data.node.getData().getTitle());
+            long flen = data.node.getData().setLength(tfile.getFileLength()).getLength();
             while (flen >= data.toGo) {
                 hashStream(data.md, data.buffer, in, data.toGo);
                 flen -= data.toGo;
                 data.toGo = data.pieceLength;
                 progress.setProgress2(String.format(session.getMsgs().getString(TORRENT_CHECKER_PIECE_PROGRESSION), current.get(), processing.get()), current.get(),
                         processing.get()); // $NON-NLS-1$
-                if (data.valid.get()) {
-                    if (Hex.encodeHexString(data.md.digest()).equalsIgnoreCase(data.pieces.get(data.pieceCnt - 1))) {
-                        data.pieceValid++;
-                        data.block.setStatus(Status.OK);
-                    } else
-                        data.block.setStatus(Status.SHA1);
-                } else {
-                    data.missingBytes += data.pieceLength;
-                    data.block.setStatus(Status.SKIPPED);
-                }
-                data.md.reset();
-                data.pieceCnt++;
-                data.block = report.add(String.format("Piece %d", data.pieceCnt));
-                data.block.getData().setLength(data.pieceLength);
-                data.node = data.block.add(data.node);
-                current.incrementAndGet();
-                data.valid.set(true);
+                finalizePiece(data, report, data.pieceLength);
                 if (flen > 0) {
-                    if (!Files.exists(file)) {
-                        data.valid.set(false);
-                        data.node.setStatus(Status.MISSING);
-                    } else if (Files.size(file) != tfile.getFileLength()) {
-                        data.valid.set(false);
-                        data.node.setStatus(Status.SIZE);
-                    }
+                    revalidateRemainingFile(data, resolved, tfile);
                 }
             }
             hashStream(data.md, data.buffer, in, flen);
             data.toGo -= flen;
         }
+    }
+
+    private Path resolveBlocksFile(final CheckBlocksData data, final Path destRoot, final TorrentFile tfile) {
+        try {
+            final Path file = resolveTorrentEntry(destRoot, tfile.getFileDirs());
+            data.paths.add(file);
+            data.node = data.block.add(destRoot.relativize(file).toString());
+            return file;
+        } catch (IOException _) {
+            data.node = data.block.add(String.join("/", tfile.getFileDirs()));
+            data.node.setStatus(Status.MISSING);
+            data.valid.set(false);
+            return null;
+        }
+    }
+
+    private void applyPieceHash(final CheckBlocksData data, final long completedLength) {
+        if (data.valid.get()) {
+            if (Hex.encodeHexString(data.md.digest()).equalsIgnoreCase(data.pieces.get(data.pieceCnt - 1))) {
+                data.pieceValid++;
+                data.block.setStatus(Status.OK);
+            } else {
+                data.block.setStatus(Status.SHA1);
+            }
+        } else {
+            data.missingBytes += completedLength;
+            data.block.setStatus(Status.SKIPPED);
+        }
+    }
+
+    private void finalizePiece(final CheckBlocksData data, final TrntChkReport report, final long completedLength) {
+        applyPieceHash(data, completedLength);
+        data.md.reset();
+        data.pieceCnt++;
+        data.block = report.add(String.format("Piece %d", data.pieceCnt));
+        data.block.getData().setLength(data.pieceLength);
+        data.node = data.block.add(data.node);
+        current.incrementAndGet();
+        data.valid.set(true);
+    }
+
+    private void revalidateRemainingFile(final CheckBlocksData data, final Path resolved, final TorrentFile tfile) throws IOException {
+        if (resolved == null || !Files.exists(resolved)) {
+            data.valid.set(false);
+            data.node.setStatus(Status.MISSING);
+        } else if (Files.size(resolved) != tfile.getFileLength()) {
+            data.valid.set(false);
+            data.node.setStatus(Status.SIZE);
+        }
+    }
+
+    private String formatCompleteResult(final int removedFiles) {
+        final String complete = session.getMsgs().getString(TORRENT_CHECKER_RESULT_COMPLETE);
+        return toDocument(removedFiles > 0 ? toBoldBlue(complete) : toBoldGreen(complete));
     }
 
     /**
@@ -476,12 +507,16 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
      * @throws IOException if an I/O error occurs while reading from the stream
      */
     private void hashStream(final MessageDigest md, final byte[] buffer, BufferedInputStream in, long toRead) throws IOException {
-        if (in != null) {
-            do {
-                int len = in.read(buffer, 0, (int) (toRead < buffer.length ? toRead : buffer.length));
-                md.update(buffer, 0, len);
-                toRead -= len;
-            } while (toRead > 0);
+        if (in == null || toRead <= 0) {
+            return;
+        }
+        while (toRead > 0) {
+            int len = in.read(buffer, 0, (int) Math.min(toRead, buffer.length));
+            if (len < 0) {
+                break;
+            }
+            md.update(buffer, 0, len);
+            toRead -= len;
         }
     }
 
@@ -572,37 +607,43 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
      * @param unarchive a flag indicating whether to automatically extract detected archives
      */
     private void detectArchives(final T sdr, final List<TorrentFile> tfiles, final boolean unarchive) {
-        final var components = new HashSet<String>();
         final var archives = new HashSet<Path>();
-        final var dst = PathAbstractor.getAbsolutePath(session, sdr.getDst());
-        for (var j = 0; j < tfiles.size(); j++) {
-            final TorrentFile tfile = tfiles.get(j);
-            final List<String> filedirs = tfile.getFileDirs();
-            if (filedirs.size() > 1) {
-                final String path = filedirs.get(0);
-                if (!components.contains(path)) {
-                    components.add(path);
-
-                    Path file = dst;
-                    file = file.resolve(path);
-
-                    isArchive(archives, file);
-                }
-            }
-        }
-        for (var j = 0; j < tfiles.size(); j++) {
-            TorrentFile tfile = tfiles.get(j);
-            Path file = dst;
-            for (final String path : tfile.getFileDirs())
-                file = file.resolve(path);
-            if (archives.contains(file))
-                archives.remove(file);
-        }
+        final Path destRoot = PathAbstractor.getAbsolutePath(session, sdr.getDst()).toAbsolutePath().normalize();
+        collectCandidateArchives(tfiles, destRoot, archives);
+        excludeActualTorrentFiles(tfiles, destRoot, archives);
         for (Path archive : archives) {
             if (unarchive) {
                 unarchive(archive);
-            } else
+            } else {
                 Log.debug(archive);
+            }
+        }
+    }
+
+    private void collectCandidateArchives(final List<TorrentFile> tfiles, final Path destRoot, final Set<Path> archives) {
+        final var components = new HashSet<String>();
+        for (final TorrentFile tfile : tfiles) {
+            final List<String> filedirs = tfile.getFileDirs();
+            if (filedirs.size() > 1) {
+                final String path = filedirs.get(0);
+                if (components.add(path)) {
+                    try {
+                        isArchive(archives, resolveTorrentEntry(destRoot, List.of(path)));
+                    } catch (IOException e) {
+                        Log.debug(e.getMessage());
+                    }
+                }
+            }
+        }
+    }
+
+    private void excludeActualTorrentFiles(final List<TorrentFile> tfiles, final Path destRoot, final Set<Path> archives) {
+        for (final TorrentFile tfile : tfiles) {
+            try {
+                archives.remove(resolveTorrentEntry(destRoot, tfile.getFileDirs()));
+            } catch (IOException e) {
+                Log.debug(e.getMessage());
+            }
         }
     }
 
@@ -613,7 +654,7 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
      * @param archives the set of discovered archive file paths
      * @param file the path of the file or folder to check for a matching archive
      */
-    private void isArchive(final HashSet<Path> archives, Path file) {
+    private void isArchive(final Set<Path> archives, Path file) {
         final Path parent = file.getParent();
         if (parent != null) {
             final Path filename = file.getFileName();
@@ -657,6 +698,7 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
         if (Files.notExists(destDir)) {
             Files.createDirectories(destDir);
         }
+        final Path normalizedDestDir = destDir.toAbsolutePath().normalize();
 
         try (final var zipFileSystem = FileSystems.newFileSystem(zipFile, (ClassLoader) null)) {
             Log.debug(() -> "unzipping : " + zipFile);
@@ -665,7 +707,11 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
             Files.walkFileTree(root, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                    final var destFile = Paths.get(destDir.toString(), file.toString());
+                    final Path destFile = resolveZipEntry(normalizedDestDir, root, file);
+                    final Path parent = destFile.getParent();
+                    if (parent != null && Files.notExists(parent)) {
+                        Files.createDirectories(parent);
+                    }
                     try {
                         Files.copy(file, destFile, StandardCopyOption.REPLACE_EXISTING);
                     } catch (DirectoryNotEmptyException _) {
@@ -676,13 +722,76 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
 
                 @Override
                 public FileVisitResult preVisitDirectory(Path dir, BasicFileAttributes attrs) throws IOException {
-                    final var dirToCreate = Paths.get(destDir.toString(), dir.toString());
+                    if (dir.equals(root)) {
+                        return FileVisitResult.CONTINUE;
+                    }
+                    final Path dirToCreate = resolveZipEntry(normalizedDestDir, root, dir);
                     if (Files.notExists(dirToCreate)) {
-                        Files.createDirectory(dirToCreate);
+                        Files.createDirectories(dirToCreate);
                     }
                     return FileVisitResult.CONTINUE;
                 }
             });
         }
+    }
+
+    /**
+     * Resolves a ZIP entry path against the extraction root and rejects path-traversal entries (Zip Slip).
+     *
+     * @param destDir absolute normalized extraction directory
+     * @param zipRoot root path of the ZIP filesystem
+     * @param zipEntry entry path within the ZIP filesystem
+     * @return destination path confined under {@code destDir}
+     * @throws IOException if the entry would escape {@code destDir}
+     */
+    private static Path resolveZipEntry(final Path destDir, final Path zipRoot, final Path zipEntry) throws IOException {
+        final Path relative = zipRoot.relativize(zipEntry);
+        var relativeName = relative.toString().replace('\\', '/');
+        while (relativeName.startsWith("/")) {
+            relativeName = relativeName.substring(1);
+        }
+        if (relativeName.isEmpty() || ".".equals(relativeName)) {
+            return destDir;
+        }
+        final Path resolved = destDir.resolve(relativeName).normalize();
+        if (!resolved.startsWith(destDir)) {
+            throw new IOException("Zip entry escapes destination directory: " + relativeName);
+        }
+        return resolved;
+    }
+
+    /**
+     * Resolves torrent path components under {@code destDir}, rejecting absolute segments, {@code ..}, embedded separators,
+     * and any result that normalizes outside the destination tree.
+     *
+     * @param destDir absolute normalized destination directory
+     * @param components torrent file path elements
+     * @return path confined under {@code destDir}
+     * @throws IOException if the path would escape {@code destDir} or is otherwise invalid
+     */
+    static Path resolveTorrentEntry(final Path destDir, final List<String> components) throws IOException {
+        if (components == null || components.isEmpty()) {
+            throw new IOException("Torrent path is empty");
+        }
+        final Path root = destDir.toAbsolutePath().normalize();
+        Path resolved = root;
+        for (final String component : components) {
+            if (component == null || component.isEmpty() || ".".equals(component) || "..".equals(component)) {
+                throw new IOException("Torrent path component rejected: " + component);
+            }
+            if (component.indexOf('/') >= 0 || component.indexOf('\\') >= 0) {
+                throw new IOException("Torrent path component contains separator: " + component);
+            }
+            final Path segment = Paths.get(component);
+            if (segment.isAbsolute()) {
+                throw new IOException("Torrent path component is absolute: " + component);
+            }
+            resolved = resolved.resolve(segment);
+        }
+        resolved = resolved.normalize();
+        if (!resolved.startsWith(root) || resolved.equals(root)) {
+            throw new IOException("Torrent path escapes destination directory: " + String.join("/", components));
+        }
+        return resolved;
     }
 }

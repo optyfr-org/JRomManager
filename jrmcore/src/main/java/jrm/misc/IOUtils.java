@@ -1,5 +1,6 @@
 package jrm.misc;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -105,6 +106,63 @@ public class IOUtils {
      */
     public static boolean isPosix() {
         return POSIX;
+    }
+
+    /**
+     * Resolves {@code entryPath} under {@code baseDir} and rejects path-traversal / absolute names.
+     *
+     * @param baseDir directory the entry must remain inside
+     * @param entryPath untrusted relative entry name (profile or archive controlled)
+     * @return resolved path confined under {@code baseDir}
+     * @throws IOException if the entry is null/empty, absolute, contains NULs, or would escape {@code baseDir}
+     */
+    public static Path resolveContainedPath(final Path baseDir, final String entryPath) throws IOException {
+        if (baseDir == null) {
+            throw new IOException("Base directory cannot be null");
+        }
+        if (entryPath == null || entryPath.isEmpty()) {
+            throw new IOException("Entry path cannot be null or empty");
+        }
+
+        final var normalizedEntry = entryPath.replace('\\', '/');
+        if (normalizedEntry.contains("\0")) {
+            throw new IOException("Entry path contains null byte: " + normalizedEntry);
+        }
+
+        final var hasWindowsDriveRoot = normalizedEntry.length() > 2
+            && Character.isLetter(normalizedEntry.charAt(0))
+            && normalizedEntry.charAt(1) == ':'
+            && (normalizedEntry.charAt(2) == '/' || normalizedEntry.charAt(2) == '\\');
+        if (normalizedEntry.startsWith("/") || normalizedEntry.startsWith("//") || hasWindowsDriveRoot) {
+            throw new IOException("Entry path cannot be absolute: " + normalizedEntry);
+        }
+
+        final Path entryAsPath = baseDir.getFileSystem().getPath(normalizedEntry);
+        if (entryAsPath.isAbsolute()) {
+            throw new IOException("Entry path cannot be absolute: " + normalizedEntry);
+        }
+
+        final Path basePath = baseDir.toAbsolutePath().normalize();
+        final Path resolved = basePath.resolve(normalizedEntry).normalize();
+        if (!resolved.startsWith(basePath)) {
+            throw new IOException("Entry path escapes base directory: " + normalizedEntry);
+        }
+        return resolved;
+    }
+
+    /**
+     * File overload of {@link #resolveContainedPath(Path, String)}.
+     *
+     * @param baseDir directory the entry must remain inside
+     * @param entryPath untrusted relative entry name
+     * @return resolved file confined under {@code baseDir}
+     * @throws IOException if the entry is invalid or would escape {@code baseDir}
+     */
+    public static File resolveContainedFile(final File baseDir, final String entryPath) throws IOException {
+        if (baseDir == null) {
+            throw new IOException("Base directory cannot be null");
+        }
+        return resolveContainedPath(baseDir.toPath(), entryPath).toFile();
     }
 
 }

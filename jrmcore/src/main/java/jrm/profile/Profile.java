@@ -8,14 +8,9 @@
  */
 package jrm.profile;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.io.Serializable;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -81,6 +76,7 @@ import jrm.profile.filter.NPlayers;
 import jrm.profile.manager.ProfileNFO;
 import jrm.security.PathAbstractor;
 import jrm.security.Session;
+import jrm.security.SignedObjectStore;
 import jrm.xml.XMLTools;
 import lombok.Getter;
 import lombok.Setter;
@@ -1395,8 +1391,8 @@ public class Profile implements Serializable, StatusRendererFactory {
      * Serializes current profile state properties to cached binary files.
      */
     public void save() {
-        try (final var oos = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream(session.getUser().getSettings().getCacheFile(nfo.getFile()))))) {
-            oos.writeObject(this);
+        try {
+            SignedObjectStore.write(session, session.getUser().getSettings().getCacheFile(nfo.getFile()), this);
         } catch (final Exception _) {
             // do nothing
         }
@@ -1444,10 +1440,15 @@ public class Profile implements Serializable, StatusRendererFactory {
      */
     private static Profile loadProfile(final Session session, final ProfileNFO nfo, final ProgressHandler handler) {
         final var cachefile = session.getUser().getSettings().getCacheFile(nfo.getFile());
+        Profile profile = null;
         if (shouldLoadFromCache(cachefile, nfo, session)) {
-            return loadCache(session, nfo, handler, null, cachefile);
+            profile = loadCache(session, nfo, handler, null, cachefile);
         }
-        return loadThenSaveToCache(session, nfo, handler);
+        // Cache may be missing, corrupt, unsigned, or rejected by the deserialization filter
+        if (profile == null) {
+            profile = loadThenSaveToCache(session, nfo, handler);
+        }
+        return profile;
     }
 
     /**
@@ -1591,13 +1592,15 @@ public class Profile implements Serializable, StatusRendererFactory {
     private static Profile loadCache(final Session session, final ProfileNFO nfo, final ProgressHandler handler, Profile profile, final File cachefile) {
         handler.setInfos(1, null);
         handler.setProgress(Messages.getString("Profile.LoadingCache"), -1); //$NON-NLS-1$
-        try (final var ois = new ObjectInputStream(new BufferedInputStream(handler.getInputStream(new FileInputStream(cachefile), (int) cachefile.length())))) {
-            profile = (Profile) ois.readObject();
+        try (final var in = handler.getInputStream(new java.io.FileInputStream(cachefile), (int) cachefile.length())) {
+            profile = (Profile) SignedObjectStore.read(session, in, (int) cachefile.length(), -1);
             profile.session = session;
             session.setCurrProfile(profile);
             profile.nfo = nfo;
-        } catch (final Exception _) {
+        } catch (final Exception e) {
             // may fail to load because serialized classes did change since last cache save
+            // or if deserialization filter rejected untrusted classes
+            Log.debug(() -> "Failed to load cache file: " + e.getMessage());
         }
         return profile;
     }
@@ -1802,7 +1805,7 @@ public class Profile implements Serializable, StatusRendererFactory {
             } else if (header.containsKey("name")) { //$NON-NLS-1$
                 nameBuilder.append(toBoldBlack(header.get("name"))); //$NON-NLS-1$
                 if (header.containsKey(VERSION)) // $NON-NLS-1$
-                    nameBuilder.append(" (").append(header.get(VERSION)).append(")"); //$NON-NLS-1$ //$NON-NLS-2$
+                    nameBuilder.append(" (").append(escape(header.get(VERSION))).append(")"); //$NON-NLS-1$ //$NON-NLS-2$
             }
         }
         final var strcntBuilder = new StringBuilder();

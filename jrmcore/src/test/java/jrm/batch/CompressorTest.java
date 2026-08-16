@@ -54,7 +54,7 @@ class CompressorTest {
     void setUp() throws IOException {
         System.setProperty(JRM_DIR_PROP, tempDir.toString());
         Files.createDirectories(tempDir.resolve("users").resolve("JRomManager"));
-        session = new Session("compressor-test");
+        session = new Session("compressor-test", "JRomManager", new String[] { "admin" });
         session.getUser().getSettings().setEnumProperty(SettingsEnum.zip_compression_level, ZipLevel.NORMAL);
         progressHandler = mock(ProgressHandler.class, withSettings().stubOnly());
         when(progressHandler.isCancel()).thenReturn(false);

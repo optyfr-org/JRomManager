@@ -75,6 +75,7 @@ import jrm.profile.data.Samples;
 import jrm.profile.data.Software;
 import jrm.profile.data.SoftwareList;
 import jrm.profile.manager.Export.ExportType;
+import jrm.profile.manager.MameExecutable;
 import jrm.profile.manager.ProfileNFOMame;
 import jrm.profile.manager.ProfileNFOMame.MameStatus;
 import jrm.security.Session;
@@ -805,6 +806,18 @@ public class ProfileViewerController implements Initializable {
      */
     private void launchMame(final Anyware ware, final Profile profile) throws HeadlessException {
         final ProfileNFOMame mame = profile.getNfo().getMame();
+        
+        // Validate MAME executable before launching to prevent arbitrary program execution
+        if (mame.getFile() == null) {
+            Dialogs.showAlert("MAME executable is not configured for this profile.");
+            return;
+        }
+        
+        if (!MameExecutable.isLaunchable(mame.getFile())) {
+            Dialogs.showAlert("MAME executable does not exist or is not a native executable: " + mame.getFile().getAbsolutePath());
+            return;
+        }
+        
         final var args = new ArrayList<String>();
         if (ware instanceof Software) {
             getMameArgsSofware(ware, profile, mame, args);

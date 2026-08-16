@@ -83,10 +83,27 @@ class ServerCompositeTest {
     @DisplayName("GET /actions/init")
     class GetActionsInitTest {
         @Test
-        @DisplayName("returns 200 or 410 JSON")
+        @DisplayName("returns 200 or 410 JSON for loopback")
         void getActionsInit() throws Exception {
             final ContentResponse response = client.GET("http://localhost:" + port + "/actions/init");
             assertThat(response.getStatus()).isIn(200, 410);
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /actions/cmd")
+    class PostActionsCmdTest {
+        @Test
+        @DisplayName("loopback can run Global.getMemory")
+        void loopbackCommand() throws Exception {
+            final var request = client.POST("http://localhost:" + port + "/actions/cmd");
+            request.headers(headers -> {
+                headers.add("Content-Type", "application/json");
+            });
+            request.body(new org.eclipse.jetty.client.StringRequestContent("application/json",
+                    "{\"cmd\":\"Global.getMemory\"}"));
+            final ContentResponse response = request.send();
+            assertThat(response.getStatus()).isEqualTo(200);
         }
     }
 }
