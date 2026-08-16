@@ -89,6 +89,7 @@ public class GlobalSettings extends Settings implements SystemSettings {
                 }
             }
             cachedBasePath = work;
+            Log.debug(() -> "GlobalSettings.getBasePath (server) -> " + cachedBasePath);
             return cachedBasePath;
         } else if (user.getSession().isMultiuser()) {
             final Path work = Paths.get(System.getProperty("user.home"), ".jrommanager").toAbsolutePath().normalize(); //$NON-NLS-1$ //$NON-NLS-2$
@@ -100,9 +101,11 @@ public class GlobalSettings extends Settings implements SystemSettings {
                 }
             }
             cachedBasePath = work;
+            Log.debug(() -> "GlobalSettings.getBasePath (multiuser) -> " + cachedBasePath);
             return cachedBasePath;
         }
         cachedBasePath = Paths.get(".").toAbsolutePath().normalize(); //$NON-NLS-1$
+        Log.debug(() -> "GlobalSettings.getBasePath (default) -> " + cachedBasePath);
         return cachedBasePath;
     }
 
@@ -122,6 +125,7 @@ public class GlobalSettings extends Settings implements SystemSettings {
         if (user.getSession().isServer() && user.getSession().isMultiuser()) {
             if (user.getName().equals("server")) {
                 cachedWorkPath = base;
+                Log.debug(() -> "GlobalSettings.getWorkPath (server multiuser, server user) -> " + cachedWorkPath);
                 return cachedWorkPath;
             }
             final var work = base.resolve("users").resolve(user.getName());
@@ -133,9 +137,11 @@ public class GlobalSettings extends Settings implements SystemSettings {
                 }
             }
             cachedWorkPath = work;
+            Log.debug(() -> "GlobalSettings.getWorkPath (server multiuser) -> " + cachedWorkPath);
             return cachedWorkPath;
         }
         cachedWorkPath = base;
+        Log.debug(() -> "GlobalSettings.getWorkPath (default) -> " + cachedWorkPath);
         return cachedWorkPath;
     }
 

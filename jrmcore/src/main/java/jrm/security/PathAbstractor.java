@@ -297,6 +297,7 @@ public class PathAbstractor {
                 throw new SecurityException(FORGED_PATH);
         } else
             path = Paths.get(strpath);
+        Log.debug(() -> "PathAbstractor.getAbsolutePath: " + strpath + " -> " + path);
         return path;
     }
 
