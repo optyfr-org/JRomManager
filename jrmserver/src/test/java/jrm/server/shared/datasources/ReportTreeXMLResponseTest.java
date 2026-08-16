@@ -49,6 +49,23 @@ class ReportTreeXMLResponseTest {
                 """;
         final String output = TestDataSets.processResponse(new ReportTreeXMLResponse(TestDataSets.xmlRequest(session, xml)));
         assertThat(output).contains("<status>0</status>").contains("<totalRows>0</totalRows>");
+        assertThat(output).contains("<infos>").contains("<summary>");
+    }
+
+    @Test
+    @DisplayName("copy custom operation returns copyable report text")
+    void copyReportText() throws Exception {
+        final String xml = """
+                <request>
+                  <operationType>custom</operationType>
+                  <operationId>copy</operationId>
+                  <data>
+                    <ParentID>0</ParentID>
+                  </data>
+                </request>
+                """;
+        final String output = TestDataSets.processResponse(new ReportTreeXMLResponse(TestDataSets.xmlRequest(session, xml)));
+        assertThat(output).contains("<status>0</status>").contains("<Text>");
     }
 
 }

@@ -105,9 +105,18 @@ public class ReportViewController implements Initializable {
     /** The download button. */
     @FXML
     private Button download;
+    /** The copy-report button. */
+    @FXML
+    private Button copyReport;
+    /** The create-fixDAT button. */
+    @FXML
+    private Button createFixDat;
     /** The export-as menu button. */
     @FXML
     private MenuButton exportAs;
+    /** The copyable summary and missing/partial title list. */
+    @FXML
+    private TextArea summary;
 
     /** The active filter options. */
     private static final Set<FilterOptions> filterOptions = new HashSet<>();
@@ -162,9 +171,21 @@ public class ReportViewController implements Initializable {
             });
             download.setDisable(!Optional.ofNullable(report.getReportFile()).map(File::exists).orElse(false));
             exportAs.setDisable(report.getProfile() == null);
+            if (createFixDat != null)
+                createFixDat.setDisable(report.getProfile() == null);
+            if (copyReport != null)
+                copyReport.setDisable(false);
+            if (summary != null)
+                summary.setText(report.getSummaryText());
         } else {
             download.setDisable(true);
             exportAs.setDisable(true);
+            if (createFixDat != null)
+                createFixDat.setDisable(true);
+            if (copyReport != null)
+                copyReport.setDisable(true);
+            if (summary != null)
+                summary.clear();
         }
         treeview.setShowRoot(false);
         treeview.setCellFactory(_ -> new ReportTreeCell());
@@ -328,6 +349,33 @@ public class ReportViewController implements Initializable {
         } catch (IOException e1) {
             Log.err(e1.getMessage(), e1);
         }
+    }
+
+    /**
+     * Copies the full report text (summary, missing/partial titles, and details) to the clipboard.
+     *
+     * @param e the action event
+     */
+    @FXML
+    private void copyReport(javafx.event.ActionEvent e) {
+        if (report == null)
+            return;
+        final var content = new ClipboardContent();
+        content.putString(report.toCopyableText());
+        Clipboard.getSystemClipboard().setContent(content);
+    }
+
+    /**
+     * Exports a fixDAT containing missing and partial titles.
+     *
+     * @param e the action event
+     */
+    @FXML
+    private void createFixDat(javafx.event.ActionEvent e) {
+        if (report == null || report.getProfile() == null)
+            return;
+        MainFrame.export(treeview.getScene().getWindow(), report.getProfile().getSession(), Report.resolveFixDatType(report.getProfile()),
+                EnumSet.of(ExportMode.MISSING), null);
     }
 
     /**

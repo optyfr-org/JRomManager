@@ -63,7 +63,10 @@ class ReportViewControllerTest {
 			MenuItem copyName = new MenuItem();
 			MenuItem searchWeb = new MenuItem();
 			Button download = new Button();
+			Button copyReport = new Button();
+			Button createFixDat = new Button();
 			MenuButton exportAs = new MenuButton();
+			javafx.scene.control.TextArea summary = new javafx.scene.control.TextArea();
 
 			injectField(controller, "treeview", treeview);
 			injectField(controller, "menu", menu);
@@ -77,7 +80,10 @@ class ReportViewControllerTest {
 			injectField(controller, "copyName", copyName);
 			injectField(controller, "searchWeb", searchWeb);
 			injectField(controller, "download", download);
+			injectField(controller, "copyReport", copyReport);
+			injectField(controller, "createFixDat", createFixDat);
 			injectField(controller, "exportAs", exportAs);
+			injectField(controller, "summary", summary);
 
 			controller.initialize(null, null);
 
@@ -336,6 +342,30 @@ class ReportViewControllerTest {
 	 *
 	 * @throws Exception if reflective method access fails
 	 */
+	@Test
+	@DisplayName("Should handle copyReport with null report")
+	void shouldHandleCopyReportWithNullReport() throws Exception {
+		ReportViewController controller = TestApp.getController();
+		controller.setReport(null);
+		Method copyReportMethod = ReportViewController.class.getDeclaredMethod("copyReport", javafx.event.ActionEvent.class);
+		copyReportMethod.setAccessible(true);
+		copyReportMethod.invoke(controller, (Object) null);
+		Button copyReport = getField(controller, "copyReport");
+		assertThat(copyReport.isDisabled()).isTrue();
+	}
+
+	@Test
+	@DisplayName("Should handle createFixDat with null report")
+	void shouldHandleCreateFixDatWithNullReport() throws Exception {
+		ReportViewController controller = TestApp.getController();
+		controller.setReport(null);
+		Method createFixDatMethod = ReportViewController.class.getDeclaredMethod("createFixDat", javafx.event.ActionEvent.class);
+		createFixDatMethod.setAccessible(true);
+		createFixDatMethod.invoke(controller, (Object) null);
+		Button createFixDat = getField(controller, "createFixDat");
+		assertThat(createFixDat.isDisabled()).isTrue();
+	}
+
 	@Test
 	@DisplayName("Should handle hidemissing toggle")
 	void shouldHandleHidemissingToggle() throws Exception {

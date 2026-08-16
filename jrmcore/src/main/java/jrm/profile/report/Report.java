@@ -1100,6 +1100,113 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
     }
 
     /**
+     * Lists missing or partial romset titles from this report.
+     * <p>
+     * Includes completely missing sets, found-but-incomplete sets, and
+     * partially creatable sets. Fully OK and fully fixable/creatable sets
+     * are omitted.
+     *
+     * @return missing or partial {@link SubjectSet}s, sorted by ware name
+     */
+    public List<SubjectSet> listIncompleteTitles() {
+        return subjects.stream()
+                .filter(SubjectSet.class::isInstance)
+                .map(SubjectSet.class::cast)
+                .filter(Report::isIncompleteTitle)
+                .sorted(Subject.getComparator())
+                .toList();
+    }
+
+    /**
+     * Formats the status-bar summary followed by the missing or partial title list.
+     *
+     * @return copyable summary text
+     */
+    public String getSummaryText() {
+        final var sb = new StringBuilder();
+        sb.append(stats.getStatus());
+        final List<SubjectSet> titles = listIncompleteTitles();
+        sb.append(System.lineSeparator()).append(System.lineSeparator());
+        sb.append(Messages.getString("Report.MissingOrPartialTitles"));
+        sb.append(System.lineSeparator());
+        if (titles.isEmpty()) {
+            sb.append(Messages.getString("Report.NoIncompleteTitles"));
+            sb.append(System.lineSeparator());
+        } else {
+            for (final SubjectSet ss : titles) {
+                sb.append(incompleteTitleLabel(ss));
+                sb.append('\t');
+                sb.append(incompleteTitleName(ss));
+                sb.append(System.lineSeparator());
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Formats a copyable text report: summary, missing or partial titles, then every subject and note.
+     *
+     * @return the full copyable report text
+     */
+    public String toCopyableText() {
+        final var sb = new StringBuilder(getSummaryText());
+        sb.append(System.lineSeparator());
+        sb.append(Messages.getString("Report.FullReport"));
+        sb.append(System.lineSeparator());
+        for (final Subject subject : subjects) {
+            sb.append(subject);
+            sb.append(System.lineSeparator());
+            for (final Note note : subject) {
+                sb.append('\t');
+                sb.append(note);
+                sb.append(System.lineSeparator());
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Resolves the DAT export type for a fixDAT of the given profile.
+     * Software-list-only profiles use {@link jrm.profile.manager.Export.ExportType#SOFTWARELIST};
+     * otherwise Logiqx {@link jrm.profile.manager.Export.ExportType#DATAFILE}.
+     *
+     * @param profile the scanned profile, may be {@code null}
+     * @return the export type to use for a fixDAT
+     */
+    public static jrm.profile.manager.Export.ExportType resolveFixDatType(final Profile profile) {
+        if (profile == null)
+            return jrm.profile.manager.Export.ExportType.DATAFILE;
+        final boolean hasMachines = !profile.getMachineListList().isEmpty() && profile.getMachineListList().get(0).size() > 0;
+        final boolean hasSoftware = !profile.getMachineListList().getSoftwareListList().isEmpty();
+        if (!hasMachines && hasSoftware)
+            return jrm.profile.manager.Export.ExportType.SOFTWARELIST;
+        return jrm.profile.manager.Export.ExportType.DATAFILE;
+    }
+
+    static boolean isIncompleteTitle(final SubjectSet ss) {
+        return switch (ss.getStatus()) {
+            case MISSING -> true;
+            case FOUND -> ss.hasNotes() && !ss.isFixable();
+            case CREATE, CREATEFULL -> !ss.isFixable();
+            default -> false;
+        };
+    }
+
+    static String incompleteTitleLabel(final SubjectSet ss) {
+        return switch (ss.getStatus()) {
+            case MISSING -> Messages.getString("Report.TitleMissing");
+            case CREATE, CREATEFULL -> Messages.getString("Report.TitlePartialCreate");
+            default -> Messages.getString("Report.TitlePartial");
+        };
+    }
+
+    static String incompleteTitleName(final SubjectSet ss) {
+        if (ss.getWare() != null && ss.getWare().getBaseName() != null && !ss.getWare().getBaseName().isEmpty())
+            return ss.getWare().getBaseName();
+        return ss.getWareName();
+    }
+
+    /**
      * Gets a standardized representation string for this report.
      *
      * @return the string "Report"

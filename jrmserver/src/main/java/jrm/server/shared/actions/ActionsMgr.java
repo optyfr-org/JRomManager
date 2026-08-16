@@ -109,6 +109,7 @@ public interface ActionsMgr extends SessionStub {
                     case "Profile.setProperty" -> new ProfileActions(mgr).setProperty(jso);
                     case "ReportLite.setFilter" -> new ReportActions(mgr).setFilter(jso, true);
                     case "Report.setFilter" -> new ReportActions(mgr).setFilter(jso, false);
+                    case "Report.createFixDat" -> new ReportActions(mgr).createFixDat(jso);
                     case "CatVer.load" -> new CatVerActions(mgr).load(jso);
                     case "NPlayers.load" -> new NPlayersActions(mgr).load(jso);
                     case "Progress.cancel" -> Optional.ofNullable(mgr.getSession().getWorker()).filter(Worker::isAlive).map(Worker::getProgress).ifPresent(ProgressActions::doCancel);

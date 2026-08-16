@@ -8,13 +8,18 @@
 <?import javafx.scene.control.MenuItem?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.SeparatorMenuItem?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.ToolBar?>
 <?import javafx.scene.control.TreeView?>
 <?import javafx.scene.layout.BorderPane?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="jrm.fx.ui.profile.report.ReportViewController">
    <center>
-      <ScrollPane fitToHeight="true" fitToWidth="true" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="500.0" prefWidth="600.0">
+      <SplitPane dividerPositions="0.28" orientation="VERTICAL" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308">
+         <items>
+            <TextArea fx:id="summary" editable="false" wrapText="true" prefHeight="140.0" promptText="%Report.MissingOrPartialTitles" />
+            <ScrollPane fitToHeight="true" fitToWidth="true" maxHeight="1.7976931348623157E308" maxWidth="1.7976931348623157E308" prefHeight="500.0" prefWidth="600.0">
          <content>
             <TreeView fx:id="treeview">
                <contextMenu>
@@ -33,15 +38,19 @@
                     </items>
                   </ContextMenu>
                </contextMenu>
-            </TreeView>
-         </content>
-      </ScrollPane>
-   </center>
-   <top>
-      <ToolBar BorderPane.alignment="CENTER">
-        <items>
-          <Button fx:id="download" mnemonicParsing="false" onAction="#download" text="Download Report" />
-            <MenuButton fx:id="exportAs" mnemonicParsing="false" text="Export As">
+             </TreeView>
+          </content>
+       </ScrollPane>
+         </items>
+      </SplitPane>
+    </center>
+    <top>
+       <ToolBar BorderPane.alignment="CENTER">
+         <items>
+           <Button fx:id="download" mnemonicParsing="false" onAction="#download" text="Download Report" />
+             <Button fx:id="copyReport" mnemonicParsing="false" onAction="#copyReport" text="%Report.CopyReport" />
+             <Button fx:id="createFixDat" mnemonicParsing="false" onAction="#createFixDat" text="%Report.CreateFixDat" />
+             <MenuButton fx:id="exportAs" mnemonicParsing="false" text="Export As">
               <items>
                 <Menu mnemonicParsing="false" text="%ProfileViewer.Filtered">
                   <items>

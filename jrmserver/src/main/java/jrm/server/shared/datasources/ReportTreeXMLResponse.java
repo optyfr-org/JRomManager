@@ -121,6 +121,9 @@ public class ReportTreeXMLResponse extends XMLResponse {
         writer.writeElement("endRow", Integer.toString(end));
         writer.writeElement("totalRows", Integer.toString(nodecount));
         writer.writeElement("infos", report.getStats().getStatus());
+        writer.writeStartElement("summary");
+        writer.writeCData(report.getSummaryText());
+        writer.writeEndElement();
 
         if (nodecount > 0) {
             writer.writeStartElement("data");
@@ -155,6 +158,29 @@ public class ReportTreeXMLResponse extends XMLResponse {
      */
     @Override
     protected void custom(Operation operation) throws XMLStreamException, IOException {
+        if ("copy".equals(operation.getOperationId().toString())) {
+            var report = request.session.getReport();
+            if (operation.hasData("src")) {
+                final var srcfile = pathAbstractor.getAbsolutePath(operation.getData("src")).toFile();
+                final var reportfile = ReportIntf.getReportFile(request.session, srcfile);
+                if (request.session.getTmpReport() == null || !(request.session.getTmpReport().getReportFile(request.session).equals(reportfile)
+                        && request.session.getTmpReport().getFileModified() == reportfile.lastModified()))
+                    request.session.setTmpReport(Report.load(request.session, srcfile));
+                report = request.session.getTmpReport();
+            }
+            writer.writeStartElement("response");
+            writer.writeElement(STATUS, "0");
+            writer.writeStartElement("data");
+            writer.writeStartElement(RECORD);
+            writer.writeAttribute("ID", "0");
+            writer.writeStartElement("Text");
+            writer.writeCData(report != null ? report.toCopyableText() : "");
+            writer.writeEndElement();
+            writer.writeEndElement();
+            writer.writeEndElement();
+            writer.writeEndElement();
+            return;
+        }
         if ("detail".equals(operation.getOperationId().toString())) {
             var report = request.session.getReport();
             if (operation.hasData("src")) {

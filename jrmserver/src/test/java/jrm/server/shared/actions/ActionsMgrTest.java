@@ -161,6 +161,19 @@ class ActionsMgrTest {
         }
 
         @Test
+        @DisplayName("Report.createFixDat routes without throwing")
+        void reportCreateFixDat() {
+            assertDoesNotThrow(() -> {
+                final JsonObject params = new JsonObject();
+                params.add("path", "%work/fix.xml");
+                final JsonObject jso = new JsonObject();
+                jso.add("cmd", "Report.createFixDat");
+                jso.add("params", params);
+                mgr.processActions(mgr, jso);
+            });
+        }
+
+        @Test
         @DisplayName("ReportLite.setFilter routes to ReportActions.setFilter (lite)")
         void reportLiteSetFilter() {
             assertDoesNotThrow(() -> {

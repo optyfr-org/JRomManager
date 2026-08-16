@@ -92,6 +92,14 @@ class RemoteFileChooserXMLResponseTest {
             final RemoteFileChooserXMLResponse.Options opts = new RemoteFileChooserXMLResponse.Options("tfDstDat");
             assertThat(opts.pathmatcher).isEqualTo(GLOB_XML_DAT);
         }
+
+        @Test
+        @DisplayName("exportFixDat matches glob:*.{xml,dat}")
+        void exportFixDat() {
+            final RemoteFileChooserXMLResponse.Options opts = new RemoteFileChooserXMLResponse.Options("exportFixDat");
+            assertThat(opts.isDir).isFalse();
+            assertThat(opts.pathmatcher).isEqualTo(GLOB_XML_DAT);
+        }
     }
 
     @Nested

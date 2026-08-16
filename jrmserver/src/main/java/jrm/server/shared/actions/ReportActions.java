@@ -1,16 +1,27 @@
 package jrm.server.shared.actions;
 
+import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Set;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonObject.Member;
+import com.eclipsesource.json.JsonValue;
 
+import jrm.misc.BreakException;
 import jrm.misc.Log;
+import jrm.profile.Profile;
+import jrm.profile.data.ExportMode;
+import jrm.profile.manager.Export;
 import jrm.profile.report.FilterOptions;
 import jrm.profile.report.Report;
+import jrm.security.PathAbstractor;
+import jrm.server.shared.WebSession;
+import jrm.server.shared.Worker;
 
 /**
  * Action handler for managing report filter operations in the ROM manager web server.
@@ -105,6 +116,60 @@ public class ReportActions {
                 final var params = new JsonObject();
                 EnumSet.allOf(FilterOptions.class).forEach(f -> params.add(f.toString(), options.contains(f)));
                 ws.send(Json.object().add("cmd", lite ? "ReportLite.applyFilters" : "Report.applyFilters").add("params", params).toString());
+            }
+        } catch (IOException e) {
+            Log.err(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Exports a fixDAT of missing and partial titles from the current profile.
+     *
+     * @param jso JSON with {@code params.path} as the destination abstract path
+     */
+    public void createFixDat(JsonObject jso) {
+        ws.getSession().setWorker(new Worker(() -> performCreateFixDat(jso))).start();
+    }
+
+    private void performCreateFixDat(JsonObject jso) {
+        final WebSession session = ws.getSession();
+        session.getWorker().progress = new ProgressActions(ws);
+        try {
+            final Profile profile = session.getCurrProfile();
+            if (profile == null) {
+                new GlobalActions(ws).warn("No profile loaded.");
+                return;
+            }
+            final JsonValue pathValue = jso.get("params") != null ? jso.get("params").asObject().get("path") : null;
+            if (pathValue == null || pathValue.isNull()) {
+                new GlobalActions(ws).warn("No destination file.");
+                return;
+            }
+            final Path dest = PathAbstractor.getWritableAbsolutePath(session, pathValue.asString());
+            File file = dest.toFile();
+            if (!file.getName().contains("."))
+                file = new File(file.getParentFile(), file.getName() + ".xml");
+            Export.export(profile, file, Report.resolveFixDatType(profile), EnumSet.of(ExportMode.MISSING), null, session.getWorker().progress);
+            sendFixDatCreated(pathValue.asString());
+        } catch (SecurityException e) {
+            Log.err(() -> "Path validation failed for fixDAT export: " + e.getMessage(), e);
+            new GlobalActions(ws).warn("Invalid destination file path. Operation cancelled for security reasons.");
+        } catch (BreakException _) {
+            // user cancelled
+        } finally {
+            session.getWorker().progress.close();
+            session.getWorker().progress = null;
+            session.setLastAction(Instant.now());
+        }
+    }
+
+    private void sendFixDatCreated(String path) {
+        try {
+            if (ws.isOpen()) {
+                final var params = new JsonObject();
+                params.add("path", path);
+                params.add("success", true);
+                ws.send(Json.object().add("cmd", "Report.fixDatCreated").add("params", params).toString());
             }
         } catch (IOException e) {
             Log.err(e.getMessage(), e);
