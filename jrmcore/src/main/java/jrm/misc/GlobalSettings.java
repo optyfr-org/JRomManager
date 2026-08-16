@@ -60,6 +60,7 @@ public class GlobalSettings extends Settings implements SystemSettings {
         super();
         this.user = user;
         loadSettings();
+        setSaveHandler(this::saveSettings);
     }
 
     /**
@@ -347,6 +348,8 @@ public class GlobalSettings extends Settings implements SystemSettings {
     public ProfileSettings saveProfileSettings(final File file, ProfileSettings settings) {
         if (settings == null)
             settings = new ProfileSettings();
+        final var s = settings;
+        s.setSaveHandler(() -> saveProfileSettings(file, s));
         settings.saveSettings(getProfileSettingsFile(file));
         return settings;
     }
@@ -368,6 +371,8 @@ public class GlobalSettings extends Settings implements SystemSettings {
         settings.setMergeMode(MergeOptions.valueOf(settings.getProperty("merge_mode", MergeOptions.SPLIT.toString())));
         settings.setHashCollisionMode(HashCollisionOptions.valueOf(settings.getProperty("hash_collision_mode", HashCollisionOptions.SINGLEFILE.toString())));
         settings.setImplicitMerge(settings.getProperty("implicit_merge", false));
+        final var s = settings;
+        s.setSaveHandler(() -> saveProfileSettings(file, s));
         return settings;
     }
 

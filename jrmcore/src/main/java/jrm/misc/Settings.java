@@ -7,6 +7,10 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
@@ -23,6 +27,20 @@ import lombok.val;
  */
 public abstract class Settings extends SettingsImpl {
     /**
+     * Shared single-thread scheduler used to debounce automatic settings persistence.
+     */
+    private static final ScheduledExecutorService SAVE_EXECUTOR = Executors.newSingleThreadScheduledExecutor(r -> {
+        final var t = new Thread(r, "jrm-settings-save"); //$NON-NLS-1$
+        t.setDaemon(true);
+        return t;
+    });
+
+    /**
+     * Delay in milliseconds after the last change before settings are persisted automatically.
+     */
+    private static final long SAVE_DELAY_MS = 1000L;
+
+    /**
      * Backing {@link Properties} store containing key-value configurations.
      * 
      * @return the backing properties store
@@ -30,9 +48,77 @@ public abstract class Settings extends SettingsImpl {
     private final @Getter Properties properties = new Properties();
 
     /**
+     * Optional callback responsible for persisting this settings instance when marked dirty.
+     */
+    private transient volatile Runnable saveHandler;
+
+    /**
+     * Pending debounced save task, or {@code null} when no save is scheduled.
+     */
+    private transient ScheduledFuture<?> saveFuture;
+
+    /**
+     * Whether there are unsaved changes since the last persistence.
+     */
+    private transient boolean dirty;
+
+    /**
      * Protected default constructor.
      */
     protected Settings() {
+    }
+
+    /**
+     * Registers the callback used to persist this settings instance on change.
+     * 
+     * @param saveHandler the persistence callback, or {@code null} to disable automatic saving
+     */
+    public void setSaveHandler(final Runnable saveHandler) {
+        this.saveHandler = saveHandler;
+    }
+
+    /**
+     * Schedules a debounced persistence of the settings after the next change. Consecutive changes made within the debounce window
+     * are coalesced into a single save.
+     */
+    protected void markDirty() {
+        if (saveHandler == null)
+            return;
+        synchronized (this) {
+            dirty = true;
+            if (saveFuture != null)
+                saveFuture.cancel(false);
+            saveFuture = SAVE_EXECUTOR.schedule(this::persistNow, SAVE_DELAY_MS, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    /**
+     * Immediately persists pending changes, if any, cancelling the debounced task.
+     */
+    public void flush() {
+        synchronized (this) {
+            if (saveFuture != null) {
+                saveFuture.cancel(false);
+                saveFuture = null;
+            }
+        }
+        persistNow();
+    }
+
+    /**
+     * Persists the settings if marked dirty, clearing the dirty flag and pending task.
+     */
+    private void persistNow() {
+        final Runnable handler;
+        synchronized (this) {
+            saveFuture = null;
+            if (!dirty)
+                return;
+            dirty = false;
+            handler = saveHandler;
+        }
+        if (handler != null)
+            handler.run();
     }
 
     @Override
@@ -79,12 +165,14 @@ public abstract class Settings extends SettingsImpl {
     public void setProperty(final String property, final boolean value) {
         properties.setProperty(property, Boolean.toString(value));
         propagate(SettingsEnum.from(property), Boolean.toString(value));
+        markDirty();
     }
 
     @Override
     public void setProperty(final String property, final int value) {
         properties.setProperty(property, Integer.toString(value));
         propagate(SettingsEnum.from(property), Integer.toString(value));
+        markDirty();
     }
 
     @Override
@@ -100,6 +188,7 @@ public abstract class Settings extends SettingsImpl {
         else
             properties.setProperty(property, value);
         propagate(SettingsEnum.from(property), value);
+        markDirty();
     }
 
     @Override
