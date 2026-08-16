@@ -72,7 +72,6 @@ import jrm.server.shared.datasources.XMLResponse;
  * @see TempFileInputStream
  * @see WebSession
  */
-@SuppressWarnings("serial")
 public class DataSourceServlet extends HttpServlet {
 
     /**

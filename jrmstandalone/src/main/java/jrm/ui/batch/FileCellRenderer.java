@@ -14,7 +14,6 @@ import javax.swing.table.DefaultTableCellRenderer;
  * <p>
  * Displays file paths with ellipsis truncation when the path is too long.
  */
-@SuppressWarnings("serial")
 class FileCellRenderer extends DefaultTableCellRenderer {
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {

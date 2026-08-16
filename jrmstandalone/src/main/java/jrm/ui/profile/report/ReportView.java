@@ -43,7 +43,6 @@ import lombok.val;
  * <p>
  * Provides filtering options, context menus for node operations, and detail views.
  */
-@SuppressWarnings("serial")
 public class ReportView extends JScrollPane implements Popup {
     /** The report data. */
     private final Report report;

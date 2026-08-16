@@ -50,7 +50,6 @@ import jrm.ui.MainFrame;
  * or exclude from the filter. Supports drag-and-drop for moving keywords
  * between lists.
  */
-@SuppressWarnings("serial")
 public class KeywordFilter extends JDialog {
 
     /** Source keyword list showing available keywords. */

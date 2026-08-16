@@ -6,12 +6,13 @@
 	],
 	"settings": {
 		"java.configuration.updateBuildConfiguration": "automatic",
-		"java.compile.nullAnalysis.mode": "automatic",
+		"java.compile.nullAnalysis.mode": "disabled",
 		"chat.tools.terminal.autoApprove": {
 			"New-Item": true
 		},
 		"java.dependency.packagePresentation": "hierarchical",
 		"java.format.settings.url": "JRomManager/.vscode/java-formatter.xml",
-		"java.settings.url": ""
+		"java.settings.url": "",
+		"java.project.encoding": "setDefault"
 	}
 }

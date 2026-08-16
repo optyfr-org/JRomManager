@@ -18,7 +18,6 @@ import jrm.ui.basic.Popup;
 /**
  * Scrollable view displaying torrent check report as a tree.
  */
-@SuppressWarnings("serial")
 public class BatchTrrntChkReportView extends JScrollPane {
     public BatchTrrntChkReportView(TrntChkReport report) {
         final JTree tree = new JTree();

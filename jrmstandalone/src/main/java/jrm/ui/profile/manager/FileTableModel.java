@@ -31,7 +31,6 @@ import lombok.Getter;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class FileTableModel extends AbstractTableModel implements StatusRendererFactory {
 
     /** The current directory being displayed. */

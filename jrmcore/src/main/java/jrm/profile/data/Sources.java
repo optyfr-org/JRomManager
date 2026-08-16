@@ -15,7 +15,6 @@ import lombok.Getter;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class Sources implements Serializable, Iterable<Source> {
     /**
      * Backing list containing the registered DAT metadata sources.

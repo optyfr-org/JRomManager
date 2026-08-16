@@ -17,7 +17,6 @@ import jrm.security.Session;
 /**
  * Dialog displaying batch directory update results.
  */
-@SuppressWarnings("serial")
 public class BatchDirUpd8rResultsDialog extends JDialog {
     /** The parent window that opened this dialog. */
     Window parentWindow;

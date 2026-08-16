@@ -33,7 +33,6 @@ import jrm.misc.Log;
  * @param <V> the type of value returned by the callback
  * @see JFileChooser
  */
-@SuppressWarnings("serial")
 public class JRMFileChooser<V> extends JFileChooser {
 
     /**

@@ -12,7 +12,6 @@ import lombok.Getter;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public final class Source implements PropertyStub {
     /**
      * Name of the source file or database.

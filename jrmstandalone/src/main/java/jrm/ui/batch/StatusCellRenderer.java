@@ -11,7 +11,6 @@ import javax.swing.table.DefaultTableCellRenderer;
  * <p>
  * Displays status information with right-aligned text.
  */
-@SuppressWarnings("serial")
 final class StatusCellRenderer extends DefaultTableCellRenderer {
     @Override
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {

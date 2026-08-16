@@ -23,7 +23,6 @@ import lombok.Setter;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class Entry implements Serializable {
     /**
      * The entry name (with relative path).

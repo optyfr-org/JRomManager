@@ -28,7 +28,6 @@ import lombok.Setter;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class Rom extends Entity {
     /**
      * XML attribute name for memory offset.

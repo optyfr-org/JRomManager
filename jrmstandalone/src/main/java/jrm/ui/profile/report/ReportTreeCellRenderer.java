@@ -40,7 +40,6 @@ import jrm.ui.profile.report.ReportNode.SubjectNode.NoteNode;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class ReportTreeCellRenderer extends DefaultTreeCellRenderer {
 
     /**

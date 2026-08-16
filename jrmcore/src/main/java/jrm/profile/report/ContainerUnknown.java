@@ -15,7 +15,6 @@ import jrm.profile.data.Container;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class ContainerUnknown extends ContainerSubject {
     /**
      * Constructs a new ContainerUnknown subject for the specified physical container.

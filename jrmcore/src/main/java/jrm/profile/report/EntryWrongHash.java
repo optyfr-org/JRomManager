@@ -12,7 +12,6 @@ import jrm.profile.data.Entry;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class EntryWrongHash extends EntryExtNote {
     /**
      * Resource bundle key for wrong hash entries localization messages.

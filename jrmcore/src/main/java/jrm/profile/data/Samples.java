@@ -22,7 +22,6 @@ import lombok.Getter;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public final class Samples extends AnywareBase implements Iterable<Sample> {
     /**
      * The internal map of {@link Sample} instances with {@link NameBase#name} as key.

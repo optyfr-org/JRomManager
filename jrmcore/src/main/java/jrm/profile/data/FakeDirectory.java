@@ -17,7 +17,6 @@ import java.nio.file.attribute.BasicFileAttributes;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class FakeDirectory extends Container {
     /**
      * Constructs a virtual directory where the related database set is known.

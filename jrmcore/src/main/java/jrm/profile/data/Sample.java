@@ -16,7 +16,6 @@ package jrm.profile.data;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public final class Sample extends EntityBase {
     /**
      * The Sample constructor.

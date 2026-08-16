@@ -27,7 +27,6 @@ import lombok.Setter;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class Disk extends Entity {
     private static final String MERGE_STR = "merge";
     private static final String WRITEABLE_STR = "writeable";

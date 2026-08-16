@@ -106,7 +106,6 @@ import lombok.val;
  * <p>
  * Displays machines, software lists, and anyware lists with filtering and export capabilities.
  */
-@SuppressWarnings("serial")
 public class ProfileViewer extends JDialog {
 
     /** Preference key for exporting as software lists DAT. */

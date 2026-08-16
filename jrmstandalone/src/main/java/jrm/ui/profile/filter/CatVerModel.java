@@ -23,7 +23,6 @@ import jrm.ui.basic.NGTreeNode;
  * Provides a tree structure of machine categories and subcategories
  * for filtering purposes.
  */
-@SuppressWarnings("serial")
 public class CatVerModel extends DefaultTreeModel {
 
     /**

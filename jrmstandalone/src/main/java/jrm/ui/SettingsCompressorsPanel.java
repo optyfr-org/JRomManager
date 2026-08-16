@@ -40,7 +40,6 @@ import jrm.ui.basic.JTextFieldHintUI;
  * Provides controls for configuring 7-Zip and ZIP compression options, including command paths,
  * thread counts, compression levels, and solid archive settings.
  */
-@SuppressWarnings("serial")
 public class SettingsCompressorsPanel extends JPanel {
     /** Combo box for 7-Zip command options. */
     private JComboBox<SevenZipOptions> cb7zArgs;

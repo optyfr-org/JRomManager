@@ -24,7 +24,6 @@ import jrm.server.shared.WebSession;
  * 
  * @since 2024-06
  */
-@SuppressWarnings("serial")
 public class SessionServlet extends AbstractSessionServlet {
     /**
      * Handles POST requests to manage user sessions. It retrieves the current session, checks authentication status, and returns a

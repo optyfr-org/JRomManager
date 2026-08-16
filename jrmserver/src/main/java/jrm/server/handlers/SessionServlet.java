@@ -13,7 +13,6 @@ import jrm.misc.Log;
  * Servlet to handle session-related requests. This servlet is used to create a new session and return the session ID to the client.
  * The session ID is stored in a cookie, so the client can use it for subsequent requests.
  */
-@SuppressWarnings("serial")
 public class SessionServlet extends AbstractSessionServlet {
     /**
      * Handles POST requests to create a new session and return the session ID to the client. The session ID is stored in a cookie,

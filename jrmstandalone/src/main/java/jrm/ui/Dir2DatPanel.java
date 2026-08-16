@@ -41,7 +41,6 @@ import jrm.ui.progress.SwingWorkerProgress;
  * (subfolders, deep scan, hash algorithms), and specifying DAT header metadata (name, description,
  * version, author, etc.). Supports multiple DAT formats including Logiqx XML and MAME-compatible formats.
  */
-@SuppressWarnings("serial")
 public class Dir2DatPanel extends JPanel {
     /** Preference key for the destination DAT file path. */
     private static final String MAIN_FRAME_CHOOSE_DAT_DST = "MainFrame.ChooseDatDst";

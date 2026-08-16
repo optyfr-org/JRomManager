@@ -18,7 +18,6 @@ import lombok.Getter;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class Driver implements Serializable {
     /**
      * The global status of the machine driver. Defaults to {@link StatusType#preliminary}.

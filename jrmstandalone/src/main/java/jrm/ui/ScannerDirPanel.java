@@ -41,7 +41,6 @@ import jrm.ui.basic.Popup;
  * ROMs, disks, samples, backups, and software list entries. Supports drag-and-drop
  * for directory selection and context menus for managing entries.
  */
-@SuppressWarnings("serial")
 public class ScannerDirPanel extends JPanel {
     /** Preference key for the samples destination directory. */
     private static final String MAIN_FRAME_CHOOSE_SAMPLES_DESTINATION = "MainFrame.ChooseSamplesDestination";

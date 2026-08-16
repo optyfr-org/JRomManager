@@ -16,7 +16,6 @@ import jrm.profile.data.Container;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class ContainerUnneeded extends ContainerSubject {
     /**
      * Constructs a new ContainerUnneeded subject for the specified physical container.

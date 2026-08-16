@@ -21,7 +21,6 @@ import lombok.Getter;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class SamplesList implements ByName<Samples>, Iterable<Samples> {
     /**
      * {@link HashMap} of {@link Samples} set with {@link Samples#name} as key.

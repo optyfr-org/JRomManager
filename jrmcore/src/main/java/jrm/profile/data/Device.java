@@ -21,7 +21,6 @@ import lombok.Setter;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public final class Device implements Serializable {
     /**
      * The type designation of the device.

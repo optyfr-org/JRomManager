@@ -10,7 +10,6 @@ import jrm.profile.data.Sources;
  * <p>
  * Wraps a {@link Sources} instance to expose individual {@link Source} entries.
  */
-@SuppressWarnings("serial")
 public class SourcesModel extends AbstractListModel<Source> {
 
     /** The underlying sources collection. */

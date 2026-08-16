@@ -22,7 +22,6 @@ import jrm.profile.scan.options.ScanAutomation;
  * <p>
  * Provides a combo box for selecting the automation action to perform after a scan completes.
  */
-@SuppressWarnings("serial")
 public final class ScannerAutomationPanel extends JPanel {
     /** The profile settings instance for persisting automation preferences. */
     public transient ProfileSettings settings;

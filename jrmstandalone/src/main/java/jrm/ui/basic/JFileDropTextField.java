@@ -38,7 +38,6 @@ import javax.swing.text.Document;
  * @see JFileDrop
  * @see JFileDropMode
  */
-@SuppressWarnings("serial")
 public class JFileDropTextField extends JTextField implements FocusListener, JFileDrop {
 
     /** The original background color, restored after drag operations. */

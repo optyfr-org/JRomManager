@@ -25,7 +25,6 @@ import lombok.Setter;
  *
  * @param <T> extends {@link AnywareList} (generally a {@link Machine} or a {@link Software})
  */
-@SuppressWarnings("serial")
 public abstract class AnywareListList<T extends AnywareList<? extends Anyware>> implements Serializable, AWList<T> {
     /**
      * The profile associated with this list of lists. Used to retrieve filter levels and configuration metrics.

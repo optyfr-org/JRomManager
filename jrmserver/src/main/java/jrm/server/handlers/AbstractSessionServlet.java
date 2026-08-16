@@ -25,7 +25,6 @@ import lombok.val;
  * localized messages, and user settings.
  */
 
-@SuppressWarnings("serial")
 public abstract class AbstractSessionServlet extends HttpServlet {
 
     /**

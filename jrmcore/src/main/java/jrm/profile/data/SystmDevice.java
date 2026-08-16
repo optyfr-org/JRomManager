@@ -15,7 +15,6 @@ package jrm.profile.data;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class SystmDevice implements Systm { // NOSONAR
     /**
      * The static DEVICE instance.

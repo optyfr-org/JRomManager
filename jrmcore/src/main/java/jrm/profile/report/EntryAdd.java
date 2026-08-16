@@ -14,7 +14,6 @@ import jrm.profile.data.Entry;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class EntryAdd extends EntryExtNote {
     /**
      * Constructs a new EntryAdd note mapping an expected entity to an actual available entry.

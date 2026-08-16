@@ -47,7 +47,6 @@ import lombok.val;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class DownloadServlet extends HttpServlet {
     /**
      * Handles POST requests for file and directory downloads.

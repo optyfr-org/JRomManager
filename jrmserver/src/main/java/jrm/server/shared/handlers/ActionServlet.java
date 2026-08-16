@@ -38,7 +38,6 @@ import jrm.server.shared.lpr.LongPollingReqMgr;
  * @see WebSession
  * @see LongPollingReqMgr
  */
-@SuppressWarnings("serial")
 public class ActionServlet extends HttpServlet {
 
     /**

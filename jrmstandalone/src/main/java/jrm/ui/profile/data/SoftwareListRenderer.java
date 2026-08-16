@@ -28,7 +28,6 @@ import lombok.RequiredArgsConstructor;
  * Defines columns for status, name, description, have-count, clone-of, and selection.
  * Uses color-coded folder icons to indicate software completion status.
  */
-@SuppressWarnings("serial")
 public final class SoftwareListRenderer {
     /** The Constant columns. */
     protected static final String[] columns = new String[] { Messages.getString("SoftwareListRenderer.Status"), Messages.getString("SoftwareListRenderer.Name"), //$NON-NLS-1$ //$NON-NLS-2$

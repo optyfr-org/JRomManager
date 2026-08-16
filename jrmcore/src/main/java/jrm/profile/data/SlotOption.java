@@ -19,7 +19,6 @@ import lombok.Setter;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class SlotOption extends NameBase {
     /**
      * Name of the used device.

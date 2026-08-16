@@ -10,7 +10,6 @@ import lombok.Getter;
  *
  * @param <T> the type of elements in this list
  */
-@SuppressWarnings("serial")
 public class SDRList<T> extends ArrayList<T> {
 
     /**

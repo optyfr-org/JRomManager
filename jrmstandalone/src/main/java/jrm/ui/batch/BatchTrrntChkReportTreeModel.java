@@ -7,7 +7,6 @@ import jrm.ui.profile.report.ReportTreeModelGeneric;
 /**
  * Tree model for torrent check reports.
  */
-@SuppressWarnings("serial")
 public class BatchTrrntChkReportTreeModel extends ReportTreeModelGeneric<TrntChkReport> {
     public BatchTrrntChkReportTreeModel(final TrntChkReport root) {
         super(new BatchTrrntChkReportNode(root));

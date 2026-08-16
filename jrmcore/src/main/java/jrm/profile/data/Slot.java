@@ -21,7 +21,6 @@ import lombok.Setter;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class Slot extends ArrayList<SlotOption> {
     /**
      * The name of the Slot.

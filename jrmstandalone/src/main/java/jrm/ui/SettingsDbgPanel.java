@@ -28,7 +28,6 @@ import jrm.security.Session;
  * Provides controls for configuring log level, monitoring memory usage,
  * and other debugging options.
  */
-@SuppressWarnings("serial")
 public class SettingsDbgPanel extends JPanel {
     /** Format string for memory usage display. */
     private static final String XX_MIB = "%.2f MiB";

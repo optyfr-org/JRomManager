@@ -41,7 +41,6 @@ import one.util.streamex.StreamEx;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public abstract class Anyware extends AnywareBase implements Systm {
 
     /**

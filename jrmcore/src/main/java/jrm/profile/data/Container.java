@@ -32,7 +32,6 @@ import lombok.Setter;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class Container implements Serializable, Comparable<Container> {
     /**
      * File representing the physical location of the container.

@@ -18,7 +18,6 @@ import jrm.profile.report.ReportIntf;
  * <p>
  * Provides filtering and cloning support for report tree models.
  */
-@SuppressWarnings("serial")
 public abstract class ReportTreeModelGeneric<T extends ReportIntf<T>> extends DefaultTreeModel implements ReportTreeHandler<T> {
     /** The original unfiltered report root. */
     protected transient T orgRoot;

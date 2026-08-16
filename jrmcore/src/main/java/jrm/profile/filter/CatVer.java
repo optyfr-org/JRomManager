@@ -35,7 +35,6 @@ import lombok.Getter;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public final class CatVer implements Iterable<CatVer.Category>, PropertyStub, IniProcessor {
     /**
      * Represents a game category containing hierarchical subcategories.

@@ -16,7 +16,6 @@ import jrm.profile.report.Report;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public final class ReportTreeModel extends ReportTreeModelGeneric<Report> {
     /**
      * Constructs a new report tree model.

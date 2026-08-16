@@ -22,7 +22,6 @@ import jrm.ui.MainFrame;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class DirTreeCellRenderer extends DefaultTreeCellRenderer {
 
     /**

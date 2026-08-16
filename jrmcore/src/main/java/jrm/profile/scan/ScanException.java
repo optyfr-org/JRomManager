@@ -16,7 +16,6 @@ package jrm.profile.scan;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class ScanException extends Exception {
     /**
      * Constructs a new {@code ScanException} with the specified detail message.

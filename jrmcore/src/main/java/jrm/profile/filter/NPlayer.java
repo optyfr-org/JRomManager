@@ -22,7 +22,6 @@ import jrm.profile.data.PropertyStub;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public final class NPlayer extends GamesList implements PropertyStub {
     /**
      * The name of this multiplayer capability or player count mode.

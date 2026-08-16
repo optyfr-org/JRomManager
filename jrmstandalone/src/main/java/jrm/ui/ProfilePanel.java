@@ -73,7 +73,6 @@ import lombok.val;
  * file table on the right. Supports creating/deleting directories, importing profiles,
  * renaming profiles, updating from MAME, and managing profile caches.
  */
-@SuppressWarnings("serial")
 public class ProfilePanel extends JPanel {
     /** Message key for the file chooser dialog when importing profiles. */
     private static final String MAIN_FRAME_CHOOSE_EXE_OR_DAT_TO_IMPORT = "MainFrame.ChooseExeOrDatToImport";

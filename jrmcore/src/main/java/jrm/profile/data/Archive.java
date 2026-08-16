@@ -17,7 +17,6 @@ import java.nio.file.attribute.BasicFileAttributes;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class Archive extends Container {
     /**
      * Constructs an archive where the related database set is known.

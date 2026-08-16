@@ -25,7 +25,6 @@ import jrm.ui.MainFrame;
  *
  * @see JCheckBox
  */
-@SuppressWarnings("serial")
 public class JTristateCheckBox extends JCheckBox {
 
     /** Whether this checkbox is in the half-selected (indeterminate) state. */

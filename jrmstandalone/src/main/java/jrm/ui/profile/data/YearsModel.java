@@ -11,7 +11,6 @@ import javax.swing.ComboBoxModel;
  * <p>
  * Used in profile filter panels to allow filtering machines by release year.
  */
-@SuppressWarnings("serial")
 public final class YearsModel extends AbstractListModel<String> implements ComboBoxModel<String> {
 
     /** The currently selected object. */

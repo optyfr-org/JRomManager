@@ -28,7 +28,6 @@ import jrm.profile.manager.Dir;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class DirTreeModel extends DefaultTreeModel implements TreeModelListener {
 
     /**

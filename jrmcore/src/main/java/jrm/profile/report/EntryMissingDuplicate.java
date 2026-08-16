@@ -14,7 +14,6 @@ import jrm.profile.data.Entry;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class EntryMissingDuplicate extends EntryExtNote {
     /**
      * Constructs a new EntryMissingDuplicate note mapping a missing entity to an existing candidate file entry.

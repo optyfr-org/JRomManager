@@ -27,7 +27,6 @@ import jrm.profile.manager.ProfileNFO;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class FileTableCellRenderer extends DefaultTableCellRenderer {
 
     /**

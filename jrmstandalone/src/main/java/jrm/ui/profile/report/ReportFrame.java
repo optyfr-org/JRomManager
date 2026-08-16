@@ -40,7 +40,6 @@ import jrm.ui.MainFrame;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class ReportFrame extends JDialog implements StatusHandler {
 
     /** Label displaying the current processing status. */

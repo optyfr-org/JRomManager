@@ -29,7 +29,6 @@ import jrm.server.shared.handlers.DataSourceServlet;
  * 
  * @since 2024-06
  */
-@SuppressWarnings("serial")
 public class FullDataSourceServlet extends DataSourceServlet {
 
     /**

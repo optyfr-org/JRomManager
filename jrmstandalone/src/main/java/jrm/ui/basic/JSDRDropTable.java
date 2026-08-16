@@ -36,7 +36,6 @@ import jrm.misc.Log;
  * @see SDRTableModel
  * @see SrcDstResult
  */
-@SuppressWarnings("serial")
 public class JSDRDropTable extends JTable implements DropTargetListener, ResultColUpdater {
     /** The original background color, restored after drag operations. */
     private final Color color;

@@ -34,7 +34,6 @@ import jrm.xml.EnhancedXMLStreamWriter;
  * 
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public final class MachineList extends AnywareList<Machine> {
     /**
      * The {@link ArrayList} of {@link Machine}

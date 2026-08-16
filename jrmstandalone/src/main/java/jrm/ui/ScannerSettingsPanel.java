@@ -33,7 +33,6 @@ import lombok.Getter;
  * Provides controls for set creation, merge behavior, compression, hash collision handling,
  * parallelism, and various exclusion/ignore options. Settings are persisted per-profile.
  */
-@SuppressWarnings("serial")
 public class ScannerSettingsPanel extends JPanel {
     /** Sub-panel for additional scanner settings. */
     private JPanel scannerSubSettingsPanel;

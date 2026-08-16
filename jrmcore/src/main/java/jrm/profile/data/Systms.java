@@ -22,7 +22,6 @@ import lombok.Getter;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public final class Systms implements Serializable, Iterable<Systm> {
     /**
      * The internal {@link ArrayList} of {@link Systm}s.

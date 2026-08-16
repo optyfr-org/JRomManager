@@ -24,7 +24,6 @@ import jrm.ui.profile.report.ReportLite;
  * <p>
  * Shows a table with columns for DAT/XML name, have, create, fix, miss, total, and report.
  */
-@SuppressWarnings("serial")
 public class BatchDirUpdResultsView extends JScrollPane {
     private static class ColorRenderer extends DefaultTableCellRenderer {
         private Color color;

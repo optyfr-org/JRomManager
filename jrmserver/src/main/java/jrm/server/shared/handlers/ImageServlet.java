@@ -48,7 +48,6 @@ import lombok.val;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class ImageServlet extends HttpServlet {
     private static final Pattern SAFE_RESOURCE_PATH = Pattern.compile("^[a-zA-Z0-9/_\\-.]+$");
     /** Cached base URI for resource resolution (either {@code jrt:/} module path or classpath resource). */

@@ -10,7 +10,6 @@ import jrm.profile.data.Systms;
  * <p>
  * Wraps a {@link Systms} instance to expose individual {@link Systm} entries.
  */
-@SuppressWarnings("serial")
 public class SystmsModel extends AbstractListModel<Systm> {
 
     /** The underlying systems collection. */

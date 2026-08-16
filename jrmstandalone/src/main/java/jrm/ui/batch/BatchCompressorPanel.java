@@ -62,7 +62,6 @@ import jrm.ui.progress.SwingWorkerProgress;
  * <p>
  * Provides controls for compressing ROM sets using various compression formats.
  */
-@SuppressWarnings("serial")
 public class BatchCompressorPanel extends JPanel implements StatusRendererFactory {
     private BatchCompressorTable table;
     private JCheckBox chckbxForce;

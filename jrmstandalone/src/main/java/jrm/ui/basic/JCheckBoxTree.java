@@ -36,7 +36,6 @@ import javax.swing.tree.TreePath;
  * @see JTristateCheckBox
  * @see JTree
  */
-@SuppressWarnings("serial")
 public class JCheckBoxTree extends JTree {
     /**
      * Event fired when the selection state of tree nodes changes.

@@ -60,7 +60,6 @@ import jrm.ui.progress.SwingWorkerProgress;
  * <p>
  * Provides controls for checking and fixing torrent-structured directories.
  */
-@SuppressWarnings("serial")
 public class BatchTrrntChkPanel extends JPanel {
     /** Table for torrent check source/destination entries. */
     private JSDRDropTable tableTrntChk;

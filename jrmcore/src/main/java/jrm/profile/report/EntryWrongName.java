@@ -13,7 +13,6 @@ import jrm.profile.data.Entry;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class EntryWrongName extends EntryExtNote {
     /**
      * Constructs a new EntryWrongName note mapping an expected entity to a wrongly-named physical entry.

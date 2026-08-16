@@ -23,7 +23,6 @@ import javax.swing.table.TableCellRenderer;
  * @see TableCellEditor
  * @see TableCellRenderer
  */
-@SuppressWarnings("serial")
 public class JTableButton extends AbstractCellEditor implements TableCellEditor, TableCellRenderer {
     /**
      * Handler interface for button press events within table cells.

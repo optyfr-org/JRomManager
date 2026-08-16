@@ -26,7 +26,6 @@ import jrm.ui.batch.BatchTrrntChkReportNode.ChildNode;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class BatchTrrntChkReportTreeCellRenderer extends DefaultTreeCellRenderer {
 
     /**

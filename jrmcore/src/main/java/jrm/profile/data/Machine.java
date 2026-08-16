@@ -196,7 +196,6 @@ public class Machine extends Anyware {
     /**
      * SWList link reference with support status and filter option.
      */
-    @SuppressWarnings("serial")
     public @Data class SWList implements Serializable {
         /**
          * The name of the software list.

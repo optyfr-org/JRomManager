@@ -20,7 +20,6 @@ import jrm.ui.basic.SDRTableModel;
  */
 public class BatchTableModel extends SDRTableModel {
 
-    @SuppressWarnings("serial")
     private final class FCellRenderer extends FileCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {

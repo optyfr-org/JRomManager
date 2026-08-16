@@ -50,7 +50,6 @@ import jrm.ui.progress.SwingWorkerProgress;
  * and managing scan presets. Integrates with multiple sub-panels for configuration,
  * directory selection, filtering, and automation options.
  */
-@SuppressWarnings("serial")
 public class ScannerPanel extends JPanel implements ProfileLoader {
     /** Error message constant. */
     private static final String ERROR_STR = "Error";

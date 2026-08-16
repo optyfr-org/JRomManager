@@ -45,7 +45,6 @@ import lombok.Setter;
  * and Settings panels. Manages the global look-and-feel, window bounds persistence,
  * icon caching, and shutdown hooks for saving user settings.
  */
-@SuppressWarnings("serial")
 public class MainFrame extends JFrame implements Popup {
 
     /**

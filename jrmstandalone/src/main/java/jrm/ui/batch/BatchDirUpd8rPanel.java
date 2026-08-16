@@ -66,7 +66,6 @@ import one.util.streamex.StreamEx;
  * <p>
  * Provides controls for updating directories from DAT/XML files.
  */
-@SuppressWarnings("serial")
 public class BatchDirUpd8rPanel extends JPanel {
     /** List of source DAT/XML files. */
     private JFileDropList listBatchToolsDat2DirSrc;

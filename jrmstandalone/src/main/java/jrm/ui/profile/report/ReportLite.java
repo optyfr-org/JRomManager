@@ -24,7 +24,6 @@ import jrm.security.Session;
  * <p>
  * Loads the report asynchronously and displays it in a simple dialog.
  */
-@SuppressWarnings("serial")
 public class ReportLite extends JDialog {
     /** The parent window that opened this dialog. */
     private Window parentWindow;

@@ -32,7 +32,6 @@ import jrm.ui.MainFrame;
  * Defines columns for status, name, size, CRC, MD5, SHA-1, merge info, and dump status.
  * Each column has a dedicated renderer with appropriate icons and formatting.
  */
-@SuppressWarnings("serial")
 public final class AnywareRenderer {
 
     /** The Constant columns. */

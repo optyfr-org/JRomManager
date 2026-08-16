@@ -36,7 +36,6 @@ import lombok.RequiredArgsConstructor;
  * <p>
  * Provides controls for configuring threading, work directory, and other global preferences.
  */
-@SuppressWarnings("serial")
 public class SettingsGenPanel extends JPanel {
     /** Combo box for selecting the threading mode. */
     private JComboBox<ThreadCnt> cbThreading;

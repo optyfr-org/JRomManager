@@ -38,7 +38,6 @@ import jrm.xml.EnhancedXMLStreamWriter;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public final class SoftwareListList extends AnywareListList<SoftwareList> implements ByName<SoftwareList> {
     /**
      * Progress string formatter template representing progress state like "A/B".

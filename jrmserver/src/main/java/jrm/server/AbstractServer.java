@@ -257,7 +257,6 @@ public abstract class AbstractServer implements Daemon {
      * Custom exception class for wrapping Jetty-related errors that occur during server lifecycle operations (startup, shutdown,
      * join). Extends {@link Exception} and provides standard message and cause constructors.
      */
-    @SuppressWarnings("serial")
     protected static class JettyException extends Exception {
         /**
          * Constructs a new {@code JettyException} with no detail message or cause.

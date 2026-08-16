@@ -37,7 +37,6 @@ import lombok.Getter;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public final class SoftwareList extends AnywareList<Software> implements Systm {
     /**
      * Description of the software list.

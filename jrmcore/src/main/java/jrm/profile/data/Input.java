@@ -18,7 +18,6 @@ import org.apache.commons.lang3.BooleanUtils;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public final class Input implements Serializable {
     /**
      * Number of supported players.

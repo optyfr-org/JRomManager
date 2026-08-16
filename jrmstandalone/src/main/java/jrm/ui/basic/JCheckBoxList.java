@@ -39,7 +39,6 @@ import jrm.misc.Ideone;
  * @see JTristateCheckBox
  * @see JList
  */
-@SuppressWarnings("serial")
 public class JCheckBoxList<E> extends JList<E> {
 
     /** The border used for cells that do not have focus. */

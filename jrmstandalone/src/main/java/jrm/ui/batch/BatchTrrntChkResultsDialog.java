@@ -16,7 +16,6 @@ import jrm.batch.TrntChkReport;
 /**
  * Dialog displaying batch torrent check results.
  */
-@SuppressWarnings("serial")
 public class BatchTrrntChkResultsDialog extends JDialog {
     /** The parent window that opened this dialog. */
     Window parentWindow;

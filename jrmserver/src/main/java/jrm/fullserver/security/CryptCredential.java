@@ -22,7 +22,6 @@ import lombok.Getter;
  * The check method retrieves the user's credentials from the database and verifies them using the appropriate hashing algorithm
  * based on the format of the stored password hash.
  */
-@SuppressWarnings("serial")
 public class CryptCredential extends Credential {
 
     /**

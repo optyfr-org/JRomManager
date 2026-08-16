@@ -14,7 +14,6 @@ import jrm.security.Session;
  * <p>
  * Contains tabs for General, Compressors, and Debug settings.
  */
-@SuppressWarnings("serial")
 public class SettingsPanel extends JPanel {
 
     /** The tabbed pane holding settings sub-panels. */

@@ -31,7 +31,6 @@ import jrm.ui.basic.CenteredTableCellRenderer;
  * sample-of, and selection. Uses color-coded folder icons to indicate machine
  * completion status and specialized renderers for different entity types.
  */
-@SuppressWarnings("serial")
 public final class MachineListRenderer {
     /** The Constant folder_closed_green. */
     private static final ImageIcon folder_closed_green = MainFrame.getIcon("/jrm/resicons/folder_closed_green.png"); //$NON-NLS-1$

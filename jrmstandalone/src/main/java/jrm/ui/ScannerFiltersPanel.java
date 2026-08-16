@@ -43,7 +43,6 @@ import jrm.ui.profile.data.YearsModel;
  * software support level, year range, and inclusion of clones/disks/samples. Also includes
  * checkbox lists for selecting specific systems and sources.
  */
-@SuppressWarnings("serial")
 public class ScannerFiltersPanel extends JSplitPane {
     /** Combo box for filtering by driver status (good, imperfect, preliminary). */
     private JComboBox<Driver.StatusType> cbbxDriverStatus;

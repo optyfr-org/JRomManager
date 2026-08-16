@@ -55,7 +55,6 @@ import lombok.val;
  * @see WebSession
  * @see PathAbstractor
  */
-@SuppressWarnings("serial")
 public class UploadServlet extends HttpServlet {
 
     /**

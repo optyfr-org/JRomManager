@@ -33,7 +33,6 @@ import lombok.Getter;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public final class MachineListList extends AnywareListList<MachineList> {
     /**
      * Encoding name constant.

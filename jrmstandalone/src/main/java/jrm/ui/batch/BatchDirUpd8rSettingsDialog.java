@@ -16,7 +16,6 @@ import lombok.Getter;
 /**
  * Dialog for configuring batch directory update settings.
  */
-@SuppressWarnings("serial")
 public class BatchDirUpd8rSettingsDialog extends JDialog {
 
     /** The scanner settings panel. */

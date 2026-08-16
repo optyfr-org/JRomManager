@@ -13,7 +13,6 @@ import javax.swing.table.DefaultTableCellRenderer;
  * @see DefaultTableCellRenderer
  * @see SwingConstants#CENTER
  */
-@SuppressWarnings("serial")
 public class CenteredTableCellRenderer extends DefaultTableCellRenderer {
 
     /**

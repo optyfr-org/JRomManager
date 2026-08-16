@@ -24,7 +24,6 @@ import jrm.profile.manager.Dir;
  *
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class DirNode extends DefaultMutableTreeNode {
 
     /** The directory data associated with this node. */

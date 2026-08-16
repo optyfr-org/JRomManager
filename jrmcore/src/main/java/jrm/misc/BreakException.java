@@ -17,7 +17,6 @@ package jrm.misc;
  * 
  * @author optyfr
  */
-@SuppressWarnings("serial")
 public class BreakException extends RuntimeException {
     /**
      * Constructs a new {@code BreakException} with {@code null} as its detail message.

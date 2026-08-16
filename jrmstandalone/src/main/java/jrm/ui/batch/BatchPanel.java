@@ -15,7 +15,6 @@ import jrm.ui.MainFrame;
  * <p>
  * Contains tabs for batch directory update, torrent check, and compression operations.
  */
-@SuppressWarnings("serial")
 public class BatchPanel extends JPanel {
     /**
      * Constructs the batch tools panel.

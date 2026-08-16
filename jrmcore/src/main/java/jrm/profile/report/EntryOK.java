@@ -10,7 +10,6 @@ import jrm.profile.data.EntityBase;
  * 
  * @since 1.0
  */
-@SuppressWarnings("serial")
 public class EntryOK extends EntryNote {
     /**
      * Constructs a new EntryOK note for the specified metadata entity.

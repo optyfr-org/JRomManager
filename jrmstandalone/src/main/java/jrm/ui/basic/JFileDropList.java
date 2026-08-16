@@ -35,7 +35,6 @@ import javax.swing.JList;
  * @see JFileDrop
  * @see JFileDropMode
  */
-@SuppressWarnings("serial")
 public class JFileDropList extends JList<File> implements JFileDrop {
 
     /** The original background color, restored after drag operations. */

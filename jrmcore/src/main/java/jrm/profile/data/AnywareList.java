@@ -24,7 +24,6 @@ import jrm.profile.Profile;
  *
  * @param <T> extends {@link Anyware} (generally a {@link Machine} or a {@link Software})
  */
-@SuppressWarnings("serial")
 public abstract class AnywareList<T extends Anyware> extends NameBase implements AWList<T>, ByName<T> {
     /**
      * The profile associated with this list. Used to retrieve filter and configuration options.

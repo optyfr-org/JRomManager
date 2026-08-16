@@ -46,7 +46,6 @@ import jrm.ui.profile.filter.NPlayersModel;
  * Provides controls for filtering by number of players and CatVer category tree.
  * Supports drag-and-drop for CatVer and NPlayers data files.
  */
-@SuppressWarnings("serial")
 public class ScannerAdvFilterPanel extends JPanel {
     /** Popup menu listener that performs no actions on CatVer menu events. */
     private final class CatVerPopupMenuListener implements PopupMenuListener {

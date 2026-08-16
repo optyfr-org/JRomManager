@@ -11,7 +11,6 @@ import jrm.profile.filter.NPlayers;
  * Wraps an {@link NPlayers} instance to expose individual {@link NPlayer} entries
  * for use in combo boxes or lists.
  */
-@SuppressWarnings("serial")
 public class NPlayersModel extends AbstractListModel<NPlayer> {
     /** The underlying player count collection. */
     private final transient NPlayers nplayers;
