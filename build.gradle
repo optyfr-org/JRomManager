@@ -472,9 +472,9 @@ project(':jrmstandalone') {
         implementation 'commons-io:commons-io:2.+'
         implementation 'org.apache.commons:commons-lang3:3.+'
         implementation 'one.util:streamex:0.9.+'
-		runtimeOnly 'org.jspecify:jspecify:1.0.1'
         implementation 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
         implementation 'com.sun.activation:javax.activation:1.2.+'
+		runtimeOnly 'org.jspecify:jspecify:1.0.1'
 
         testImplementation 'org.junit.jupiter:junit-jupiter-api:latest.release'
         testImplementation 'org.junit.jupiter:junit-jupiter-engine:latest.release'
@@ -661,12 +661,11 @@ project(':jrmserver') {
         implementation 'org.eclipse.jetty:jetty-security:12.1.12'
         implementation 'org.eclipse.jetty:jetty-session:12.1.12'
         implementation 'org.eclipse.jetty:jetty-alpn-server:12.1.12'
-        implementation 'org.eclipse.jetty:jetty-alpn-conscrypt-server:12.1.12'
+        implementation 'org.eclipse.jetty:jetty-alpn-java-server:12.1.12'
         implementation 'org.eclipse.jetty.http2:jetty-http2-server:12.1.12'
         implementation 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
         implementation 'com.google.code.gson:gson:latest.release'
         implementation 'one.util:streamex:0.9.+'
-		runtimeOnly 'org.jspecify:jspecify:1.0.1'
         implementation 'commons-dbutils:commons-dbutils:latest.release'
         implementation 'com.h2database:h2:2.4.+'
         implementation 'org.mindrot:jbcrypt:0.4'
@@ -675,6 +674,7 @@ project(':jrmserver') {
         implementation 'ch.qos.logback:logback-core:latest.release'
         implementation 'ch.qos.logback:logback-classic:latest.release'
         implementation files(wcjar)
+		runtimeOnly 'org.jspecify:jspecify:1.0.1'
 
         testImplementation 'org.eclipse.jetty:jetty-client:12.1.12'
         testImplementation 'org.eclipse.jetty:jetty-http:12.1.12'
@@ -759,15 +759,43 @@ project(':jrmserver') {
 
 	apply plugin: 'application'
 	application.mainClass = 'jrm.server.Server'
+
 	run {
+        group = 'application'
+        description = 'Runs the JRomManager server with all dependencies.'
+        classpath = sourceSets.main.runtimeClasspath
+        mainClass = 'jrm.server.Server'
 		jvmArgs (
+            '--enable-native-access=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.util=ALL-UNNAMED'
 		)
 		args (
-			'-d'
+			'-d', '-w', '%HOMEPATH%/.jrommanager'
 		)
+        workingDir = project.rootDir
 		standardInput System.in
 	}
-	
+
+    task runFullServer(type: JavaExec) {
+        group = 'application'
+        description = 'Runs the JRomManager server with all dependencies.'
+        classpath = sourceSets.main.runtimeClasspath
+        mainClass = 'jrm.fullserver.FullServer'
+        jvmArgs (
+            '--enable-native-access=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.util=ALL-UNNAMED'
+        )
+		args (
+			'-d', '-w', '%HOMEPATH%/.jrommanager'
+		)
+        workingDir = project.rootDir
+        standardInput System.in
+    }
+    
     jar {
         manifest {
             attributes(

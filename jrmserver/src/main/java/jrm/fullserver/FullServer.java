@@ -3,7 +3,6 @@ package jrm.fullserver;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
-import java.security.Security;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -15,7 +14,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.daemon.DaemonContext;
-import org.conscrypt.OpenSSLProvider;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.ee9.nested.ServletConstraint;
 import org.eclipse.jetty.ee9.security.ConstraintMapping;
@@ -547,8 +545,8 @@ public class FullServer extends AbstractServer {
     /**
      * Creates and configures a server connector for secure HTTP/2 connections.
      * <p>
-     * This method sets up the SSL context factory, configures ALPN and HTTP/2 connection factories, and applies temporary SSL
-     * provider security overrides to establish secure multiplexed HTTP/2 connections.
+     * This method sets up the SSL context factory and configures ALPN plus HTTP/2 connection factories. ALPN is negotiated
+     * by the JDK TLS stack via {@code jetty-alpn-java-server}; HTTP/1.1 remains the fallback when a client does not offer ALPN.
      *
      * @param jettyserver the Jetty server instance to configure the connector for
      * 
@@ -569,7 +567,6 @@ public class FullServer extends AbstractServer {
         // HTTP/2 Connection Factory
         final var h2 = new HTTP2ServerConnectionFactory(httpsConfig);
 
-        Security.insertProviderAt(new OpenSSLProvider(), 1); // Temporary fix for conflicting SSL providers
         final var alpn = new ALPNServerConnectionFactory();
         alpn.setDefaultProtocol(HttpVersion.HTTP_1_1.asString());
 
