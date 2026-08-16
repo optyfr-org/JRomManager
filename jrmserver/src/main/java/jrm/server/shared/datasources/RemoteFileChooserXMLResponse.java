@@ -27,6 +27,7 @@ import javax.xml.stream.XMLStreamException;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import jrm.misc.IOUtils;
 import jrm.misc.Log;
 import jrm.security.CachePathGuard;
 import jrm.server.shared.datasources.XMLRequest.Operation;
@@ -690,8 +691,13 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
      */
     private void extractZipEntry(ZipFile zf, ZipEntry entry, Path normalizedOutputPath) {
         try {
-            Path resolvedPath = normalizedOutputPath.resolve(entry.getName()).normalize();
-            if (!isSafeExtractTarget(entry, resolvedPath, normalizedOutputPath)) {
+            Path resolvedPath = IOUtils.resolveContainedPath(normalizedOutputPath, entry.getName());
+            if (!resolvedPath.startsWith(normalizedOutputPath)) {
+                Log.err("Skipping unsafe zip entry outside target dir: " + entry.getName());
+                return;
+            }
+            if (CachePathGuard.isProtectedFile(request.getSession(), resolvedPath)) {
+                Log.err("Skipping zip entry targeting a protected cache path: " + entry.getName());
                 return;
             }
             if (entry.isDirectory()) {
@@ -705,24 +711,6 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
         } catch (IOException ei) {
             Log.err(ei.getMessage(), ei);
         }
-    }
-
-    /**
-     * @param entry the ZIP entry being considered
-     * @param resolvedPath the normalized destination path for {@code entry}
-     * @param normalizedOutputPath the normalized extraction root
-     * @return {@code true} if the entry may be written under {@code normalizedOutputPath}
-     */
-    private boolean isSafeExtractTarget(ZipEntry entry, Path resolvedPath, Path normalizedOutputPath) {
-        if (!resolvedPath.startsWith(normalizedOutputPath)) {
-            Log.err("Skipping unsafe zip entry outside target dir: " + entry.getName());
-            return false;
-        }
-        if (CachePathGuard.isProtectedFile(request.getSession(), resolvedPath)) {
-            Log.err("Skipping zip entry targeting a protected cache path: " + entry.getName());
-            return false;
-        }
-        return true;
     }
 
 }
