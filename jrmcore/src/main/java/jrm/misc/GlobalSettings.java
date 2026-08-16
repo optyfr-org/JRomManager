@@ -11,6 +11,7 @@ package jrm.misc;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.zip.CRC32;
@@ -102,8 +103,81 @@ public class GlobalSettings extends Settings implements SystemSettings {
             cachedBasePath = work;
             return cachedBasePath;
         }
-        cachedBasePath = Paths.get(".").toAbsolutePath().normalize(); //$NON-NLS-1$
+        cachedBasePath = resolveDesktopBasePath();
         return cachedBasePath;
+    }
+
+    /**
+     * Resolves the base directory path for a single-user desktop session.
+     * <p>
+     * When the AppImage portable home feature is active, the AppImage runtime redirects {@code $HOME} to a {@code <AppImage>.home}
+     * folder next to the AppImage but leaves the process working directory untouched. JRomManager must follow {@code $HOME} in that
+     * case so that all program configuration, cache, and log files remain portable alongside the AppImage. Otherwise the current
+     * working directory is used, preserving the traditional single-user behavior.
+     *
+     * @return the resolved desktop base directory path
+     */
+    private Path resolveDesktopBasePath() {
+        final Path portableHome = appImagePortableHome();
+        if (portableHome != null)
+            return ensureDirectory(portableHome);
+        return Paths.get(".").toAbsolutePath().normalize(); //$NON-NLS-1$
+    }
+
+    /**
+     * Detects whether the AppImage portable home feature is active and returns the redirected home directory.
+     *
+     * @return the portable home path when active, {@code null} otherwise
+     */
+    static Path appImagePortableHome() {
+        return appImagePortableHome(System.getenv("APPIMAGE"), System.getenv("HOME")); //$NON-NLS-1$ //$NON-NLS-2$
+    }
+
+    /**
+     * Resolves the AppImage portable home from the given environment values.
+     * <p>
+     * The AppImage runtime sets {@code $HOME} to {@code <AppImage>.home} (a sibling directory of the AppImage file) when that
+     * directory exists or is created via {@code --appimage-portable-home}. This method reproduces that resolution so JRomManager can
+     * follow the portable home.
+     *
+     * @param appImage the value of the {@code APPIMAGE} environment variable (the AppImage file path)
+     * @param home the value of the {@code HOME} environment variable
+     *
+     * @return the portable home path when {@code home} equals {@code <appImage>.home} and exists, {@code null} otherwise
+     */
+    static Path appImagePortableHome(final String appImage, final String home) {
+        if (appImage == null || appImage.isEmpty() || home == null || home.isEmpty())
+            return null;
+        try {
+            final Path appImagePath = Paths.get(appImage).toAbsolutePath().normalize();
+            final Path fileName = appImagePath.getFileName();
+            if (fileName == null)
+                return null;
+            final Path expected = appImagePath.resolveSibling(fileName + ".home").toAbsolutePath().normalize(); //$NON-NLS-1$
+            if (!Files.isDirectory(expected) || !expected.equals(Paths.get(home).toAbsolutePath().normalize()))
+                return null;
+            return expected;
+        } catch (final InvalidPathException e) {
+            return null;
+        }
+    }
+
+    /**
+     * Creates the given directory (and any missing parents) if it does not yet exist.
+     *
+     * @param dir the directory to ensure exists
+     *
+     * @return the directory path
+     */
+    private static Path ensureDirectory(final Path dir) {
+        if (!Files.exists(dir)) {
+            try {
+                Files.createDirectories(dir);
+            } catch (IOException e) {
+                Log.err(e.getMessage(), e);
+            }
+        }
+        return dir;
     }
 
     /**
