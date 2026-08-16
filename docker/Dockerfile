@@ -1,25 +1,26 @@
-FROM eclipse-temurin:25.0.3_9-jdk@sha256:c42fecf62f32725c65cfea284c012526d6fb31cc78123c740ebdc1cfd2dced12
+FROM dhi.io/eclipse-temurin:25-alpine
 
-LABEL org.opencontainers.image.description "Docker image of JRomManager (with JDK 21)"
-LABEL org.opencontainers.image.source https://github.com/optyfr/JRomManager
+LABEL org.opencontainers.image.title "JRomManager"
+LABEL org.opencontainers.image.description "Docker image of JRomManager (with JRE 25)"
+LABEL org.opencontainers.image.source "https://github.com/optyfr/JRomManager"
 
 WORKDIR /app
 
-COPY lib lib/
-COPY *.jar ./
+COPY lib *.jar ./
 
 ENV JRM_SERVER_WORKPATH=/work
 ENV JRM_SERVER_HTTP=8080
 ENV JRM_SERVER_BIND=0.0.0.0
-ENV JRM_SERVER_DEBUG=1
+ENV JRM_SERVER_LOG_LEVEL=1
+
+RUN mkdir -p "${JRM_SERVER_WORKPATH}" && \
+    chown -R nonroot:nonroot "${JRM_SERVER_WORKPATH}" && \
+    chmod -R 755 "${JRM_SERVER_WORKPATH}"
 
 EXPOSE ${JRM_SERVER_HTTP}
 
 VOLUME ["${JRM_SERVER_WORKPATH}"]
 
-RUN apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*
-
-RUN chown -R 1000:1000 /app
-USER 1000
+USER nonroot
 
 ENTRYPOINT ["java", "-cp", "JRomManager.jar", "jrm.server.Server"]
