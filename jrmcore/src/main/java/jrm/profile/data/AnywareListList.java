@@ -8,7 +8,6 @@
  */
 package jrm.profile.data;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.EnumSet;
 import java.util.List;
@@ -47,19 +46,6 @@ public abstract class AnywareListList<T extends AnywareList<? extends Anyware>> 
      */
     protected AnywareListList(Profile profile) {
         this.profile = profile;
-        initTransient();
-    }
-
-    /**
-     * the Serializable method for special serialization handling (in that case : initialize transient default values)
-     * 
-     * @param in the serialization inputstream
-     * 
-     * @throws IOException if an I/O error occurs
-     * @throws ClassNotFoundException if the class of a serialized object cannot be found
-     */
-    private void readObject(final java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
         initTransient();
     }
 

@@ -168,6 +168,7 @@ subprojects {
         maxHeapSize = "3G" // maximum heap size
         jvmArgs '-XX:+EnableDynamicAgentLoading',
             '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.lang.invoke=ALL-UNNAMED',
             '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
             '--add-opens', 'java.base/java.util=ALL-UNNAMED',
             '--enable-native-access=ALL-UNNAMED'
@@ -229,6 +230,7 @@ project(':jrmcore') {
         implementation 'com.sun.activation:javax.activation:1.2.+'
         implementation 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
         implementation 'net.lingala.zip4j:zip4j:latest.release'
+        implementation 'org.apache.fory:fory-core:1.6.1'
 
         testImplementation 'org.junit.jupiter:junit-jupiter-api:latest.release'
         testImplementation 'org.junit.jupiter:junit-jupiter-engine:latest.release'
@@ -768,6 +770,7 @@ project(':jrmserver') {
 		jvmArgs (
             '--enable-native-access=ALL-UNNAMED',
             '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.lang.invoke=ALL-UNNAMED',
             '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
             '--add-opens', 'java.base/java.util=ALL-UNNAMED'
 		)
@@ -786,6 +789,7 @@ project(':jrmserver') {
         jvmArgs (
             '--enable-native-access=ALL-UNNAMED',
             '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+            '--add-opens', 'java.base/java.lang.invoke=ALL-UNNAMED',
             '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
             '--add-opens', 'java.base/java.util=ALL-UNNAMED'
         )
@@ -1175,27 +1179,27 @@ jlink {
         name = 'JRomManager'
         moduleName = 'jrm.merged.module'
         mainClass = 'jrm.fx.JRomManagerMulti'
-        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75']
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
     }
     secondaryLauncher {
         name = 'JRomManagerSwing'
         moduleName = 'jrm.merged.module'
         mainClass = 'jrm.JRomManagerMulti'
-        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75']
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
     }
     secondaryLauncher {
         name = 'JRomManagerCLI'
         moduleName = 'jrm.merged.module'
         mainClass = 'jrm.cli.JRomManagerCLI'
         winConsole = true
-        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--enable-native-access=jrm.merged.module,org.jline.terminal.ffm']
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--enable-native-access=jrm.merged.module,org.jline.terminal.ffm', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
     }
     secondaryLauncher {
         name = 'JRomManagerServer'
         moduleName = 'jrm.merged.module'
         mainClass = 'jrm.server.Server'
         winConsole = true
-        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75']
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
         args = ['--workpath','%HOMEPATH%/.jrommanager']
     }
     secondaryLauncher {
@@ -1203,7 +1207,7 @@ jlink {
         moduleName = 'jrm.merged.module'
         mainClass = 'jrm.fullserver.FullServer'
         winConsole = true
-        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75']
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
         args = ['--workpath','%HOMEPATH%/.jrommanager']
     }
 /*    targetPlatform("win-x64") {

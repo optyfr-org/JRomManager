@@ -11,7 +11,6 @@ import java.util.zip.CRC32;
 import jrm.aui.progress.ProgressHandler;
 import jrm.misc.Log;
 import jrm.profile.report.Report;
-import jrm.security.DeserializationFilter;
 import jrm.security.PathAbstractor;
 import jrm.security.Session;
 import jrm.security.SignedObjectStore;
@@ -125,7 +124,7 @@ public class DirUpdaterResults implements Serializable {
      */
     public void save(final Session session) {
         try {
-            SignedObjectStore.write(session, getFile(session, dat), this);
+            SignedObjectStore.write(session, getFile(session, dat), this, SignedObjectStore.Codec.REPORT);
         } catch (final Exception e) {
             Log.err(e.getMessage(), e);
         }
@@ -146,7 +145,7 @@ public class DirUpdaterResults implements Serializable {
         final var rfile = getFile(session, file);
         try (final var in = new BufferedInputStream(progress.getInputStream(new FileInputStream(rfile), (int) rfile.length()))) {
             return (DirUpdaterResults) SignedObjectStore.read(session, in, (int) rfile.length(),
-                    DeserializationFilter.Mode.REPORT, -1);
+                    SignedObjectStore.Codec.REPORT);
         } catch (final Exception e) {
             Log.err(e.getMessage(), e);
         }
@@ -166,7 +165,7 @@ public class DirUpdaterResults implements Serializable {
     public static DirUpdaterResults load(final Session session, final File file) {
         try {
             return (DirUpdaterResults) SignedObjectStore.read(session, getFile(session, file),
-                    DeserializationFilter.Mode.REPORT, -1);
+                    SignedObjectStore.Codec.REPORT);
         } catch (final Exception e) {
             Log.err(e.getMessage(), e);
         }

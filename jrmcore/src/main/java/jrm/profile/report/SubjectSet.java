@@ -1,9 +1,5 @@
 package jrm.profile.report;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.ObjectStreamField;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -23,11 +19,6 @@ import jrm.profile.data.AnywareBase;
  * @since 1.0
  */
 public class SubjectSet extends Subject {
-    /**
-     * Field serialization key for the validation status.
-     */
-    private static final String STATUS_STR = "status";
-
     /**
      * Serial version identifier for object serialization compatibility.
      */
@@ -66,39 +57,6 @@ public class SubjectSet extends Subject {
          * The romset is completely missing and cannot be built from local resources.
          */
         MISSING;
-    }
-
-    /**
-     * Defines the persistent Java serialization fields for this subject set.
-     */
-    private static final ObjectStreamField[] serialPersistentFields = { // NOSONAR
-            new ObjectStreamField(STATUS_STR, Status.class)
-    };
-
-    /**
-     * Serializes the status of this subject set.
-     *
-     * @param stream the destination ObjectOutputStream
-     * 
-     * @throws IOException if an I/O error occurs
-     */
-    private void writeObject(final java.io.ObjectOutputStream stream) throws IOException {
-        final ObjectOutputStream.PutField fields = stream.putFields();
-        fields.put(STATUS_STR, status);
-        stream.writeFields();
-    }
-
-    /**
-     * Deserializes the status of this subject set.
-     *
-     * @param stream the source ObjectInputStream
-     * 
-     * @throws IOException if an I/O error occurs
-     * @throws ClassNotFoundException if the target class cannot be loaded
-     */
-    private void readObject(final java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
-        final ObjectInputStream.GetField fields = stream.readFields();
-        status = (Status) fields.get(STATUS_STR, Status.UNKNOWN);
     }
 
     /**

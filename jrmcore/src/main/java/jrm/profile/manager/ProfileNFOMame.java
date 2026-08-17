@@ -10,12 +10,8 @@ package jrm.profile.manager;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.ObjectStreamField;
 import java.io.Serializable;
 import java.nio.file.Files;
-import java.util.Optional;
 
 import jrm.locale.Messages;
 import jrm.misc.Log;
@@ -29,31 +25,6 @@ import lombok.Setter;
  * @author optyfr
  */
 public final class ProfileNFOMame implements Serializable {
-    /**
-     * Serialization key constant for the software list DAT file path.
-     */
-    private static final String FILESL_STR = "filesl";
-
-    /**
-     * Serialization key constant for the primary ROMs DAT file path.
-     */
-    private static final String FILEROMS_STR = "fileroms";
-
-    /**
-     * Serialization key constant for the software list availability flag.
-     */
-    private static final String SL_STR = "sl";
-
-    /**
-     * Serialization key constant for the executable's modification date.
-     */
-    private static final String MODIFIED_STR = "modified";
-
-    /**
-     * Serialization key constant for the MAME executable file path.
-     */
-    private static final String FILE_STR = "file";
-
     /**
      * Serial version UID for maintaining serialization compatibility across releases.
      */
@@ -93,63 +64,12 @@ public final class ProfileNFOMame implements Serializable {
     private @Getter @Setter File filesl = null;
 
     /**
-     * Declares persistent serialization fields for compliant and predictable manual object serialization.
-     * 
-     * @serialField file File the MAME executable file location
-     * @serialField modified Long the last recorded MAME executable modification timestamp
-     * @serialField sl boolean software list active flag
-     * @serialField fileroms File primary ROMs XML DAT file path
-     * @serialField filesl File software list XML DAT file path
-     */
-    private static final ObjectStreamField[] serialPersistentFields = { // NOSONAR
-            new ObjectStreamField(FILE_STR, File.class), // $NON-NLS-1$
-            new ObjectStreamField(MODIFIED_STR, Long.class), // $NON-NLS-1$
-            new ObjectStreamField(SL_STR, Boolean.TYPE), // $NON-NLS-1$
-            new ObjectStreamField(FILEROMS_STR, File.class), // $NON-NLS-1$
-            new ObjectStreamField(FILESL_STR, File.class), // $NON-NLS-1$
-    };
-
-    /**
      * Default zero-argument constructor for initializing an empty MAME metadata profile.
      */
     public ProfileNFOMame() {
         // Default constructor
     }
 
-    /**
-     * Manually serializes the state of this MAME metadata instance to the destination stream.
-     * 
-     * @param stream the target {@link ObjectOutputStream}
-     * 
-     * @throws IOException if a physical write error occurs
-     */
-    private void writeObject(final java.io.ObjectOutputStream stream) throws IOException {
-        final var fields = stream.putFields();
-        fields.put(FILE_STR, file); // $NON-NLS-1$
-        fields.put(MODIFIED_STR, modified); // $NON-NLS-1$
-        fields.put(SL_STR, sl); // $NON-NLS-1$
-        fields.put(FILEROMS_STR, fileroms); // $NON-NLS-1$
-        fields.put(FILESL_STR, filesl); // $NON-NLS-1$
-        stream.writeFields();
-    }
-
-    /**
-     * Manually deserializes the state of this MAME metadata instance from the source stream.
-     * 
-     * @param stream the source {@link ObjectInputStream}
-     * 
-     * @throws IOException if a physical read error occurs
-     * @throws ClassNotFoundException if any serialized class representation cannot be resolved
-     */
-    private void readObject(final java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
-        final ObjectInputStream.GetField fields = stream.readFields();
-        file = (File) fields.get(FILE_STR, null); // $NON-NLS-1$
-        modified = Optional.ofNullable((Long) fields.get(MODIFIED_STR, (Long) 0L)).orElse(0L); // $NON-NLS-1$
-        sl = fields.get(SL_STR, false); // $NON-NLS-1$
-        fileroms = (File) fields.get(FILEROMS_STR, null); // $NON-NLS-1$
-        filesl = (File) fields.get(FILESL_STR, null); // $NON-NLS-1$
-    }
-    
     /**
      * Categorizes the physical existence, version synchronization, and integrity status of the configured MAME executable and its
      * corresponding extracted XML databases.

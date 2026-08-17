@@ -8,7 +8,6 @@
  */
 package jrm.profile.data;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -59,16 +58,16 @@ public final class MachineList extends AnywareList<Machine> {
     }
 
     /**
-     * the Serializable method for special serialization handling (in that case : initialize transient default values)
-     * 
-     * @param in the serialization inputstream
-     * 
-     * @throws IOException if an I/O error occurs
-     * @throws ClassNotFoundException if the class definition is missing
+     * Reinitializes this list, each machine, and sample-set parents after Fory load.
      */
-    private void readObject(final java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-        super.initTransient();
+    public void afterLoad() {
+        initTransient();
+        for (final Machine machine : getList())
+            machine.initTransient();
+        for (final Samples samples : samplesets) {
+            for (final Sample sample : samples)
+                sample.parent = samples;
+        }
     }
 
     @Override

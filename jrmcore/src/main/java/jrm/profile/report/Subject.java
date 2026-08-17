@@ -1,7 +1,5 @@
 package jrm.profile.report;
 
-import java.io.IOException;
-import java.io.ObjectStreamField;
 import java.io.Serializable;
 import java.util.AbstractList;
 import java.util.ArrayList;
@@ -25,16 +23,6 @@ import lombok.Getter;
  * @since 1.0
  */
 public abstract class Subject extends AbstractList<Note> implements StatusRendererFactory, Serializable {
-    /**
-     * Field serialization key for the associated gaming ware model.
-     */
-    private static final String WARE_STR = "ware";
-
-    /**
-     * Field serialization key for the underlying list of status notes.
-     */
-    private static final String NOTES_STR = "notes";
-
     private static final long serialVersionUID = 2L;
 
     /**
@@ -60,44 +48,6 @@ public abstract class Subject extends AbstractList<Note> implements StatusRender
      * The transient index identifier assigned to this subject.
      */
     protected transient int id = -1;
-
-    /**
-     * List of persistent serializable fields for standard Java Object streams.
-     */
-    private static final ObjectStreamField[] serialPersistentFields = { // NOSONAR
-            new ObjectStreamField(WARE_STR, AnywareBase.class),
-            new ObjectStreamField(NOTES_STR, List.class)
-    };
-
-    /**
-     * Serializes the state of this subject to an object output stream.
-     *
-     * @param stream the object output stream to write to
-     * 
-     * @throws IOException if an I/O error occurs during serialization
-     */
-    private void writeObject(final java.io.ObjectOutputStream stream) throws IOException {
-        final var fields = stream.putFields();
-        fields.put(WARE_STR, ware); // $NON-NLS-1$
-        fields.put(NOTES_STR, notes); // $NON-NLS-1$
-        stream.writeFields();
-    }
-
-    /**
-     * Deserializes the state of this subject from an object input stream.
-     *
-     * @param stream the object input stream to read from
-     * 
-     * @throws IOException if an I/O error occurs
-     * @throws ClassNotFoundException if the class of a serialized object cannot be found
-     */
-    @SuppressWarnings("unchecked")
-    private void readObject(final java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
-        final var fields = stream.readFields();
-        ware = (AnywareBase) fields.get(WARE_STR, null); // $NON-NLS-1$
-        notes = (List<Note>) fields.get(NOTES_STR, new ArrayList<>()); // $NON-NLS-1$
-        notes.forEach(n -> n.parent = this);
-    }
 
     /**
      * Constructs a new Subject associated with the specified gaming system model.

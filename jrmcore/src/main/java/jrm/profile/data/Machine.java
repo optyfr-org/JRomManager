@@ -8,7 +8,6 @@
  */
 package jrm.profile.data;
 
-import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -303,23 +302,10 @@ public class Machine extends Anyware {
     }
 
     /**
-     * The Serializable method for special serialization handling (in that case : initialize transient default values).
-     *
-     * @param in the serialization inputstream
-     * 
-     * @throws IOException if an I/O error occurs
-     * @throws ClassNotFoundException if class definition is missing
-     */
-    private void readObject(final java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-        initTransient();
-    }
-
-    /**
      * The method called to initialize transient and static fields.
      */
     @Override
-    protected void initTransient() {
+    public void initTransient() {
         super.initTransient();
         deviceMachines = new HashMap<>();
     }

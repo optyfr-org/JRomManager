@@ -65,16 +65,12 @@ public final class SoftwareListList extends AnywareListList<SoftwareList> implem
     }
 
     /**
-     * The Serializable method for special serialization handling (initializing transient default values).
-     * 
-     * @param in the serialization inputstream
-     * 
-     * @throws IOException if an I/O error occurs
-     * @throws ClassNotFoundException if the class could not be resolved
+     * Reinitializes this list and each software list after Fory load.
      */
-    private void readObject(final java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
+    public void afterLoad() {
         initTransient();
+        for (final SoftwareList list : getList())
+            list.afterLoad();
     }
 
     /**

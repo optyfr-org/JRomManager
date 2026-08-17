@@ -8,7 +8,6 @@
  */
 package jrm.profile.data;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -66,16 +65,12 @@ public final class SoftwareList extends AnywareList<Software> implements Systm {
     }
 
     /**
-     * Custom deserialization method to restore and initialize transient default values.
-     * 
-     * @param in the serialization input stream
-     * 
-     * @throws IOException if an I/O error occurs
-     * @throws ClassNotFoundException if class resolution fails
+     * Reinitializes this list and each software item after Fory load.
      */
-    private void readObject(final java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
+    public void afterLoad() {
         initTransient();
+        for (final Software software : getList())
+            software.initTransient();
     }
 
     /**

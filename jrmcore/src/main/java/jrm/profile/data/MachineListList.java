@@ -67,16 +67,13 @@ public final class MachineListList extends AnywareListList<MachineList> {
     }
 
     /**
-     * The Serializable method for special serialization handling (in that case : initialize transient default values).
-     *
-     * @param in the serialization inputstream
-     * 
-     * @throws IOException if an I/O error occurs
-     * @throws ClassNotFoundException if the class definition is missing
+     * Reinitializes this list and every nested machine/software list after Fory load.
      */
-    private void readObject(final java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
+    public void afterLoad() {
         initTransient();
+        for (final MachineList list : getList())
+            list.afterLoad();
+        softwareListList.afterLoad();
     }
 
     @Override

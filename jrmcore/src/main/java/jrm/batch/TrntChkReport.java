@@ -19,7 +19,6 @@ import jrm.misc.Log;
 import jrm.profile.report.FilterOptions;
 import jrm.profile.report.ReportIntf;
 import jrm.profile.report.Subject;
-import jrm.security.DeserializationFilter;
 import jrm.security.Session;
 import jrm.security.SignedObjectStore;
 import lombok.Getter;
@@ -30,15 +29,6 @@ import lombok.experimental.Accessors;
 public final class TrntChkReport implements Serializable, StatusRendererFactory, ReportIntf<TrntChkReport> {
     /** the serial version UID for serialization compatibility */
     private static final long serialVersionUID = 4L;
-
-    /**
-     * Maximum object graph depth allowed when deserializing a torrent-check report.
-     * <p>
-     * {@link TorrentChecker#checkBlocksFile} nests one {@link Child} per torrent piece, so the depth limit must be high enough
-     * to accommodate large torrents without rejecting legitimate reports.
-     * </p>
-     */
-    private static final int MAX_DESERIALIZATION_DEPTH = 1_000_000;
 
     /**
      * the atomic counter for generating unique IDs for Child nodes (not serialized)
@@ -85,6 +75,21 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
      */
     public TrntChkReport(final File src) {
         this.file = src;
+    }
+
+    /**
+     * Restores transient UID counter and filter after Fory deserialization.
+     */
+    public void afterLoad() {
+        long maxUid = 0L;
+        if (all != null) {
+            for (final Long uid : all.keySet()) {
+                if (uid != null && uid > maxUid)
+                    maxUid = uid;
+            }
+        }
+        uidCnt = new AtomicLong(maxUid);
+        filterPredicate = new FilterPredicate(new HashSet<>());
     }
 
     /**
@@ -377,7 +382,7 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
      */
     public void save(final Session session, final File file) {
         try {
-            SignedObjectStore.write(session, file, TrntChkReport.this);
+            SignedObjectStore.write(session, file, TrntChkReport.this, SignedObjectStore.Codec.TRNTCHK);
         } catch (final Exception e) {
             Log.warn(e.getMessage());
         }
@@ -400,7 +405,7 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
         try {
             final var reportFile = ReportIntf.getReportFile(session, file);
             final TrntChkReport report = (TrntChkReport) SignedObjectStore.read(session, reportFile,
-                    DeserializationFilter.Mode.REPORT, MAX_DESERIALIZATION_DEPTH);
+                    SignedObjectStore.Codec.TRNTCHK);
             report.file = file;
             report.fileModified = reportFile.lastModified();
             return report;

@@ -10,9 +10,6 @@ package jrm.profile.report;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.ObjectStreamField;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.time.LocalDateTime;
@@ -45,7 +42,6 @@ import jrm.misc.Log;
 import jrm.misc.SettingsEnum;
 import jrm.profile.Profile;
 import jrm.profile.data.Anyware;
-import jrm.security.DeserializationFilter;
 import jrm.security.Session;
 import jrm.security.SignedObjectStore;
 import lombok.Getter;
@@ -62,21 +58,6 @@ import one.util.streamex.IntStreamEx;
  * @since 1.0
  */
 public class Report extends AbstractList<Subject> implements StatusRendererFactory, Serializable, ReportIntf<Report> {
-    /**
-     * Field serialization key for the report file destination.
-     */
-    private static final String REPORT_FILE_STR = "reportFile";
-
-    /**
-     * Field serialization key for the scanning statistics.
-     */
-    private static final String STATS_STR = "stats";
-
-    /**
-     * Field serialization key for the list of subjects.
-     */
-    private static final String SUBJECTS_STR = "subjects";
-
     /**
      * Serial version identifier for object serialization compatibility.
      */
@@ -148,48 +129,23 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
     private transient ReportTreeHandler<Report> handler = null;
 
     /**
-     * Declares the persistent Java serialization fields.
+     * Rewires transient parent links and filters after Fory deserialization.
      */
-    private static final ObjectStreamField[] serialPersistentFields = { // NOSONAR
-            new ObjectStreamField(SUBJECTS_STR, List.class),
-            new ObjectStreamField(STATS_STR, Stats.class),
-            new ObjectStreamField(REPORT_FILE_STR, File.class)
-    };
-
-    /**
-     * Writes the persistent report state parameters to a Java serialization stream.
-     *
-     * @param stream the target ObjectOutputStream
-     * 
-     * @throws IOException if an input/output exception occurs during serialization
-     */
-    private void writeObject(final java.io.ObjectOutputStream stream) throws IOException {
-        final ObjectOutputStream.PutField fields = stream.putFields();
-        fields.put(SUBJECTS_STR, subjects); // $NON-NLS-1$
-        fields.put(STATS_STR, stats); // $NON-NLS-1$
-        fields.put(REPORT_FILE_STR, reportFile); // $NON-NLS-1$
-        stream.writeFields();
-    }
-
-    /**
-     * Restores the persistent report state parameters from a Java serialization stream.
-     *
-     * @param stream the source ObjectInputStream
-     * 
-     * @throws IOException if an input/output exception occurs during deserialization
-     * @throws ClassNotFoundException if the target serializable class cannot be loaded
-     */
-    @SuppressWarnings("unchecked")
-    private void readObject(final java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
-        final ObjectInputStream.GetField fields = stream.readFields();
-        subjects = (List<Subject>) fields.get(SUBJECTS_STR, Collections.synchronizedList(new ArrayList<>())); // $NON-NLS-1$
-        stats = (Stats) fields.get(STATS_STR, new Stats()); // $NON-NLS-1$
-        reportFile = (File) fields.get(REPORT_FILE_STR, (File) null);
+    public void afterLoad() {
+        if (subjects == null)
+            subjects = Collections.synchronizedList(new ArrayList<>());
+        if (stats == null)
+            stats = new Stats();
         subjectHash = subjects.stream()
-                .peek(s -> s.parent = this) // NOSONAR
+                .peek(s -> {
+                    s.parent = this;
+                    if (s.notes != null)
+                        s.notes.forEach(n -> n.parent = s);
+                    if (s.ware instanceof Anyware ware)
+                        ware.initTransient();
+                })
                 .collect(Collectors.toMap(Subject::getWareName, Function.identity(), (_, _) -> null));
         filterPredicate = new FilterPredicate(new HashSet<>());
-        handler = new ReportTreeDefaultHandler(this);
     }
 
     /**
@@ -1035,7 +991,7 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
      */
     public void save(final Session session, final File file) {
         try {
-            SignedObjectStore.write(session, file, Report.this);
+            SignedObjectStore.write(session, file, Report.this, SignedObjectStore.Codec.REPORT);
         } catch (final Exception _) {
             // Silently fail to maintain stability on faulty file systems
         }
@@ -1056,7 +1012,7 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
     public static Report load(final Session session, final File file) {
         try {
             final var reportFile = ReportIntf.getReportFile(session, file);
-            Report report = (Report) SignedObjectStore.read(session, reportFile, DeserializationFilter.Mode.REPORT, -1);
+            Report report = (Report) SignedObjectStore.read(session, reportFile, SignedObjectStore.Codec.REPORT);
             report.file = file;
             report.fileModified = reportFile.lastModified();
             report.handler = new ReportTreeDefaultHandler(report);

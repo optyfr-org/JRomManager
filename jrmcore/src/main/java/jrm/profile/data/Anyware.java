@@ -8,7 +8,6 @@
  */
 package jrm.profile.data;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -116,22 +115,9 @@ public abstract class Anyware extends AnywareBase implements Systm {
     }
 
     /**
-     * Handles custom deserialization by executing default read operations and resetting transient states.
-     * 
-     * @param in the object input stream to read from
-     * 
-     * @throws IOException if an I/O error occurs during serialization
-     * @throws ClassNotFoundException if the class of a serialized object cannot be found
-     */
-    private void readObject(final java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-        initTransient();
-    }
-
-    /**
      * Initializes transient, static, and relational parent fields to their default starting states.
      */
-    protected void initTransient() {
+    public void initTransient() {
         collision = false;
         tableEntities = null;
         roms.forEach(r -> r.parent = this);

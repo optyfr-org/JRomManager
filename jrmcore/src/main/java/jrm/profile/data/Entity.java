@@ -8,9 +8,6 @@
  */
 package jrm.profile.data;
 
-import java.io.IOException;
-import java.io.ObjectStreamField;
-
 import jrm.misc.ProfileSettings;
 import jrm.profile.scan.options.HashCollisionOptions;
 import lombok.Getter;
@@ -23,34 +20,17 @@ import lombok.Setter;
  * @author optyfr
  */
 public abstract class Entity extends EntityBase {
-    /**
-     * Serialization field name for dump status.
-     */
+    /** XML attribute name for dump status. */
     protected static final String STATUS_STR = "status";
-
-    /**
-     * Serialization field name for merge target name.
-     */
+    /** XML attribute name for merge target. */
     protected static final String MERGE_STR = "merge";
-
-    /**
-     * Serialization field name for MD5 checksum.
-     */
+    /** XML attribute name for MD5 checksum. */
     protected static final String MD5_STR = "md5";
-
-    /**
-     * Serialization field name for SHA-1 checksum.
-     */
+    /** XML attribute name for SHA-1 checksum. */
     protected static final String SHA1_STR = "sha1";
-
-    /**
-     * Serialization field name for CRC32 checksum.
-     */
+    /** XML attribute name for CRC32 checksum. */
     protected static final String CRC_STR = "crc";
-
-    /**
-     * Serialization field name for file size.
-     */
+    /** XML attribute name for file size. */
     protected static final String SIZE_STR = "size";
 
     /** Serial version UID for serialization compatibility. */
@@ -141,52 +121,6 @@ public abstract class Entity extends EntityBase {
         public Status getXML(final boolean is_mame) {
             return (Status.good == this || (is_mame && Status.verified == this)) ? null : this;
         }
-    }
-
-    /** Defines the serializable fields for custom serialization. */
-    private static final ObjectStreamField[] serialPersistentFields = { // NOSONAR
-            new ObjectStreamField(SIZE_STR, long.class),
-            new ObjectStreamField(CRC_STR, String.class),
-            new ObjectStreamField(SHA1_STR, String.class),
-            new ObjectStreamField(MD5_STR, String.class),
-            new ObjectStreamField(MERGE_STR, String.class),
-            new ObjectStreamField(STATUS_STR, Status.class)
-    };
-
-    /**
-     * Custom serialization writer.
-     *
-     * @param stream the object output stream
-     * 
-     * @throws IOException if an I/O error occurs
-     */
-    private void writeObject(final java.io.ObjectOutputStream stream) throws IOException {
-        final var fields = stream.putFields();
-        fields.put(SIZE_STR, size);
-        fields.put(CRC_STR, crc);
-        fields.put(SHA1_STR, sha1);
-        fields.put(MD5_STR, md5);
-        fields.put(MERGE_STR, merge);
-        fields.put(STATUS_STR, dumpStatus);
-        stream.writeFields();
-    }
-
-    /**
-     * Custom serialization reader.
-     *
-     * @param stream the object input stream
-     * 
-     * @throws IOException if an I/O error occurs
-     * @throws ClassNotFoundException if the class cannot be located
-     */
-    private void readObject(final java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
-        final var fields = stream.readFields();
-        size = fields.get(SIZE_STR, 0L);
-        crc = (String) fields.get(CRC_STR, null);
-        sha1 = (String) fields.get(SHA1_STR, null);
-        md5 = (String) fields.get(MD5_STR, null);
-        merge = (String) fields.get(MERGE_STR, null);
-        dumpStatus = (Status) fields.get(STATUS_STR, Status.good);
     }
 
     /**

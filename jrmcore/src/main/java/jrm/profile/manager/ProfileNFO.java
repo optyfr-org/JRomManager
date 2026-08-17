@@ -10,10 +10,6 @@ package jrm.profile.manager;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.InvalidClassException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.ObjectStreamField;
 import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -41,7 +37,6 @@ import org.xml.sax.helpers.DefaultHandler;
 
 import jrm.aui.status.StatusRendererFactory;
 import jrm.misc.Log;
-import jrm.security.DeserializationFilter;
 import jrm.security.Session;
 import jrm.security.SignedObjectStore;
 
@@ -55,26 +50,6 @@ import lombok.Setter;
  * @author optyfr
  */
 public final class ProfileNFO implements Serializable, StatusRendererFactory {
-    /**
-     * Field name constant for MAME info serialization.
-     */
-    private static final String MAME_STR = "mame";
-
-    /**
-     * Field name constant for profile statistics serialization.
-     */
-    private static final String STATS_STR = "stats";
-
-    /**
-     * Field name constant for profile name serialization.
-     */
-    private static final String NAME_STR = "name";
-
-    /**
-     * Field name constant for associated file serialization.
-     */
-    private static final String FILE_STR = "file";
-
     /**
      * Undefined status placeholder.
      */
@@ -148,53 +123,6 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
     private transient @Getter @Setter String newName = null;
 
     /**
-     * Declares persistent serialization fields for compliant manual object serialization.
-     * 
-     * @serialField file File the associated profile file location
-     * @serialField name String display name of this profile
-     * @serialField stats ProfileNFOStats completion statistics
-     * @serialField mame ProfileNFOMame MAME executable configurations
-     */
-    private static final ObjectStreamField[] serialPersistentFields = { // NOSONAR
-            new ObjectStreamField(FILE_STR, File.class),
-            new ObjectStreamField(NAME_STR, String.class),
-            new ObjectStreamField(STATS_STR, ProfileNFOStats.class),
-            new ObjectStreamField(MAME_STR, ProfileNFOMame.class)
-    };
-
-    /**
-     * Manually serializes the state of this profile NFO instance to the destination stream.
-     * 
-     * @param stream the target {@link ObjectOutputStream}
-     * 
-     * @throws IOException if a physical write error occurs
-     */
-    private void writeObject(final java.io.ObjectOutputStream stream) throws IOException {
-        final var fields = stream.putFields();
-        fields.put(FILE_STR, file); // $NON-NLS-1$
-        fields.put(NAME_STR, name); // $NON-NLS-1$
-        fields.put(STATS_STR, stats); // $NON-NLS-1$
-        fields.put(MAME_STR, mame); // $NON-NLS-1$
-        stream.writeFields();
-    }
-
-    /**
-     * Manually deserializes the state of this profile NFO instance from the source stream.
-     * 
-     * @param stream the source {@link ObjectInputStream}
-     * 
-     * @throws IOException if a physical read error occurs
-     * @throws ClassNotFoundException if any serialized class representation cannot be resolved
-     */
-    private void readObject(final java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
-        final ObjectInputStream.GetField fields = stream.readFields();
-        file = (File) fields.get(FILE_STR, null); // $NON-NLS-1$
-        name = (String) fields.get(NAME_STR, null); // $NON-NLS-1$
-        stats = (ProfileNFOStats) fields.get(STATS_STR, new ProfileNFOStats()); // $NON-NLS-1$
-        mame = (ProfileNFOMame) fields.get(MAME_STR, new ProfileNFOMame()); // $NON-NLS-1$
-    }
-
-    /**
      * Private internal constructor associating a profile NFO with its main database file. Sets the creation date and loads metadata
      * properties from JRM configuration file if possible.
      * 
@@ -242,8 +170,7 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
      * Loads metadata properties from an existing .nfo file if present and fresh, otherwise instantiates a new empty ProfileNFO for
      * the supplied profile file.
      * <p>
-     * <b>Security:</b> This method applies {@link DeserializationFilter} to prevent arbitrary code execution via malicious .nfo
-     * files.
+     * <b>Security:</b> This method loads through {@link SignedObjectStore} (HMAC + registered Fory classes).
      * </p>
      * 
      * @param session the current active security session
@@ -256,14 +183,12 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
         if (filenfo.lastModified() >= file.lastModified()) // $NON-NLS-1$
         {
             try {
-                final ProfileNFO nfo = (ProfileNFO) SignedObjectStore.read(session, filenfo);
+                final ProfileNFO nfo = (ProfileNFO) SignedObjectStore.read(session, filenfo, SignedObjectStore.Codec.CACHE);
                 if (nfo != null) {
                     // Never trust filesystem paths from serialized NFO; bind to the caller-resolved profile path.
                     nfo.bindToProfileFile(file);
                     return nfo;
                 }
-            } catch (final InvalidClassException e) {
-                Log.err("Deserialization security violation detected in .nfo file: " + filenfo.getAbsolutePath() + " - " + e.getMessage(), e);
             } catch (final Exception e) {
                 Log.err(e.getMessage(), e);
             }
@@ -305,7 +230,7 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
                 Log.err(e.getMessage(), e);
             }
         try {
-            SignedObjectStore.write(session, ProfileNFO.getFileNfo(session, file), this);
+            SignedObjectStore.write(session, ProfileNFO.getFileNfo(session, file), this, SignedObjectStore.Codec.CACHE);
         } catch (final Exception e) {
             Log.err(e.getMessage(), e);
         }

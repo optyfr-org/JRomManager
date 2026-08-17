@@ -284,6 +284,14 @@ public class Profile implements Serializable, StatusRendererFactory {
     }
 
     /**
+     * Reinitializes transient list/entity state after Fory deserialization.
+     */
+    public void afterLoad() {
+        if (machineListList != null)
+            machineListList.afterLoad();
+    }
+
+    /**
      * SAX Handler mapping parsed XML tags back into profile domain components.
      */
     private class ProfileHandler extends DefaultHandler {
@@ -1392,7 +1400,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      */
     public void save() {
         try {
-            SignedObjectStore.write(session, session.getUser().getSettings().getCacheFile(nfo.getFile()), this);
+            SignedObjectStore.write(session, session.getUser().getSettings().getCacheFile(nfo.getFile()), this, SignedObjectStore.Codec.CACHE);
         } catch (final Exception _) {
             // do nothing
         }
@@ -1593,7 +1601,7 @@ public class Profile implements Serializable, StatusRendererFactory {
         handler.setInfos(1, null);
         handler.setProgress(Messages.getString("Profile.LoadingCache"), -1); //$NON-NLS-1$
         try (final var in = handler.getInputStream(new java.io.FileInputStream(cachefile), (int) cachefile.length())) {
-            profile = (Profile) SignedObjectStore.read(session, in, (int) cachefile.length(), -1);
+            profile = (Profile) SignedObjectStore.read(session, in, (int) cachefile.length(), SignedObjectStore.Codec.CACHE);
             profile.session = session;
             session.setCurrProfile(profile);
             profile.nfo = nfo;

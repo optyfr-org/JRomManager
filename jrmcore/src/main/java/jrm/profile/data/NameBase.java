@@ -8,8 +8,6 @@
  */
 package jrm.profile.data;
 
-import java.io.IOException;
-import java.io.ObjectStreamField;
 import java.io.Serializable;
 
 /**
@@ -24,36 +22,6 @@ abstract class NameBase implements Serializable, Comparable<NameBase> {
      * The name of the entity.
      */
     protected String name = ""; // required //$NON-NLS-1$
-
-    private static final ObjectStreamField[] serialPersistentFields = { // NOSONAR
-            new ObjectStreamField("name", String.class)
-    };
-
-    /**
-     * Writes the entity name during serialization.
-     *
-     * @param stream the object output stream
-     * 
-     * @throws IOException if an I/O error occurs
-     */
-    private void writeObject(final java.io.ObjectOutputStream stream) throws IOException {
-        final var fields = stream.putFields();
-        fields.put("name", name);
-        stream.writeFields();
-    }
-
-    /**
-     * Reads the entity name during deserialization.
-     *
-     * @param stream the object input stream
-     * 
-     * @throws IOException if an I/O error occurs
-     * @throws ClassNotFoundException if the class cannot be located
-     */
-    private void readObject(final java.io.ObjectInputStream stream) throws IOException, ClassNotFoundException {
-        final var fields = stream.readFields();
-        name = (String) fields.get("name", "");
-    }
 
     /**
      * Retrieves the forged name of the entity, which may be modified depending on its concrete subclass implementation.

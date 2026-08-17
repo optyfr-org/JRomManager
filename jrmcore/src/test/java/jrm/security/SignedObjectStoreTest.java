@@ -57,7 +57,9 @@ class SignedObjectStoreTest {
         final Map<String, Long> loaded = (Map<String, Long>) SignedObjectStore.read(session, file);
 
         assertThat(loaded).containsExactlyInAnyOrderEntriesOf(original);
-        assertThat(Files.readAllBytes(file.toPath())).startsWith((byte) 'J', (byte) 'R', (byte) 'M', (byte) 'H');
+        final byte[] written = Files.readAllBytes(file.toPath());
+        assertThat(written).startsWith((byte) 'J', (byte) 'R', (byte) 'M', (byte) 'H');
+        assertThat(written[4]).isEqualTo((byte) 2);
         assertThat(Files.size(CacheIntegrityKey.keyFile(session))).isEqualTo(32);
     }
 
@@ -98,13 +100,34 @@ class SignedObjectStoreTest {
     }
 
     @Test
+    @DisplayName("JRMH v1 envelope should be rejected")
+    void jrmhV1EnvelopeShouldBeRejected() throws Exception {
+        final byte[] serialized = serialize("legacy-v1");
+        final byte[] hmac = computeWorkPathHmac(session, serialized);
+        final File file = tempDir.resolve("v1.cache").toFile();
+        try (final var out = Files.newOutputStream(file.toPath())) {
+            out.write(new byte[] { 'J', 'R', 'M', 'H', 1 });
+            out.write((hmac.length >> 24) & 0xFF);
+            out.write((hmac.length >> 16) & 0xFF);
+            out.write((hmac.length >> 8) & 0xFF);
+            out.write(hmac.length & 0xFF);
+            out.write(hmac);
+            out.write(serialized);
+        }
+
+        assertThatThrownBy(() -> SignedObjectStore.read(session, file))
+                .isInstanceOf(IOException.class)
+                .hasMessageContaining("version");
+    }
+
+    @Test
     @DisplayName("JRMH envelope signed with work-path key should be rejected")
     void workPathDerivedSignedPayloadShouldBeRejected() throws Exception {
         final byte[] serialized = serialize("forged");
         final byte[] hmac = computeWorkPathHmac(session, serialized);
         final File file = tempDir.resolve("forged.cache").toFile();
         try (final var out = Files.newOutputStream(file.toPath())) {
-            out.write(new byte[] { 'J', 'R', 'M', 'H', 1 });
+            out.write(new byte[] { 'J', 'R', 'M', 'H', 2 });
             out.write((hmac.length >> 24) & 0xFF);
             out.write((hmac.length >> 16) & 0xFF);
             out.write((hmac.length >> 8) & 0xFF);
