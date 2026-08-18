@@ -148,7 +148,7 @@ class H2 extends DB {
     /**
      * Resolves the database name by appending or removing the ".mv.db" extension based on the provided options. If the full option
      * is true and the name does not already end with ".db", it appends ".mv.db" to the name. If the full option is false and the
-     * name ends with ".db", it removes the ".db" extension from the name. Otherwise, it returns the name as is.
+     * name ends with ".mv.db", it removes the ".mv.db" extension from the name. Otherwise, it returns the name as is.
      * 
      * @param name The name of the database.
      * @param full Whether to append or remove the ".mv.db" extension based on the name.
@@ -158,7 +158,7 @@ class H2 extends DB {
     Path resolveName(String name, final boolean full) {
         if (full && !name.endsWith(".db"))
             return Paths.get(name + ".mv.db");
-        else if (!full && name.endsWith(".db"))
+        else if (!full && name.endsWith(".mv.db"))
             return Paths.get(name.substring(0, name.length() - 6));
         else
             return Paths.get(name);

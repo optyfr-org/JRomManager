@@ -56,10 +56,15 @@ class H2Test {
         }
 
         @Test
-        @DisplayName("full=false strips .mv.db suffix (6 chars) when .db present")
+        @DisplayName("full=false strips .mv.db suffix when present")
         void stripsDbSuffix() {
-            // The code strips 6 chars (.mv.db) when name ends with .db
             assertThat(h2.resolveName("testdb.mv.db", false)).hasToString("testdb");
+        }
+
+        @Test
+        @DisplayName("full=false does not over-truncate a bare .db suffix")
+        void doesNotStripBareDbSuffix() {
+            assertThat(h2.resolveName("testdb.db", false)).hasToString("testdb.db");
         }
 
         @Test
