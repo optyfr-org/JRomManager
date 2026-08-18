@@ -1434,10 +1434,12 @@ public final class DirScan extends PathAbstractor {
                 var path = entryPath;
                 if (entryPath == null)
                     path = getPath(entry);
-                MDigest[] digests = computeHash(path, algorithms);
-                updateEntryFromHashes(entry, digests);
-                if (entryPath == null)
-                    path.getFileSystem().close();
+                try {
+                    MDigest[] digests = computeHash(path, algorithms);
+                    updateEntryFromHashes(entry, digests);
+                } finally {
+                    closeOwnedPath(path, entryPath);
+                }
             } catch (NoSuchAlgorithmException e) {
                 Log.err(e.getMessage(), e);
             }
@@ -1456,19 +1458,21 @@ public final class DirScan extends PathAbstractor {
         var path = entryPath;
         if (entryPath == null)
             path = getPath(entry);
-        final var chdInfo = new CHDInfoReader(path.toFile());
-        if (options.sha1Disks) {
-            entry.setSha1(chdInfo.getSHA1());
-            if (null != entry.getSha1())
-                entriesBySha1.put(entry.getSha1(), entry);
+        try {
+            final var chdInfo = new CHDInfoReader(path.toFile());
+            if (options.sha1Disks) {
+                entry.setSha1(chdInfo.getSHA1());
+                if (null != entry.getSha1())
+                    entriesBySha1.put(entry.getSha1(), entry);
+            }
+            if (options.md5Disks) {
+                entry.setMd5(chdInfo.getMD5());
+                if (null != entry.getMd5())
+                    entriesByMd5.put(entry.getMd5(), entry);
+            }
+        } finally {
+            closeOwnedPath(path, entryPath);
         }
-        if (options.md5Disks) {
-            entry.setMd5(chdInfo.getMD5());
-            if (null != entry.getMd5())
-                entriesByMd5.put(entry.getMd5(), entry);
-        }
-        if (entryPath == null)
-            path.getFileSystem().close();
     }
 
     /**
@@ -1484,11 +1488,13 @@ public final class DirScan extends PathAbstractor {
             var path = entryPath;
             if (entryPath == null)
                 path = getPath(entry);
-            final Map<String, Object> entryZipAttrs = Files.readAttributes(path, "zip:*"); //$NON-NLS-1$
-            entry.setSize((Long) entryZipAttrs.get("size")); //$NON-NLS-1$
-            entry.setCrc(String.format("%08x", entryZipAttrs.get("crc"))); //$NON-NLS-1$ //$NON-NLS-2$
-            if (entryPath == null)
-                path.getFileSystem().close();
+            try {
+                final Map<String, Object> entryZipAttrs = Files.readAttributes(path, "zip:*"); //$NON-NLS-1$
+                entry.setSize((Long) entryZipAttrs.get("size")); //$NON-NLS-1$
+                entry.setCrc(String.format("%08x", entryZipAttrs.get("crc"))); //$NON-NLS-1$ //$NON-NLS-2$
+            } finally {
+                closeOwnedPath(path, entryPath);
+            }
         }
         entriesByCrc.put(entry.getCrc() + "." + entry.getSize(), entry); //$NON-NLS-1$
     }
@@ -1577,6 +1583,8 @@ public final class DirScan extends PathAbstractor {
 
     /**
      * Retrieves an isolated zip virtual path representing the target entry.
+     * The returned path's filesystem stays open; callers that opened it via this
+     * method must close it with {@link #closeOwnedPath(Path, Path)} after use.
      * 
      * @param entry the target entry details
      * 
@@ -1585,9 +1593,13 @@ public final class DirScan extends PathAbstractor {
      * @throws IOException if the target archive zip filesystem cannot be mapped
      */
     private Path getPath(final Entry entry) throws IOException {
-        try (final var srcfs = FileSystems.newFileSystem(entry.getParent().getFile().toPath(), (ClassLoader) null)) {
-            return srcfs.getPath(entry.getFile());
-        }
+        final var srcfs = FileSystems.newFileSystem(entry.getParent().getFile().toPath(), (ClassLoader) null);
+        return srcfs.getPath(entry.getFile());
+    }
+
+    private static void closeOwnedPath(final Path path, final Path entryPath) throws IOException {
+        if (entryPath == null && path != null)
+            path.getFileSystem().close();
     }
 
     /**
