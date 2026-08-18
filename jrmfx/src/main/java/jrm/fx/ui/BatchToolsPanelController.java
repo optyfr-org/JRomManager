@@ -520,7 +520,7 @@ public class BatchToolsPanelController extends BaseController {
                         ? Files.find(f.toPath(), Integer.MAX_VALUE, (p, attr) -> attr.isRegularFile() && FilenameUtils.isExtension(p.getFileName().toString(), extensions))
                         : Stream.of(f.toPath());
             } catch (IOException _) {
-                return null;
+                return Stream.empty();
             }
         }).map(FileResult::new).toList();
         set.addAll(ffiles);
