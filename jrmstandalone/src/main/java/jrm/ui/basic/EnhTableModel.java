@@ -61,7 +61,10 @@ public interface EnhTableModel extends TableModel {
      * @return the {@link TableCellEditor} associated with the specified column
      */
     public default TableCellEditor getColumnEditor(int columnIndex) {
-        return getCellEditors()[columnIndex];
+        final var editors = getCellEditors();
+        if (editors == null || columnIndex < 0 || columnIndex >= editors.length)
+            return null;
+        return editors[columnIndex];
     }
 
     /**
