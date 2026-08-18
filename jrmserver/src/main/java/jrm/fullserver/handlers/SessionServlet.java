@@ -15,8 +15,9 @@ import jrm.server.shared.WebSession;
  * Servlet implementation for managing user sessions.
  * <p>
  * This servlet handles POST requests to manage user sessions. It retrieves the current session from the request, checks if the user
- * is authenticated, and returns a JSON response indicating the authentication status and whether the user has admin privileges. If
- * any exceptions occur during processing, it logs the error and returns an internal server error status.
+ * is authenticated via {@link WebSession#hasUser()}, and returns a JSON response indicating the authentication status and whether
+ * the user has admin privileges. Unauthenticated sessions receive {@code 401 Unauthorized}. If any exceptions occur during
+ * processing, it logs the error and returns an internal server error status.
  * 
  * @author jrm
  * 
@@ -26,9 +27,9 @@ import jrm.server.shared.WebSession;
  */
 public class SessionServlet extends AbstractSessionServlet {
     /**
-     * Handles POST requests to manage user sessions. It retrieves the current session, checks authentication status, and returns a
-     * JSON response with the authentication status and admin privileges. If an error occurs, it logs the error and returns an
-     * internal server error status.
+     * Handles POST requests to manage user sessions. It retrieves the current session, reports authentication only when a user is
+     * attached, and returns a JSON response with the authentication status and admin privileges. Missing or unauthenticated
+     * sessions receive {@code 401 Unauthorized}. If an error occurs, it logs the error and returns an internal server error status.
      * 
      * @param req The HttpServletRequest object containing the client's request.
      * @param resp The HttpServletResponse object for sending the response back to the client.
@@ -39,9 +40,13 @@ public class SessionServlet extends AbstractSessionServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         try {
+            final var ws = (WebSession) req.getSession().getAttribute("session");
+            if (ws == null || !ws.hasUser()) {
+                resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
             final var jso = new JsonObject();
             jso.add("authenticated", true);
-            final var ws = (WebSession) req.getSession().getAttribute("session");
             jso.add("admin", ws.getUser().isAdmin());
             fillAndSendJSO(req, resp, jso);
         } catch (Exception e) {

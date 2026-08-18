@@ -95,6 +95,37 @@ class SessionServletTest {
         }
     }
 
+    @Nested
+    @DisplayName("doPost unauthenticated")
+    class DoPostUnauthenticatedTest {
+        @Test
+        @DisplayName("returns SC_UNAUTHORIZED when session has no user")
+        void doPostNoUser() throws Exception {
+            webSession = new WebSession("fullserver-unauth");
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            final HttpServletRequest req = buildRequest();
+
+            final SessionServlet servlet = new SessionServlet();
+            servlet.doPost(req, resp);
+
+            verify(resp).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            assertThat(webSession.hasUser()).isFalse();
+        }
+
+        @Test
+        @DisplayName("returns SC_UNAUTHORIZED when session attribute is missing")
+        void doPostMissingSession() throws Exception {
+            webSession = null;
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            final HttpServletRequest req = buildRequest();
+
+            final SessionServlet servlet = new SessionServlet();
+            servlet.doPost(req, resp);
+
+            verify(resp).setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        }
+    }
+
     /**
      * Tests that doPost sets the response status to SC_INTERNAL_SERVER_ERROR when an exception occurs while writing the response.
      */
