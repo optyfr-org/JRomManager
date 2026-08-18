@@ -11,10 +11,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.withSettings;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -186,6 +189,62 @@ class TorrentCheckerTest {
         Path torrentFile = tempDir.resolve(name + ".torrent");
         Files.write(torrentFile, root.bencode());
         return torrentFile;
+    }
+
+    /**
+     * Creates a multi-file torrent whose piece hashes match the provided file contents.
+     *
+     * @param name the torrent content name
+     * @param pieceLength the piece length in bytes
+     * @param fileNames destination file names
+     * @param contents file contents in torrent order
+     * @return the path to the created torrent file
+     */
+    private Path createHashedMultiFileTorrent(String name, int pieceLength, String[] fileNames, byte[][] contents)
+            throws IOException, NoSuchAlgorithmException {
+        final var concat = new ByteArrayOutputStream();
+        for (byte[] content : contents) {
+            concat.write(content);
+        }
+        final byte[] all = concat.toByteArray();
+        final int pieceCount = (all.length + pieceLength - 1) / pieceLength;
+        final byte[] pieces = new byte[pieceCount * 20];
+        final var md = MessageDigest.getInstance("SHA-1");
+        for (int i = 0; i < pieceCount; i++) {
+            final int off = i * pieceLength;
+            final int len = Math.min(pieceLength, all.length - off);
+            md.reset();
+            md.update(all, off, len);
+            System.arraycopy(md.digest(), 0, pieces, i * 20, 20);
+        }
+
+        BDictionary root = new BDictionary();
+        BDictionary info = new BDictionary();
+        info.add(new BByteString("name"), new BByteString(name));
+        info.add(new BByteString("piece length"), new BInt((long) pieceLength));
+        info.add(new BByteString("pieces"), new BByteString(pieces));
+
+        BList files = new BList();
+        for (int i = 0; i < fileNames.length; i++) {
+            BDictionary file = new BDictionary();
+            file.add(new BByteString("length"), new BInt((long) contents[i].length));
+            BList path = new BList();
+            path.add(new BByteString(fileNames[i]));
+            file.add(new BByteString("path"), path);
+            files.add(file);
+        }
+        info.add(new BByteString("files"), files);
+        root.add(new BByteString("info"), info);
+
+        Path torrentFile = tempDir.resolve(name + ".torrent");
+        Files.write(torrentFile, root.bencode());
+        return torrentFile;
+    }
+
+    private static byte[] filledBytes(int length, byte value) {
+        final byte[] data = new byte[length];
+        java.util.Arrays.fill(data, value);
+        return data;
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -448,6 +507,64 @@ class TorrentCheckerTest {
             verify(updater, atLeast(2)).updateResult(anyInt(), captor.capture());
             assertThat(captor.getAllValues()).contains("", "In progress...");
             assertThat(captor.getAllValues()).anyMatch(v -> !"In progress...".equals(v) && !v.isEmpty());
+        }
+
+        @Test
+        @DisplayName("SHA1 exact piece-boundary files should not access past the last hash")
+        void sha1ExactPieceBoundaryShouldNotAccessPastLastHash() throws Exception {
+            final byte[] file1 = filledBytes(16, (byte) 1);
+            final byte[] file2 = filledBytes(16, (byte) 2);
+            var torrentFile = createHashedMultiFileTorrent("sha1-exact", 16,
+                    new String[] { "file1.bin", "file2.bin" }, new byte[][] { file1, file2 });
+            var dstDir = tempDir.resolve("dst-sha1-exact");
+            Files.createDirectories(dstDir);
+            Files.write(dstDir.resolve("file1.bin"), file1);
+            Files.write(dstDir.resolve("file2.bin"), file2);
+
+            var sdrl = new SDRList<SrcDstResult>();
+            var checker = new TorrentChecker<>(session, progress, sdrl, jrm.io.torrent.options.TrntChkMode.SHA1,
+                    updater, new HashSet<>());
+            var result = checker.check(progress, new SrcDstResult(torrentFile.toString(), dstDir.toString()));
+
+            assertThat(result).contains("COMPLETE");
+        }
+
+        @Test
+        @DisplayName("SHA1 leftover last piece should hash the remaining bytes only")
+        void sha1LeftoverLastPieceShouldHashRemainingBytes() throws Exception {
+            final byte[] file1 = filledBytes(20, (byte) 3);
+            final byte[] file2 = filledBytes(8, (byte) 4);
+            var torrentFile = createHashedMultiFileTorrent("sha1-leftover", 16,
+                    new String[] { "file1.bin", "file2.bin" }, new byte[][] { file1, file2 });
+            var dstDir = tempDir.resolve("dst-sha1-leftover");
+            Files.createDirectories(dstDir);
+            Files.write(dstDir.resolve("file1.bin"), file1);
+            Files.write(dstDir.resolve("file2.bin"), file2);
+
+            var sdrl = new SDRList<SrcDstResult>();
+            var checker = new TorrentChecker<>(session, progress, sdrl, jrm.io.torrent.options.TrntChkMode.SHA1,
+                    updater, new HashSet<>());
+            var result = checker.check(progress, new SrcDstResult(torrentFile.toString(), dstDir.toString()));
+
+            assertThat(result).contains("COMPLETE");
+        }
+
+        @Test
+        @DisplayName("SHA1 exact piece-boundary missing files should not throw")
+        void sha1ExactPieceBoundaryMissingFilesShouldNotThrow() throws Exception {
+            final byte[] file1 = filledBytes(16, (byte) 5);
+            final byte[] file2 = filledBytes(16, (byte) 6);
+            var torrentFile = createHashedMultiFileTorrent("sha1-exact-missing", 16,
+                    new String[] { "file1.bin", "file2.bin" }, new byte[][] { file1, file2 });
+            var dstDir = tempDir.resolve("dst-sha1-exact-missing");
+            Files.createDirectories(dstDir);
+
+            var sdrl = new SDRList<SrcDstResult>();
+            var checker = new TorrentChecker<>(session, progress, sdrl, jrm.io.torrent.options.TrntChkMode.SHA1,
+                    updater, new HashSet<>());
+            var result = checker.check(progress, new SrcDstResult(torrentFile.toString(), dstDir.toString()));
+
+            assertThat(result).isNotNull().doesNotContain("COMPLETE").isNotEqualTo("Index 2 out of bounds for length 2");
         }
     }
 

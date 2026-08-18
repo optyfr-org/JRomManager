@@ -384,8 +384,11 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
                     return "cancelled...";
             }
             progress.setProgress2(String.format(session.getMsgs().getString(TORRENT_CHECKER_PIECE_PROGRESSION), current.get(), processing.get()), current.get(), processing.get()); // $NON-NLS-1$
-            applyPieceHash(data, data.pieceLength - data.toGo);
-            data.block.getData().setLength(data.pieceLength - data.toGo);
+            final long lastPieceLen = data.pieceLength - data.toGo;
+            if (lastPieceLen > 0) {
+                applyPieceHash(data, lastPieceLen);
+                data.block.getData().setLength(lastPieceLen);
+            }
             Log.info(String.format("piece counted %d, given %d, valid %d, completion=%.02f%%%n", data.pieceCnt, data.pieces.size(), data.pieceValid, //$NON-NLS-1$
                     data.pieceValid * 100.0 / data.pieceCnt));
             Log.info(String.format("piece len : %d%n", data.pieceLength)); //$NON-NLS-1$
@@ -458,7 +461,8 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
 
     private void applyPieceHash(final CheckBlocksData data, final long completedLength) {
         if (data.valid.get()) {
-            if (Hex.encodeHexString(data.md.digest()).equalsIgnoreCase(data.pieces.get(data.pieceCnt - 1))) {
+            if (data.pieceCnt > 0 && data.pieceCnt <= data.pieces.size()
+                    && Hex.encodeHexString(data.md.digest()).equalsIgnoreCase(data.pieces.get(data.pieceCnt - 1))) {
                 data.pieceValid++;
                 data.block.setStatus(Status.OK);
             } else {
@@ -473,12 +477,14 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
     private void finalizePiece(final CheckBlocksData data, final TrntChkReport report, final long completedLength) {
         applyPieceHash(data, completedLength);
         data.md.reset();
-        data.pieceCnt++;
-        data.block = report.add(String.format("Piece %d", data.pieceCnt));
-        data.block.getData().setLength(data.pieceLength);
-        data.node = data.block.add(data.node);
         current.incrementAndGet();
         data.valid.set(true);
+        if (data.pieceCnt < data.pieces.size()) {
+            data.pieceCnt++;
+            data.block = report.add(String.format("Piece %d", data.pieceCnt));
+            data.block.getData().setLength(data.pieceLength);
+            data.node = data.block.add(data.node);
+        }
     }
 
     private void revalidateRemainingFile(final CheckBlocksData data, final Path resolved, final TorrentFile tfile) throws IOException {

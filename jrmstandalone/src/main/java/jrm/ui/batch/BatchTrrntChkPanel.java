@@ -111,13 +111,14 @@ public class BatchTrrntChkPanel extends JPanel {
                 final SrcDstResult sdr = new SrcDstResult();
                 final JsonObject jso = arrv.asObject();
                 final JsonValue src = jso.get("src"); //$NON-NLS-1$
-                if (src != Json.NULL)
+                if (src != null && src != Json.NULL)
                     sdr.setSrc(src.asString());
                 final JsonValue dst = jso.get("dst"); //$NON-NLS-1$
-                if (dst != Json.NULL)
+                if (dst != null && dst != Json.NULL)
                     sdr.setDst(dst.asString());
                 final JsonValue result = jso.get("result"); //$NON-NLS-1$
-                sdr.setResult(result.asString());
+                if (result != null && result != Json.NULL)
+                    sdr.setResult(result.asString());
                 sdr.setSelected(jso.getBoolean("selected", true)); //$NON-NLS-1$
                 sdrl2.add(sdr);
             }
