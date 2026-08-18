@@ -139,11 +139,13 @@ abstract class BaseController implements Initializable {
                     initialized = true;
                 } else {
                     final var parent = initial.getParent();
-                    if (Files.exists(parent) && Files.isDirectory(parent)) {
-                        chooser.setInitialDirectory(initial.getParent().toFile());
+                    if (parent != null && Files.exists(parent) && Files.isDirectory(parent)) {
+                        chooser.setInitialDirectory(parent.toFile());
                         initialized = true;
                     }
-                    chooser.setInitialFileName(initial.getFileName().toString());
+                    final var fileName = initial.getFileName();
+                    if (fileName != null)
+                        chooser.setInitialFileName(fileName.toString());
                 }
             }
         }
