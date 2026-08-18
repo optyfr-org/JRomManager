@@ -8,17 +8,14 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
@@ -56,7 +53,6 @@ import jrm.fx.ui.controls.Dialogs;
 import jrm.fx.ui.profile.filter.Keywords;
 import jrm.locale.Messages;
 import jrm.misc.Log;
-import jrm.misc.ProfileSettingsEnum;
 import jrm.profile.Profile;
 import jrm.profile.data.Anyware;
 import jrm.profile.data.AnywareList;
@@ -76,6 +72,7 @@ import jrm.profile.data.Software;
 import jrm.profile.data.SoftwareList;
 import jrm.profile.manager.Export.ExportType;
 import jrm.profile.manager.MameExecutable;
+import jrm.profile.manager.MameLaunch;
 import jrm.profile.manager.ProfileNFOMame;
 import jrm.profile.manager.ProfileNFOMame.MameStatus;
 import jrm.security.Session;
@@ -742,16 +739,7 @@ public class ProfileViewerController implements Initializable {
      * @param args    the argument list to populate
      */
     private void getMameArgsMachine(final Anyware ware, final Profile profile, final ProfileNFOMame mame, final ArrayList<String> args) {
-        final List<String> rompaths = new ArrayList<>(Collections.singletonList(profile.getProperty(ProfileSettingsEnum.roms_dest_dir))); // $NON-NLS-1$
-                                                                                                                                          // //$NON-NLS-2$
-        if (Boolean.TRUE.equals(profile.getProperty(ProfileSettingsEnum.disks_dest_dir_enabled, Boolean.class))) // $NON-NLS-1$
-            rompaths.add(profile.getProperty(ProfileSettingsEnum.disks_dest_dir)); // $NON-NLS-1$ //$NON-NLS-2$
-        args.add(mame.getFile().getAbsolutePath());
-        args.add(ware.getBaseName());
-        args.add("-homepath");
-        args.add(mame.getFile().getParent());
-        args.add("-rompath");
-        args.add(rompaths.stream().collect(Collectors.joining(";")));
+        args.addAll(MameLaunch.machine(mame.getFile(), ware.getBaseName(), mame.getFile().getParent(), MameLaunch.romPaths(profile, false)));
     }
 
     /**
@@ -765,35 +753,15 @@ public class ProfileViewerController implements Initializable {
      * @throws HeadlessException if running in a headless environment
      */
     private void getMameArgsSofware(final Anyware ware, final Profile profile, final ProfileNFOMame mame, final ArrayList<String> args) throws HeadlessException {
-        final List<String> rompaths = new ArrayList<>(Collections.singletonList(profile.getProperty(ProfileSettingsEnum.roms_dest_dir))); // $NON-NLS-1$
-                                                                                                                                          // //$NON-NLS-2$
-        if (Boolean.TRUE.equals(profile.getProperty(ProfileSettingsEnum.swroms_dest_dir_enabled, Boolean.class))) // $NON-NLS-1$
-            rompaths.add(profile.getProperty(ProfileSettingsEnum.swroms_dest_dir)); // $NON-NLS-1$ //$NON-NLS-2$
-        if (Boolean.TRUE.equals(profile.getProperty(ProfileSettingsEnum.disks_dest_dir_enabled, Boolean.class))) // $NON-NLS-1$
-            rompaths.add(profile.getProperty(ProfileSettingsEnum.disks_dest_dir)); // $NON-NLS-1$ //$NON-NLS-2$
-        if (Boolean.TRUE.equals(profile.getProperty(ProfileSettingsEnum.swdisks_dest_dir_enabled, Boolean.class))) // $NON-NLS-1$
-            rompaths.add(profile.getProperty(ProfileSettingsEnum.swdisks_dest_dir)); // $NON-NLS-1$ //$NON-NLS-2$
         Log.debug(() -> ((Software) ware).getSl().getBaseName() + ", " + ((Software) ware).getCompatibility()); //$NON-NLS-1$
         final var machines = new ChoiceDialog<Machine>(null,
                 profile.getMachineListList().getSortedMachines(((Software) ware).getSl().getBaseName(), ((Software) ware).getCompatibility()));
         final var machine = machines.showAndWait();
         machine.ifPresent(m -> {
-            final var device = new StringBuilder(); // $NON-NLS-1$
-            for (final var dev : m.getDevices()) {
-                if (Objects.equals(((Software) ware).getParts().get(0).getIntrface(), dev.getIntrface()) && dev.getInstance() != null) {
-                    device.append("-").append(dev.getInstance().getName()); //$NON-NLS-1$
-                    break;
-                }
-            }
+            final var device = MameLaunch.deviceInstance(ware, m);
             Log.debug(() -> "-> " + m.getBaseName() + " " + device + " " + ware.getBaseName()); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-            args.add(mame.getFile().getAbsolutePath());
-            args.add(m.getBaseName());
-            args.add(device.toString());
-            args.add(ware.getBaseName());
-            args.add("-homepath");
-            args.add(mame.getFile().getParent());
-            args.add("-rompath");
-            args.add(rompaths.stream().collect(Collectors.joining(";")));
+            args.addAll(MameLaunch.software(mame.getFile(), m.getBaseName(), device, ware.getBaseName(), mame.getFile().getParent(),
+                    MameLaunch.romPaths(profile, true)));
         });
     }
 
@@ -819,22 +787,24 @@ public class ProfileViewerController implements Initializable {
         }
         
         final var args = new ArrayList<String>();
-        if (ware instanceof Software) {
-            getMameArgsSofware(ware, profile, mame, args);
-        } else {
-            getMameArgsMachine(ware, profile, mame, args);
-        }
-        if (!args.isEmpty()) {
-            final ProcessBuilder pb = new ProcessBuilder(args).directory(mame.getFile().getParentFile()).redirectErrorStream(true)
-                    .redirectOutput(new File(mame.getFile().getParentFile(), "JRomManager.log")); //$NON-NLS-1$
-            try {
-                pb.start().waitFor();
-            } catch (final IOException e1) {
-                Dialogs.showError(e1);
-            } catch (final InterruptedException e1) {
-                Dialogs.showError(e1);
-                Thread.currentThread().interrupt();
+        try {
+            if (ware instanceof Software) {
+                getMameArgsSofware(ware, profile, mame, args);
+            } else {
+                getMameArgsMachine(ware, profile, mame, args);
             }
+            if (!args.isEmpty()) {
+                final ProcessBuilder pb = new ProcessBuilder(args).directory(mame.getFile().getParentFile()).redirectErrorStream(true)
+                        .redirectOutput(new File(mame.getFile().getParentFile(), "JRomManager.log")); //$NON-NLS-1$
+                pb.start().waitFor();
+            }
+        } catch (final IllegalArgumentException e1) {
+            Dialogs.showAlert(e1.getMessage());
+        } catch (final IOException e1) {
+            Dialogs.showError(e1);
+        } catch (final InterruptedException e1) {
+            Dialogs.showError(e1);
+            Thread.currentThread().interrupt();
         }
     }
 
