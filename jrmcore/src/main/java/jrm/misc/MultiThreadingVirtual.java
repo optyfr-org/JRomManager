@@ -274,8 +274,11 @@ public class MultiThreadingVirtual<K> implements ExecutorService, OffsetProvider
             semaphore.acquire();
             try {
                 final var id = allocOffset();
-                calledWith.call(entry);
-                freeOffset(id);
+                try {
+                    calledWith.call(entry);
+                } finally {
+                    freeOffset(id);
+                }
             } finally {
                 semaphore.release();
             }

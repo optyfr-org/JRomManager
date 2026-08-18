@@ -397,8 +397,11 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
         @Override
         public Void call() throws Exception {
             final var id = allocOffset();
-            calledWith.call(entry);
-            freeOffset(id);
+            try {
+                calledWith.call(entry);
+            } finally {
+                freeOffset(id);
+            }
             return null;
         }
     }
