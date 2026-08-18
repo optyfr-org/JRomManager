@@ -154,8 +154,8 @@ public class AddEntry extends EntryAction {
                 if (parent != null)
                     Files.createDirectories(parent);
                 Files.copy(srcpath, dstpath, StandardCopyOption.REPLACE_EXISTING);
+                return true;
             }
-            return true;
         } catch (final IOException e) {
             Log.err(String.format(ADD_FROM_S_AT_S_TO_S_AT_S_FAILED, entry.getParent().getFile().getName(), entry.getRelFile(), parent.container.getFile().getName(),
                     entity.getName()), e);
@@ -179,8 +179,8 @@ public class AddEntry extends EntryAction {
             if ((srcfile = srcarchive.extract(entry.getFile())) != null) {
                 zipp.setFileNameInZip(zentry);
                 zipf.addFile(srcfile, zipp);
+                return true;
             }
-            return true;
         } catch (final IOException e) {
             Log.err(String.format(ADD_FROM_S_AT_S_TO_S_AT_S_FAILED, entry.getParent().getFile().getName(), entry.getRelFile(), parent.container.getFile().getName(),
                     entity.getName()), e);
