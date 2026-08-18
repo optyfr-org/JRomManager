@@ -137,6 +137,40 @@ class SrcDstResultTest {
         }
 
         @Test
+        @DisplayName("fromJSONObject should skip assignment when optional fields are absent")
+        void fromJsonObjectShouldSkipAssignmentWhenOptionalFieldsAreAbsent() {
+            final var sdr = new SrcDstResult();
+            sdr.fromJSONObject(new JsonObject());
+
+            assertThat(sdr.getId()).isNull();
+            assertThat(sdr.getSrc()).isNull();
+            assertThat(sdr.getDst()).isNull();
+            assertThat(sdr.getResult()).isNull();
+            assertThat(sdr.isSelected()).isTrue();
+        }
+
+        @Test
+        @DisplayName("fromJSONObject should skip assignment when optional fields are Json.NULL")
+        void fromJsonObjectShouldSkipAssignmentWhenOptionalFieldsAreJsonNull() {
+            final var json = new JsonObject();
+            json.add("id", Json.NULL);
+            json.add("src", Json.NULL);
+            json.add("dst", Json.NULL);
+            json.add("result", Json.NULL);
+
+            final var sdr = new SrcDstResult();
+            sdr.setSrc("keep-src");
+            sdr.setDst("keep-dst");
+            sdr.setResult("keep-result");
+            sdr.fromJSONObject(json);
+
+            assertThat(sdr.getId()).isNull();
+            assertThat(sdr.getSrc()).isEqualTo("keep-src");
+            assertThat(sdr.getDst()).isEqualTo("keep-dst");
+            assertThat(sdr.getResult()).isEqualTo("keep-result");
+        }
+
+        @Test
         @DisplayName("fromJSONObject should default selected to true when key absent")
         void fromJsonObjectShouldDefaultSelectedToTrueWhenKeyAbsent() {
             final var json = new JsonObject();

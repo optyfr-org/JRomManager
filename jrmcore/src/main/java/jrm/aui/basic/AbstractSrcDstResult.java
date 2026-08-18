@@ -137,16 +137,22 @@ public abstract class AbstractSrcDstResult {
      */
     public void fromJSONObject(JsonObject jso) {
         JsonValue lId = jso.get("id"); //$NON-NLS-1$
-        if (lId != null && lId != Json.NULL)
+        if (isPresent(lId))
             setId(lId.asString());
         JsonValue lSrc = jso.get("src"); //$NON-NLS-1$
-        if (lSrc != Json.NULL)
+        if (isPresent(lSrc))
             setSrc(lSrc.asString());
         JsonValue lDst = jso.get("dst"); //$NON-NLS-1$
-        if (lDst != Json.NULL)
+        if (isPresent(lDst))
             setDst(lDst.asString());
-        setResult(jso.get("result").asString()); //$NON-NLS-1$
+        JsonValue lResult = jso.get("result"); //$NON-NLS-1$
+        if (isPresent(lResult))
+            setResult(lResult.asString());
         setSelected(jso.getBoolean("selected", true)); //$NON-NLS-1$
+    }
+
+    private static boolean isPresent(JsonValue value) {
+        return value != null && value != Json.NULL;
     }
 
     /**
