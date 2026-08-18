@@ -65,7 +65,7 @@ public class SettingsGenPanel extends JPanel {
 
         @Override
         public int hashCode() {
-            return super.hashCode();
+            return Integer.hashCode(cnt);
         }
 
         @Override
