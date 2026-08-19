@@ -121,13 +121,13 @@ public class Log {
      * 
      * @param file the path to the output log file
      * @param debug if {@code true}, console log outputs are enabled at FINE level
-     * @param limit maximum file size limit (currently overridden to 100MB internally)
-     * @param count maximum number of log files to keep in rotation (currently overridden to 5 internally)
+     * @param limit maximum file size limit
+     * @param count maximum number of log files to keep in rotation
      */
     public static void init(final String file, final boolean debug, final int limit, final int count) // NOSONAR
     {
         try {
-            final var filehandler = new FileHandler(file, 100 * 1024 * 1024, 5, false);
+            final var filehandler = new FileHandler(file, limit, count, false);
             filehandler.setFormatter(Log.formatter);
             Logger.getGlobal().setUseParentHandlers(false);
             Logger.getGlobal().addHandler(filehandler);
