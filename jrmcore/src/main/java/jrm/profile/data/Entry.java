@@ -11,6 +11,7 @@ package jrm.profile.data;
 import java.io.Serializable;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Objects;
 
 import org.apache.commons.io.FilenameUtils;
 
@@ -296,11 +297,21 @@ public class Entry implements Serializable {
 
     /**
      * Returns a hash code value for the entry.
+     * <p>
+     * The hash code is based on the same identifying fields used by {@link #equalsEntry(Object)}.
      *
      * @return a hash code value for this entry
      */
     @Override
     public int hashCode() {
+        if (sha1 != null)
+            return sha1.hashCode();
+        if (md5 != null)
+            return md5.hashCode();
+        if (crc != null)
+            return Objects.hash(crc, size);
+        if (modified != 0)
+            return Objects.hash(modified, size);
         return super.hashCode();
     }
 
