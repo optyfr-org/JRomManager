@@ -189,9 +189,7 @@ public class BatchTorrentResultsController implements Initializable {
     private void openAllNodes(javafx.event.ActionEvent e) {
         final var root = treeview.getRoot();
         treeview.setRoot(null);
-        for (TreeItem<?> child : root.getChildren())
-            if (!child.isLeaf())
-                child.setExpanded(true);
+        setExpandedAll(root, true);
         treeview.setRoot(root);
     }
 
@@ -204,10 +202,22 @@ public class BatchTorrentResultsController implements Initializable {
     private void closeAllNodes(javafx.event.ActionEvent e) {
         final var root = treeview.getRoot();
         treeview.setRoot(null);
-        for (TreeItem<?> child : root.getChildren())
-            if (!child.isLeaf())
-                child.setExpanded(false);
+        setExpandedAll(root, false);
         treeview.setRoot(root);
+    }
+
+    /**
+     * Recursively sets the expanded state of all non-leaf descendants.
+     *
+     * @param item the tree item to start from
+     * @param expanded the expanded state to apply
+     */
+    private static void setExpandedAll(TreeItem<?> item, boolean expanded) {
+        if (item.isLeaf())
+            return;
+        item.setExpanded(expanded);
+        for (TreeItem<?> child : item.getChildren())
+            setExpandedAll(child, expanded);
     }
 
 }
