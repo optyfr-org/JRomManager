@@ -580,7 +580,7 @@ public class Machine extends Anyware {
      */
     @Override
     public int hashCode() {
-        return super.hashCode();
+        return this.name.hashCode();
     }
 
     /**
