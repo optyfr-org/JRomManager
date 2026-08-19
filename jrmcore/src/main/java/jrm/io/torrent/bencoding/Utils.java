@@ -59,7 +59,7 @@ public @UtilityClass class Utils {
      */
     public static byte readNthByteFromFile(String path, long nth) {
         try (final var rf = new RandomAccessFile(path, "r")) {
-            if (rf.length() < nth)
+            if (rf.length() <= nth)
                 throw new EOFException("Reading outside of bounds of file"); //$NON-NLS-1$
 
             rf.seek(nth);
