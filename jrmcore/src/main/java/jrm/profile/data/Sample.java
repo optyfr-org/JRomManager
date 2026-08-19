@@ -59,19 +59,21 @@ public final class Sample extends EntityBase {
      */
     @Override
     public boolean equals(Object obj) {
-        if (obj == null)
+        if (this == obj)
+            return true;
+        if (!(obj instanceof Sample))
             return false;
-        return this.toString().equals(obj.toString());
+        return this.toString().equals(((Sample) obj).toString());
     }
 
     /**
      * Returns the hash code value for the sample.
      * 
-     * @return the hash code based on the base entity implementation
+     * @return the hash code based on the sample name
      */
     @Override
     public int hashCode() {
-        return super.hashCode();
+        return this.toString().hashCode();
     }
 
     /**
