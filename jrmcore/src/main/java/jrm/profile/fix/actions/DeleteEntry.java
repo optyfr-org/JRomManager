@@ -62,6 +62,7 @@ public class DeleteEntry extends EntryAction {
     public boolean doAction(Session session, ZipFile zipf, ZipParameters zipp, ProgressHandler handler, int i, int max) {
         Path path = null;
         try {
+            path = Path.of(entry.getFile());
             handler.setProgress(null, null, null, progress(i, max, String.format(session.getMsgs().getString(DELETE_ENTRY_DELETING), entry.getRelFile()))); // $NON-NLS-1$
             Log.info(() -> "remove " + entry.getFile() + " from " + zipf.getFile());
             final var ziphdr = zipf.getFileHeader(ZipTools.toZipEntry(entry.getFile()));
