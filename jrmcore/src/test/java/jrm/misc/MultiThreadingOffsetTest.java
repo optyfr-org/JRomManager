@@ -25,14 +25,14 @@ class MultiThreadingOffsetTest {
         @DisplayName("should recycle offset when calledWith throws")
         void shouldRecycleOffsetWhenCalledWithThrows() {
             final var progress = mock(ProgressHandler.class, withSettings().stubOnly());
-            final var pool = new MultiThreading<>("offset-throw", progress, 1, _ -> {
+            try (var pool = new MultiThreading<>("offset-throw", progress, 1, _ -> {
                 throw new IllegalStateException("boom");
-            });
+            })) {
+                pool.start(Stream.of("entry"));
 
-            pool.start(Stream.of("entry"));
-
-            assertThat(pool.freeOffsets()).containsExactly(0);
-            assertThat(pool.getOffset()).isEqualTo(-1);
+                assertThat(pool.freeOffsets()).containsExactly(0);
+                assertThat(pool.getOffset()).isEqualTo(-1);
+            }
         }
 
         @Test
@@ -60,14 +60,14 @@ class MultiThreadingOffsetTest {
         @DisplayName("should recycle offset when calledWith throws")
         void shouldRecycleOffsetWhenCalledWithThrows() {
             final var progress = mock(ProgressHandler.class, withSettings().stubOnly());
-            final var pool = new MultiThreadingVirtual<>("voffset-throw", progress, 1, _ -> {
+            try (var pool = new MultiThreadingVirtual<>("voffset-throw", progress, 1, _ -> {
                 throw new IllegalStateException("boom");
-            });
+            })) {
+                pool.start(Stream.of("entry"));
 
-            pool.start(Stream.of("entry"));
-
-            assertThat(pool.freeOffsets()).containsExactly(0);
-            assertThat(pool.getOffset()).isEqualTo(-1);
+                assertThat(pool.freeOffsets()).containsExactly(0);
+                assertThat(pool.getOffset()).isEqualTo(-1);
+            }
         }
 
         @Test
