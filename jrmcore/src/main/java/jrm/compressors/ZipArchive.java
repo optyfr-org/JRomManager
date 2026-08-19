@@ -206,8 +206,7 @@ public class ZipArchive implements Archive {
          */
         @Override
         public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
-            sfv.postVisitDirectory(dir, exc);
-            return FileVisitResult.CONTINUE;
+            return sfv.postVisitDirectory(dir, exc);
         }
 
         /**
