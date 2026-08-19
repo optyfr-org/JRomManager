@@ -100,6 +100,7 @@ version = props.getProperty("Specification-Version")+'.'+props.getProperty("Impl
 
 repositories {
     mavenCentral()
+    maven { url = "https://jitpack.io" }
     maven {
         url = uri("https://maven.pkg.github.com/optyfr/Jtrrntzip")
         credentials {
@@ -108,7 +109,6 @@ repositories {
             password = System.getenv("GITHUB_TOKEN") ?: ""
         }
     }
-    maven { url = "https://jitpack.io" }
 }
 
 configurations.all {
@@ -124,6 +124,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 subprojects {
     apply plugin: 'java'
+    apply plugin: 'jacoco'
     java {
         toolchain {
             languageVersion = JavaLanguageVersion.of(25)
@@ -163,7 +164,7 @@ subprojects {
         jacoco {
             enabled = true
         }
-        finalizedBy jacocoTestReport
+        finalizedBy tasks.named('jacocoTestReport')
         minHeapSize = "256m" // initial heap size
         maxHeapSize = "3G" // maximum heap size
         jvmArgs '-XX:+EnableDynamicAgentLoading',
@@ -174,8 +175,8 @@ subprojects {
             '--enable-native-access=ALL-UNNAMED'
     }
 
-    jacocoTestReport {
-        dependsOn test
+    tasks.named('jacocoTestReport') {
+        dependsOn tasks.named('test')
         reports {
             xml.required = true
             html.required = true
@@ -273,7 +274,7 @@ project(':jrmcore') {
                 xml.required = true
             }
         }
-        finalizedBy jacocoTestReport
+        finalizedBy tasks.named('jacocoTestReport')
         testLogging {
             // set options for log level LIFECYCLE
             events  TestLogEvent.FAILED,
@@ -384,7 +385,7 @@ project(':jrmcli') {
                 xml.required = true
             }
         }
-        finalizedBy jacocoTestReport
+        finalizedBy tasks.named('jacocoTestReport')
         testLogging {
             // set options for log level LIFECYCLE
             events  TestLogEvent.FAILED,
@@ -598,7 +599,7 @@ project(':jrmfx') {
                 xml.required = true
             }
         }
-        finalizedBy jacocoTestReport
+        finalizedBy tasks.named('jacocoTestReport')
         testLogging {
             // set options for log level LIFECYCLE
             events  TestLogEvent.FAILED,
@@ -648,7 +649,7 @@ project(':jrmserver') {
     apply plugin: "io.freefair.lombok"
     apply plugin: "eclipse"
 
-    compileJava.dependsOn project(':WebClient').build
+    compileJava.dependsOn ':WebClient:jar'
 
     def wcjar = project(':WebClient').jar;
     dependencies {
@@ -704,7 +705,7 @@ project(':jrmserver') {
 
     apply plugin: 'jacoco'
     test {
-        dependsOn ':WebClient:build'
+        dependsOn ':WebClient:jar'
 
         useJUnitPlatform {
             includeEngines 'junit-jupiter'
@@ -714,7 +715,7 @@ project(':jrmserver') {
                 xml.required = true
             }
         }
-        finalizedBy jacocoTestReport
+        finalizedBy tasks.named('jacocoTestReport')
         testLogging {
             // set options for log level LIFECYCLE
             events  TestLogEvent.FAILED,
@@ -1036,20 +1037,20 @@ distTar {
 }
 
 distZip.dependsOn jar
-distZip.dependsOn ':WebClient:build'
+distZip.dependsOn ':WebClient:jar'
 distZip.dependsOn extractDaemonWin
 distTar.dependsOn jar
-distTar.dependsOn ':WebClient:build'
+distTar.dependsOn ':WebClient:jar'
 distTar.dependsOn extractDaemonWin
 installDist.dependsOn jar
-installDist.dependsOn ':WebClient:build'
+installDist.dependsOn ':WebClient:jar'
 installDist.dependsOn extractDaemonWin
 if (os.isLinux()) {
     winDistZip.enabled = false
     winDistTar.enabled = false
     linuxDistZip.enabled = false
     linuxDistTar.dependsOn jar
-    linuxDistTar.dependsOn ':WebClient:build'
+    linuxDistTar.dependsOn ':WebClient:jar'
     linuxDistTar.dependsOn compileDaemonLinux
     linuxDistTar {
         compression = Compression.GZIP
@@ -1065,7 +1066,7 @@ else if (os.isWindows()) {
     linuxDistZip.enabled = false
     winDistTar.enabled = false
     winDistZip.dependsOn jar
-    winDistZip.dependsOn ':WebClient:build'
+    winDistZip.dependsOn ':WebClient:jar'
     winDistZip.dependsOn extractDaemonWin
     build.dependsOn winDistZip
 }
