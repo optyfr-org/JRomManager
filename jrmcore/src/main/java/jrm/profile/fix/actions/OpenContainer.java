@@ -225,7 +225,7 @@ public class OpenContainer extends ContainerAction {
         try {
             try (final var stream = Files.list(baseFolder)) {
                 for (final Path folder : stream.toList())
-                    filescnt += Files.isDirectory(folder) ? deleteEmptyFolders(folder) : 1;
+                    filescnt += Files.isDirectory(folder) ? deleteEmptyFolders(folder) : Files.size(folder);
             }
             if (filescnt == 0)
                 Files.deleteIfExists(baseFolder);
