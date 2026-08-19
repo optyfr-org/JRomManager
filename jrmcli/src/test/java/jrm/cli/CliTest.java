@@ -222,7 +222,7 @@ class CliTest {
                 "VERBOSE, 1",
                 "PREFS, 2",
                 "LOAD, 1",
-                "SETTINGS, 2",
+                "SETTINGS, 1",
                 "SCAN, 1",
                 "SCANRESULT, 2",
                 "FIX, 1",
