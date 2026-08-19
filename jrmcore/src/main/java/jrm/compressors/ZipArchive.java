@@ -227,10 +227,10 @@ public class ZipArchive implements Archive {
          */
         @Override
         public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs) throws IOException {
-            sfv.visitFile(file, attrs);
+            final FileVisitResult result = sfv.visitFile(file, attrs);
             if (cb != null)
                 cb.setCompleted(++cnt);
-            return FileVisitResult.CONTINUE;
+            return result;
         }
     }
 
