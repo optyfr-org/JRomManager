@@ -17,7 +17,7 @@ public enum CMD {
     VERBOSE("verbose"),
     PREFS("prefs", "env"),
     LOAD("load"),
-    SETTINGS("settings", "set"),
+    SETTINGS("settings"),
     SCAN("scan"),
     SCANRESULT("scanresult", "scanresults"),
     FIX("fix"),
