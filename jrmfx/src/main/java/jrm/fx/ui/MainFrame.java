@@ -161,7 +161,7 @@ public class MainFrame extends Application {
     }
 
     /** Cache of loaded icon images keyed by resource path. */
-    private static HashMap<String, Image> iconsCache = new HashMap<>();
+    private static final HashMap<String, Image> iconsCache = new HashMap<>();
     /** The module providing icon resources. */
     private static Optional<Module> iconsModule = ModuleLayer.boot().findModule("res.icons");
 
@@ -172,24 +172,28 @@ public class MainFrame extends Application {
      * @return the loaded image, or {@code null} if not found
      */
     public static Image getIcon(String res) {
-        if (!iconsCache.containsKey(res)) {
-            iconsModule.ifPresentOrElse(module -> {
-                try (final var in = module.getResourceAsStream(res)) {
-                    if (in != null)
-                        iconsCache.put(res, new Image(in));
-                } catch (Exception e) {
-                    Log.err(e.getMessage(), e);
-                }
-            }, () -> {
-                try (final var in = MainFrame.class.getResourceAsStream(res)) {
-                    if (in != null)
-                        iconsCache.put(res, new Image(in));
-                } catch (Exception e) {
-                    Log.err(e.getMessage(), e);
-                }
-            });
+        synchronized (iconsCache) {
+            Image image = iconsCache.get(res);
+            if (image == null) {
+                iconsModule.ifPresentOrElse(module -> {
+                    try (final var in = module.getResourceAsStream(res)) {
+                        if (in != null)
+                            iconsCache.put(res, new Image(in));
+                    } catch (Exception e) {
+                        Log.err(e.getMessage(), e);
+                    }
+                }, () -> {
+                    try (final var in = MainFrame.class.getResourceAsStream(res)) {
+                        if (in != null)
+                            iconsCache.put(res, new Image(in));
+                    } catch (Exception e) {
+                        Log.err(e.getMessage(), e);
+                    }
+                });
+                image = iconsCache.get(res);
+            }
+            return image;
         }
-        return iconsCache.get(res);
     }
 
     /**
