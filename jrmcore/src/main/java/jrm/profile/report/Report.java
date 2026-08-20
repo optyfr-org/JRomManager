@@ -294,112 +294,112 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
         /**
          * Increments the counter of totally missing sets.
          */
-        public void incMissingSetCnt() {
+        public synchronized void incMissingSetCnt() {
             ++missingSetCnt;
         }
 
         /**
          * Increments the counter of missing ROMs.
          */
-        public void incMissingRomsCnt() {
+        public synchronized void incMissingRomsCnt() {
             ++missingRomsCnt;
         }
 
         /**
          * Increments the counter of missing CHD disks.
          */
-        public void incMissingDisksCnt() {
+        public synchronized void incMissingDisksCnt() {
             ++missingDisksCnt;
         }
 
         /**
          * Increments the counter of missing audio samples.
          */
-        public void incMissingSamplesCnt() {
+        public synchronized void incMissingSamplesCnt() {
             ++missingSamplesCnt;
         }
 
         /**
          * Increments the counter of fixable ROMs.
          */
-        public void incFixableRomsCnt() {
+        public synchronized void incFixableRomsCnt() {
             ++fixableRomsCnt;
         }
 
         /**
          * Increments the counter of fixable CHD disks.
          */
-        public void incFixableDisksCnt() {
+        public synchronized void incFixableDisksCnt() {
             ++fixableDisksCnt;
         }
 
         /**
          * Increments the counter of unneeded sets.
          */
-        public void incSetUnneeded() {
+        public synchronized void incSetUnneeded() {
             ++setUnneeded;
         }
 
         /**
          * Increments the counter of missing sets.
          */
-        public void incSetMissing() {
+        public synchronized void incSetMissing() {
             ++setMissing;
         }
 
         /**
          * Increments the counter of sets found.
          */
-        public void incSetFound() {
+        public synchronized void incSetFound() {
             ++setFound;
         }
 
         /**
          * Increments the counter of perfectly matching sets.
          */
-        public void incSetFoundOk() {
+        public synchronized void incSetFoundOk() {
             ++setFoundOk;
         }
 
         /**
          * Increments the counter of partially fixable found sets.
          */
-        public void incSetFoundFixPartial() {
+        public synchronized void incSetFoundFixPartial() {
             ++setFoundFixPartial;
         }
 
         /**
          * Increments the counter of fully fixable found sets.
          */
-        public void incSetFoundFixComplete() {
+        public synchronized void incSetFoundFixComplete() {
             ++setFoundFixComplete;
         }
 
         /**
          * Increments the counter of sets to create.
          */
-        public void incSetCreate() {
+        public synchronized void incSetCreate() {
             ++setCreate;
         }
 
         /**
          * Increments the counter of partially constructible sets.
          */
-        public void incSetCreatePartial() {
+        public synchronized void incSetCreatePartial() {
             ++setCreatePartial;
         }
 
         /**
          * Increments the counter of fully constructible sets.
          */
-        public void incSetCreateComplete() {
+        public synchronized void incSetCreateComplete() {
             ++setCreateComplete;
         }
 
         /**
          * Resets all accumulated validation statistics and counters back to zero.
          */
-        public void clear() {
+        public synchronized void clear() {
             missingSetCnt = 0;
             missingRomsCnt = 0;
             missingDisksCnt = 0;
