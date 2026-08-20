@@ -16,6 +16,7 @@ import java.io.RandomAccessFile;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -87,7 +88,7 @@ abstract class NArchive extends NArchiveBase {
      * unnecessarily. The map allows for efficient access to the File instance associated with a given archive path, and it helps to
      * manage the lifecycle of the archive files during operations.
      */
-    private static final Map<String, File> archives = new HashMap<>();
+    private static final Map<String, File> archives = new ConcurrentHashMap<>();
 
     /**
      * Clears the static archive cache, releasing all cached {@link File} references.
@@ -193,10 +194,7 @@ abstract class NArchive extends NArchiveBase {
             }
         }
         this.readonly = readonly;
-        if (null == (this.archive = NArchive.archives.get(archive.getAbsolutePath()))) {
-            this.archive = archive;
-            NArchive.archives.put(archive.getAbsolutePath(), this.archive);
-        }
+        this.archive = NArchive.archives.computeIfAbsent(archive.getAbsolutePath(), k -> archive);
     }
 
     /**
