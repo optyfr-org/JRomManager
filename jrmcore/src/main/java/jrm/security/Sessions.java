@@ -1,7 +1,7 @@
 package jrm.security;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -39,7 +39,7 @@ public final @UtilityClass class Sessions {
      * Registry mapping unique session identifier strings to their respective active {@link Session} contexts. Used only when
      * {@link #singleMode} is false.
      */
-    private static final Map<String, Session> sessionsMap = new HashMap<>();
+    private static final Map<String, Session> sessionsMap = new ConcurrentHashMap<>();
 
     /**
      * Retrieves the single, globally active session, initializing it if necessary. This method can only be invoked when
