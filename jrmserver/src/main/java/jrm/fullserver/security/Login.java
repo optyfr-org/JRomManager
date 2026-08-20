@@ -354,7 +354,7 @@ public class Login extends SQL implements LoginService {
      * <p>
      * Note: The cache is used to improve performance by storing user identities in memory for a short period of time. The cache is
      * cleared if it has been more than 60 seconds since the last update to ensure that stale user identities are not used. The
-     * method is synchronized on the cache to ensure thread safety when accessing the cache.
+     * method is synchronized on the cache lock to ensure thread safety when accessing the cache.
      * <p>
      * The method returns true if the user's identity is valid (i.e., if a matching credential is found in the cache), or false if
      * the user's identity is not valid (i.e., if no matching credential is found in the cache). It is important to handle the
@@ -377,10 +377,15 @@ public class Login extends SQL implements LoginService {
     @Override
     public boolean validate(UserIdentity user) {
         Log.debug("validate");
-        for (val credential : user.getSubject().getPublicCredentials())
-            if (cache.containsKey(credential))
-                return true;
-        return false;
+        cacheLock.lock();
+        try {
+            for (val credential : user.getSubject().getPublicCredentials())
+                if (cache.containsKey(credential))
+                    return true;
+            return false;
+        } finally {
+            cacheLock.unlock();
+        }
     }
 
     /**
@@ -433,7 +438,7 @@ public class Login extends SQL implements LoginService {
      * Logs out a user by removing their identity from the cache. This method iterates through the public credentials of the user's
      * subject and removes any matching credentials from the cache. This effectively logs out the user by invalidating their cached
      * identity, ensuring that they will need to log in again to access protected resources. The method is synchronized on the cache
-     * to ensure thread safety when modifying the cache.
+     * lock to ensure thread safety when modifying the cache.
      * <p>
      * Note: The cache is used to improve performance by storing user identities in memory for a short period of time. The cache is
      * cleared if it has been more than 60 seconds since the last update to ensure that stale user identities are not used. The
@@ -456,8 +461,13 @@ public class Login extends SQL implements LoginService {
      */
     @Override
     public void logout(UserIdentity user) {
-        for (val credential : user.getSubject().getPublicCredentials())
-            cache.remove(credential);
+        cacheLock.lock();
+        try {
+            for (val credential : user.getSubject().getPublicCredentials())
+                cache.remove(credential);
+        } finally {
+            cacheLock.unlock();
+        }
     }
 
     /**
