@@ -484,7 +484,12 @@ project(':jrmstandalone') {
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher:latest-release'
     }
     apply plugin: 'application'
-    application.mainClass='jrm.JRomManager'
+    //application.mainClass='jrm.JRomManager'
+    application.mainClass='jrm.JRomManagerMulti'
+	run {
+		jvmArgs (
+		)
+	}
     jar {
         manifest {
             attributes(

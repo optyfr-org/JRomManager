@@ -10,6 +10,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -178,6 +181,40 @@ class ProgressTaskTest {
                 task.setProgress("Starting", 0, 100, null);
 
                 assertThat(task.getCurrent()).isZero();
+            }
+        }
+
+        /**
+         * Verifies that rapid {@link ProgressTask#setProgress} calls queue at most one
+         * {@link Platform#runLater} until that runnable executes.
+         */
+        @Test
+        @DisplayName("Should coalesce rapid progress updates into one runLater")
+        void shouldCoalesceRapidProgressUpdatesIntoOneRunLater() {
+            try (MockedStatic<Platform> platformMock = mockStatic(Platform.class)) {
+                platformMock.when(Platform::isFxApplicationThread).thenReturn(false);
+                final AtomicInteger runLaterCount = new AtomicInteger();
+                final List<Runnable> queued = new ArrayList<>();
+                platformMock.when(() -> Platform.runLater(org.mockito.ArgumentMatchers.any(Runnable.class)))
+                    .thenAnswer(invocation -> {
+                        runLaterCount.incrementAndGet();
+                        queued.add(invocation.getArgument(0));
+                        return null;
+                    });
+
+                task.setProgress("A", 1, 100, null);
+                task.setProgress("B", 2, 100, null);
+                task.setProgress("C", 3, 100, null);
+
+                assertThat(runLaterCount.get()).isEqualTo(1);
+                assertThat(task.getCurrent()).isEqualTo(3);
+
+                queued.get(0).run();
+
+                task.setProgress("D", 4, 100, null);
+
+                assertThat(runLaterCount.get()).isEqualTo(2);
+                assertThat(task.getCurrent()).isEqualTo(4);
             }
         }
     }

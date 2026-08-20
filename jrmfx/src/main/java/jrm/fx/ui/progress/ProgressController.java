@@ -2,14 +2,17 @@ package jrm.fx.ui.progress;
 
 import java.net.URL;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
@@ -22,6 +25,7 @@ import javafx.scene.layout.BorderStrokeStyle;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -29,7 +33,6 @@ import jrm.fx.ui.MainFrame;
 import jrm.fx.ui.progress.ProgressTask.PData;
 import jrm.fx.ui.status.NeutralToNodeFormatter;
 import jrm.locale.Messages;
-import lombok.Setter;
 
 /**
  * FXML controller for the progress dialog.
@@ -77,9 +80,61 @@ public class ProgressController implements Initializable {
 
     /**
      * The progress task being tracked.
+     */
+    private ProgressTask<?> task;
+
+    /** Last applied info strings, used to skip unchanged SAX/node rebuilds. */
+    private String[] lastInfos = new String[0];
+
+    /** Last applied sub-info strings, used to skip unchanged SAX/node rebuilds. */
+    private String[] lastSubinfos = new String[0];
+
+    /** Last applied sub-info layout mode, used to choose extend vs rebuild. */
+    private Boolean lastMultipleSubInfos = false;
+
+    /**
+     * Binds this controller to a progress task's coalesced data property.
+     *
      * @param task the progress task
      */
-    private @Setter ProgressTask<?> task;
+    public void setTask(ProgressTask<?> task) {
+        this.task = task;
+        task.progressDataProperty().addListener((_, _, pd) -> {
+            if (pd != null)
+                applyProgress(pd);
+        });
+        final PData current = task.progressDataProperty().get();
+        if (current != null)
+            applyProgress(current);
+    }
+
+    /**
+     * Applies layout then values from a snapshot. No-op if the dialog is already closed.
+     *
+     * @param pd the progress snapshot
+     */
+    private void applyProgress(PData pd) {
+        if (isWindowGone())
+            return;
+        if (pd.getThreadCnt() > lblInfo.length && Objects.equals(pd.getMultipleSubInfos(), lastMultipleSubInfos))
+            extendInfos(pd.getThreadCnt(), pd.getMultipleSubInfos());
+        else
+            setInfos(pd.getThreadCnt(), pd.getMultipleSubInfos());
+        setFullProgress(pd);
+    }
+
+    /**
+     * Returns whether the progress window has been hidden or detached.
+     *
+     * @return {@code true} if updates should be ignored
+     */
+    private boolean isWindowGone() {
+        final var scene = panel.getScene();
+        if (scene == null)
+            return true;
+        final var window = scene.getWindow();
+        return window == null || !window.isShowing();
+    }
 
     /**
      * {@inheritDoc}
@@ -100,6 +155,7 @@ public class ProgressController implements Initializable {
         progressBarLbl3.setVisible(false);
         lblTimeleft3.setVisible(false);
         ((GridPane) lblTimeleft3.getParent()).getRowConstraints().get(3).setPrefHeight(0);
+        panel.setSpacing(3);
     }
 
     /** Placeholder for unknown elapsed/total time. */
@@ -129,33 +185,30 @@ public class ProgressController implements Initializable {
     void setInfos(int threadCnt, Boolean multipleSubInfos) {
         final var lblSubInfoCnt = Optional.ofNullable(multipleSubInfos).map(multSubNfo -> multSubNfo.booleanValue() ? threadCnt : 1).orElse(0);
 
-        if (lblInfo != null && lblInfo.length == threadCnt && lblSubInfo != null && lblSubInfo.length == lblSubInfoCnt)
+        if (lblInfo != null && lblInfo.length == threadCnt && lblSubInfo != null && lblSubInfo.length == lblSubInfoCnt) {
+            lastMultipleSubInfos = multipleSubInfos;
             return;
+        }
 
-        panel.getChildren().forEach(n -> {
-            if (n instanceof HBox w) {
-                w.getChildren().clear();
-                viewCache.add(w);
-            }
-        });
-        panel.getChildren().clear();
+        lastInfos = new String[0];
+        lastSubinfos = new String[0];
+
+        recyclePanelViews();
 
         lblInfo = new Pane[threadCnt];
         lblSubInfo = new Pane[lblSubInfoCnt];
 
-        for (int i = 0; i < threadCnt; i++) {
-            lblInfo[i] = buildView(isOdd(i) ? colorNormal : colorLight);
-            panel.getChildren().add(lblInfo[i]);
-
-            if (Boolean.TRUE.equals(multipleSubInfos)) {
-                lblSubInfo[i] = buildView(isOdd(i) ? colorNormal : colorLight);
-                panel.getChildren().add(lblSubInfo[i]);
-            }
-        }
+        for (int i = 0; i < threadCnt; i++)
+            addThreadRow(i, isOdd(i) ? colorNormal : colorLight, Boolean.TRUE.equals(multipleSubInfos));
         if (Boolean.FALSE.equals(multipleSubInfos)) {
             lblSubInfo[0] = buildView(colorLighter);
-            panel.getChildren().add(lblSubInfo[0]);
+            if (threadCnt == 1) {
+                placeSubInfoBeside(lblInfo[0], lblSubInfo[0]);
+            } else {
+                panel.getChildren().add(lblSubInfo[0]);
+            }
         }
+        lastMultipleSubInfos = multipleSubInfos;
     }
 
     /**
@@ -174,21 +227,19 @@ public class ProgressController implements Initializable {
         if (Boolean.TRUE.equals(multipleSubInfos) && lblSubInfo == null)
             return;
 
+        lastInfos = Arrays.copyOf(lastInfos, threadCnt);
+        if (Boolean.TRUE.equals(multipleSubInfos))
+            lastSubinfos = Arrays.copyOf(lastSubinfos, threadCnt);
+
         final var oldThreadCnt = lblInfo.length;
 
         lblInfo = Arrays.copyOf(lblInfo, threadCnt);
         if (Boolean.TRUE.equals(multipleSubInfos))
             lblSubInfo = Arrays.copyOf(lblSubInfo, threadCnt);
 
-        for (int i = oldThreadCnt; i < threadCnt; i++) {
-            lblInfo[i] = buildView(isOdd(i) ? colorNormal : colorLight);
-            panel.getChildren().add(lblInfo[i]);
-
-            if (Boolean.TRUE.equals(multipleSubInfos)) {
-                lblSubInfo[i] = buildView(isOdd(i) ? colorNormal : colorLight);
-                panel.getChildren().add(lblSubInfo[i]);
-            }
-        }
+        for (int i = oldThreadCnt; i < threadCnt; i++)
+            addThreadRow(i, isOdd(i) ? colorNormal : colorLight, Boolean.TRUE.equals(multipleSubInfos));
+        lastMultipleSubInfos = multipleSubInfos;
     }
 
     /**
@@ -203,6 +254,9 @@ public class ProgressController implements Initializable {
 
     /** Pool of recycled {@link HBox} containers to avoid repeated instantiation. */
     private Deque<HBox> viewCache = new ArrayDeque<>();
+
+    /** Pool of recycled row {@link HBox} wrappers (info + sub-info side by side). */
+    private Deque<HBox> rowCache = new ArrayDeque<>();
 
     /**
      * Builds or reuses an {@link HBox} view container with the given background colour.
@@ -227,6 +281,96 @@ public class ProgressController implements Initializable {
     }
 
     /**
+     * Recycles info, sub-info, and row containers currently in {@link #panel}.
+     */
+    private void recyclePanelViews() {
+        for (final var n : panel.getChildren())
+            recycleBox(n);
+        panel.getChildren().clear();
+    }
+
+    /**
+     * Recycles an {@link HBox}, including nested info panes when it is a row wrapper.
+     *
+     * @param n the node to recycle
+     */
+    private void recycleBox(Node n) {
+        if (!(n instanceof HBox box))
+            return;
+        final var nested = new ArrayList<HBox>();
+        for (final var child : box.getChildren()) {
+            if (child instanceof HBox inner)
+                nested.add(inner);
+        }
+        if (!nested.isEmpty()) {
+            box.getChildren().clear();
+            for (final var inner : nested) {
+                inner.getChildren().clear();
+                viewCache.add(inner);
+            }
+            rowCache.add(box);
+        } else {
+            box.getChildren().clear();
+            viewCache.add(box);
+        }
+    }
+
+    /**
+     * Builds or reuses a row {@link HBox} that holds info and sub-info side by side.
+     *
+     * @return an empty row container
+     */
+    private HBox buildRow() {
+        if (!rowCache.isEmpty())
+            return rowCache.poll();
+        final var row = new HBox();
+        row.setSpacing(1);
+        row.setMaxWidth(Integer.MAX_VALUE);
+        row.setFillHeight(true);
+        return row;
+    }
+
+    /**
+     * Adds a thread info row, optionally with a sub-info pane to its right.
+     *
+     * @param i           the thread index
+     * @param color       the row background colour
+     * @param withSubInfo whether to place a per-thread sub-info pane on the right
+     */
+    private void addThreadRow(int i, Color color, boolean withSubInfo) {
+        lblInfo[i] = buildView(color);
+        HBox.setHgrow(lblInfo[i], Priority.ALWAYS);
+        lblInfo[i].setPrefWidth(100);
+        if (withSubInfo) {
+            lblSubInfo[i] = buildView(color);
+            HBox.setHgrow(lblSubInfo[i], Priority.ALWAYS);
+            lblSubInfo[i].setPrefWidth(100);
+            final var row = buildRow();
+            row.getChildren().addAll(lblInfo[i], lblSubInfo[i]);
+            panel.getChildren().add(row);
+        } else {
+            panel.getChildren().add(lblInfo[i]);
+        }
+    }
+
+    /**
+     * Places a shared sub-info pane to the right of a single info pane.
+     *
+     * @param info    the info pane
+     * @param subInfo the sub-info pane
+     */
+    private void placeSubInfoBeside(Pane info, Pane subInfo) {
+        panel.getChildren().remove(info);
+        HBox.setHgrow(info, Priority.ALWAYS);
+        HBox.setHgrow(subInfo, Priority.ALWAYS);
+        info.setPrefWidth(100);
+        subInfo.setPrefWidth(100);
+        final var row = buildRow();
+        row.getChildren().addAll(info, subInfo);
+        panel.getChildren().add(row);
+    }
+
+    /**
      * Clears all children from every info and sub-info panel.
      * <p>
      * Called by {@link ProgressTask#clearInfos()}.
@@ -236,6 +380,8 @@ public class ProgressController implements Initializable {
             label.getChildren().clear();
         for (final var label : lblSubInfo)
             label.getChildren().clear();
+        lastInfos = new String[0];
+        lastSubinfos = new String[0];
     }
 
     /**
@@ -244,13 +390,55 @@ public class ProgressController implements Initializable {
      * @param pd the progress data containing info strings and progress bar states
      */
     public void setFullProgress(PData pd) {
-        for (int i = 0; i < lblInfo.length; i++)
-            lblInfo[i].getChildren().setAll(NeutralToNodeFormatter.toNodes(i < pd.getInfos().length ? pd.getInfos()[i] : ""));
-        for (int i = 0; i < lblSubInfo.length; i++)
-            lblSubInfo[i].getChildren().setAll(NeutralToNodeFormatter.toNodes(i < pd.getSubinfos().length ? pd.getSubinfos()[i] : ""));
+        if (isWindowGone())
+            return;
+        lastInfos = applyInfoNodes(lblInfo, pd.getInfos(), lastInfos);
+        lastSubinfos = applyInfoNodes(lblSubInfo, pd.getSubinfos(), lastSubinfos);
         updateProgressBar(progressBar, progressBarLbl, lblTimeleft, 1, new ProgressData(pd.getPb1().isVisibility(), pd.getPb1().isIndeterminate(), pd.getPb1().getVal() > 0, pd.getPb1().getPerc(), pd.getPb1().isStringPainted(), pd.getPb1().getMsg(), pd.getPb1().getTimeleft()));
         updateProgressBar(progressBar2, progressBarLbl2, lblTimeleft2, 2, new ProgressData(pd.getPb2().isVisibility(), pd.getPb2().isIndeterminate(), pd.getPb2().getPerc() >= 0, pd.getPb2().getPerc(), pd.getPb2().isStringPainted(), pd.getPb2().getMsg(), pd.getPb2().getTimeleft()));
         updateProgressBar(progressBar3, progressBarLbl3, lblTimeleft3, 3, new ProgressData(pd.getPb3().isVisibility(), pd.getPb3().isIndeterminate(), pd.getPb3().getPerc() >= 0, pd.getPb3().getPerc(), pd.getPb3().isStringPainted(), pd.getPb3().getMsg(), pd.getPb3().getTimeleft()));
+    }
+
+    /**
+     * Rebuilds info pane children only when the string for that row changed.
+     *
+     * @param panes the info or sub-info panes
+     * @param values the snapshot strings
+     * @param lastApplied the previously applied strings
+     * @return the applied strings for the next comparison
+     */
+    private String[] applyInfoNodes(Pane[] panes, String[] values, String[] lastApplied) {
+        final var applied = Arrays.copyOf(lastApplied, panes.length);
+        for (int i = 0; i < panes.length; i++) {
+            final String next = i < values.length && values[i] != null ? values[i] : "";
+            if (i < lastApplied.length && Objects.equals(next, lastApplied[i] == null ? "" : lastApplied[i]))
+                continue;
+            if (!applyPlainLabel(panes[i], next))
+                panes[i].getChildren().setAll(NeutralToNodeFormatter.toNodes(next));
+            applied[i] = next;
+        }
+        return applied;
+    }
+
+    /**
+     * Updates a plain-text info row in place when the pane already holds a single {@link Label}.
+     *
+     * @param pane the info or sub-info pane
+     * @param next the next plain string, never {@code null}
+     * @return {@code true} if the row was updated without replacing children
+     */
+    private boolean applyPlainLabel(Pane pane, String next) {
+        if (next.startsWith("<document>"))
+            return false;
+        final var children = pane.getChildren();
+        if (children.size() == 1 && children.get(0) instanceof Label label) {
+            if (!Objects.equals(next, label.getText()))
+                label.setText(next);
+            return true;
+        }
+        if (next.isEmpty() && children.isEmpty())
+            return true;
+        return false;
     }
 
     /**
@@ -299,10 +487,13 @@ public class ProgressController implements Initializable {
             bar.setProgress(data.perc() / 100);
         if (data.stringPainted()) {
             barLbl.setVisible(true);
-            barLbl.setText(Optional.ofNullable(data.msg()).orElse(""));
+            final var msg = Optional.ofNullable(data.msg()).orElse("");
+            if (!msg.equals(barLbl.getText()))
+                barLbl.setText(msg);
         } else
             barLbl.setVisible(false);
-        timeleft.setText(data.timeleftStr());
+        if (!Objects.equals(data.timeleftStr(), timeleft.getText()))
+            timeleft.setText(data.timeleftStr());
     }
 
     /**

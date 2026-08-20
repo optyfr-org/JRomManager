@@ -14,15 +14,18 @@ import io.gitlab.fxlabs.testfx.junit.jupiter.TestFxApplication;
 import io.gitlab.fxlabs.testfx.junit.jupiter.TestFxRecordedStage;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.GridPane;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.Pane;
 import javafx.scene.layout.RowConstraints;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
+import jrm.fx.ui.progress.ProgressTask.PData;
 
 /**
  * Tests for {@link ProgressController}.
@@ -311,6 +314,8 @@ class ProgressControllerTest {
 
         assertThat(lblInfo).as("lblInfo").hasSize(3);
         assertThat(lblSubInfo).as("lblSubInfo").hasSize(3);
+        assertThat(lblSubInfo[0].getParent()).as("sub-info beside info").isSameAs(lblInfo[0].getParent());
+        assertThat(lblInfo[0].getParent()).isInstanceOf(HBox.class);
     }
 
     /**
@@ -446,5 +451,74 @@ class ProgressControllerTest {
         for (int i = 0; i < lblInfo.length; i++) {
             assertThat(lblInfo[i].getBackground()).as("lblInfo[" + i + "] background").isNotNull();
         }
+    }
+
+    /**
+     * Verifies that two {@link ProgressController#setFullProgress} calls with the same
+     * info strings leave pane children unchanged.
+     *
+     * @param application the test application fixture
+     * @throws Exception if the JavaFX operation fails
+     */
+    @Test
+    @DisplayName("Should skip unchanged info node rebuilds")
+    void shouldSkipUnchangedInfoNodeRebuilds(TestApp application) throws Exception {
+        TestApp.runOnFxThread(() -> {
+            ProgressController controller = TestApp.getController();
+            controller.setInfos(1, false);
+            PData pd = new PData();
+            pd.setInfos(new String[] { "same" });
+            pd.setSubinfos(new String[] { "sub" });
+            controller.setFullProgress(pd);
+        });
+
+        Pane[] lblInfo = application.getField("lblInfo");
+        Node firstChild = lblInfo[0].getChildren().get(0);
+        int childCount = lblInfo[0].getChildren().size();
+
+        TestApp.runOnFxThread(() -> {
+            ProgressController controller = TestApp.getController();
+            PData pd = new PData();
+            pd.setInfos(new String[] { "same" });
+            pd.setSubinfos(new String[] { "sub" });
+            controller.setFullProgress(pd);
+        });
+
+        assertThat(lblInfo[0].getChildren()).as("child count unchanged").hasSize(childCount);
+        assertThat(lblInfo[0].getChildren().get(0)).as("child identity unchanged").isSameAs(firstChild);
+    }
+
+    /**
+     * Verifies that changing a plain info string updates the existing {@link Label}
+     * instead of replacing pane children.
+     *
+     * @param application the test application fixture
+     * @throws Exception if the JavaFX operation fails
+     */
+    @Test
+    @DisplayName("Should update plain info labels in place")
+    void shouldUpdatePlainInfoLabelsInPlace(TestApp application) throws Exception {
+        TestApp.runOnFxThread(() -> {
+            ProgressController controller = TestApp.getController();
+            controller.setInfos(1, false);
+            PData pd = new PData();
+            pd.setInfos(new String[] { "file-a.bin" });
+            pd.setSubinfos(new String[] { "sub" });
+            controller.setFullProgress(pd);
+        });
+
+        Pane[] lblInfo = application.getField("lblInfo");
+        Node firstChild = lblInfo[0].getChildren().get(0);
+
+        TestApp.runOnFxThread(() -> {
+            ProgressController controller = TestApp.getController();
+            PData pd = new PData();
+            pd.setInfos(new String[] { "file-b.bin" });
+            pd.setSubinfos(new String[] { "sub" });
+            controller.setFullProgress(pd);
+        });
+
+        assertThat(lblInfo[0].getChildren().get(0)).as("child identity unchanged").isSameAs(firstChild);
+        assertThat(((Label) firstChild).getText()).isEqualTo("file-b.bin");
     }
 }

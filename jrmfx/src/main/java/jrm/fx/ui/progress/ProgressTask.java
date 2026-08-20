@@ -8,10 +8,13 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.time.DurationFormatUtils;
 
 import javafx.application.Platform;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.concurrent.Task;
 import javafx.stage.Stage;
 import jrm.aui.progress.ProgressHandler;
@@ -201,6 +204,21 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
     /** The progress data snapshot. */
     private final PData data = new PData();
 
+    /** Whether an FX progress pulse is already queued. */
+    private final AtomicBoolean scheduled = new AtomicBoolean();
+
+    /** Coalesced progress snapshot observed by the UI. */
+    private final ObjectProperty<PData> progressData = new SimpleObjectProperty<>();
+
+    /**
+     * Returns the coalesced progress data property.
+     *
+     * @return the progress data property
+     */
+    public ObjectProperty<PData> progressDataProperty() {
+        return progressData;
+    }
+
     /**
      * Constructs a progress task and shows the progress dialog.
      *
@@ -220,15 +238,17 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
      * @param multipleSubInfos whether multiple sub-info panels are shown
      */
     @Override
-    public synchronized void setInfos(int threadCnt, Boolean multipleSubInfos) {
-        this.data.threadCnt = threadCnt <= 0 ? Runtime.getRuntime().availableProcessors() : threadCnt;
-        this.data.multipleSubInfos = multipleSubInfos;
-        this.data.infos = new String[this.data.threadCnt];
-        if (multipleSubInfos == null)
-            this.data.subinfos = new String[0];
-        else
-            this.data.subinfos = new String[multipleSubInfos.booleanValue() ? this.data.threadCnt : 1];
-        Platform.runLater(() -> progress.getController().setInfos(data.threadCnt, data.multipleSubInfos));
+    public void setInfos(int threadCnt, Boolean multipleSubInfos) {
+        synchronized (this) {
+            this.data.threadCnt = threadCnt <= 0 ? Runtime.getRuntime().availableProcessors() : threadCnt;
+            this.data.multipleSubInfos = multipleSubInfos;
+            this.data.infos = new String[this.data.threadCnt];
+            if (multipleSubInfos == null)
+                this.data.subinfos = new String[0];
+            else
+                this.data.subinfos = new String[multipleSubInfos.booleanValue() ? this.data.threadCnt : 1];
+        }
+        publish();
     }
 
     /**
@@ -236,12 +256,11 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
      *
      * @param threadCnt the new thread count
      */
-    private synchronized void extendInfos(int threadCnt) {
+    private void extendInfos(int threadCnt) {
         this.data.threadCnt = threadCnt;
         this.data.infos = Arrays.copyOf(this.data.infos, this.data.threadCnt);
         if (Boolean.TRUE.equals(data.multipleSubInfos))
             this.data.subinfos = Arrays.copyOf(this.data.subinfos, this.data.threadCnt);
-        Platform.runLater(() -> progress.getController().extendInfos(data.threadCnt, data.multipleSubInfos));
     }
 
     /**
@@ -249,25 +268,25 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
      */
     @Override
     public void clearInfos() {
-        for (var i = 0; i < data.infos.length; i++)
-            data.infos[i] = null;
-        for (var i = 0; i < data.subinfos.length; i++)
-            data.subinfos[i] = null;
-        data.pb2.msg = null;
-        Platform.runLater(() -> progress.getController().clearInfos());
+        synchronized (this) {
+            for (var i = 0; i < data.infos.length; i++)
+                data.infos[i] = null;
+            for (var i = 0; i < data.subinfos.length; i++)
+                data.subinfos[i] = null;
+            data.pb2.msg = null;
+        }
+        publish();
     }
 
     /**
-     * Clears info entries for freed thread offsets.
+     * Clears sub-info entries for freed thread offsets.
+     * Info text is left in place so a cached scan's last container name stays visible.
      */
     private synchronized void cleanup() {
-        if (offsetProvider != null) {
+        if (offsetProvider != null && data.infos.length == data.subinfos.length) {
             for (final var offset : offsetProvider.freeOffsets()) {
-                if (offset < data.infos.length) {
-                    data.infos[offset] = "";
-                    if (data.infos.length == data.subinfos.length)
-                        data.subinfos[offset] = "";
-                }
+                if (offset < data.subinfos.length)
+                    data.subinfos[offset] = "";
             }
         }
     }
@@ -299,61 +318,60 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
      */
     @Override
     public void setProgress(String msg, Integer val, Integer max, String submsg) {
-        int offset = getOffset();
-        if (msg != null)
-            data.infos[offset] = msg;
-        var force = false;
-        if (val != null) {
-            if (val < 0 && data.pb1.visibility) {
-                data.pb1.visibility = false;
-            } else if (val >= 0 && !data.pb1.visibility) {
-                data.pb1.visibility = true;
+        synchronized (this) {
+            int offset = getOffset();
+            if (msg != null)
+                data.infos[offset] = msg;
+            if (val != null) {
+                if (val < 0 && data.pb1.visibility) {
+                    data.pb1.visibility = false;
+                } else if (val >= 0 && !data.pb1.visibility) {
+                    data.pb1.visibility = true;
+                }
+                data.pb1.stringPainted = val != 0;
+                data.pb1.indeterminate = val == 0;
+                computeProgress(data.pb1, val, max, false);
+                showDuration(data.pb1, val);
             }
-            data.pb1.stringPainted = val != 0;
-            data.pb1.indeterminate = val == 0;
-            force = computeProgress(data.pb1, val, max, force);
-            showDuration(data.pb1, val);
+            if (submsg != null || (val != null && val == -1)) {
+                if (data.subinfos.length == 1)
+                    data.subinfos[0] = submsg;
+                else if (data.subinfos.length > 1)
+                    data.subinfos[offset] = submsg;
+            }
+            cleanup();
         }
-        if (submsg != null || (val != null && val == -1)) {
-            if (data.subinfos.length == 1)
-                data.subinfos[0] = submsg;
-            else if (data.subinfos.length > 1)
-                data.subinfos[offset] = submsg;
-        }
-        sendSetProgress(1, force);
+        publish();
     }
 
-    /** Timestamp of the last UI update event. */
-    private long lastEvent = 0;
-    /** The last progress data snapshot sent to the UI. */
-    private PData lastPData = null;
+    /**
+     * Queues at most one FX pulse that publishes a snapshot of {@link #data}.
+     */
+    private void publish() {
+        if (Platform.isFxApplicationThread()) {
+            applySnapshot();
+            return;
+        }
+        if (scheduled.compareAndSet(false, true)) {
+            Platform.runLater(() -> {
+                scheduled.set(false);
+                applySnapshot();
+            });
+        }
+    }
 
     /**
-     * Sends a progress update to the UI if enough time has passed or the state has changed.
-     *
-     * @param pb    the progress bar index (1, 2, or 3)
-     * @param force whether to force the update regardless of throttling
+     * Copies {@link #data} onto {@link #progressData} and clears the transient primary message.
      */
-    private synchronized void sendSetProgress(final int pb, final boolean force) {
-        if (pb == 1)
-            cleanup();
-        final PData.PB pbObj = switch (pb) {
-            case 1 -> data.pb1;
-            case 2 -> data.pb2;
-            case 3 -> data.pb3;
-            default -> null;
-        };
-        final boolean doit = force
-            || (pbObj != null && pbObj.visibility && !pbObj.indeterminate && pbObj.val > 0 && pbObj.max == pbObj.val)
-            || (lastPData == null || (lastPData.infos.length == 1 && lastPData.infos[0] != null && !lastPData.infos[0].equals(this.data.infos[0])))
-            || (System.currentTimeMillis() - lastEvent > 100)
-            || (!data.pb1.visibility && !data.pb2.visibility && !data.pb3.visibility && !options.contains(Option.LAZY));
-        if (doit) {
-            lastPData = new PData(this.data);
-            Platform.runLater(() -> progress.getController().setFullProgress(lastPData));
-            lastEvent = System.currentTimeMillis();
+    private void applySnapshot() {
+        final PData snapshot;
+        synchronized (this) {
+            if (data.pb1.val > 0)
+                data.pb1.msg = String.format("%.02f%%", data.pb1.perc);
+            snapshot = new PData(this.data);
+            data.pb1.msg = null;
         }
-        data.pb1.msg = null;
+        progressData.set(snapshot);
     }
 
     /**
@@ -406,18 +424,19 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
      */
     @Override
     public void setProgress2(String msg, Integer val, Integer max) {
-        var force = false;
-        if (msg != null && val != null) {
-            if (!data.pb2.visibility)
-                data.pb2.visibility = true;
-            data.pb2.stringPainted = true/* msg != null || val > 0 */;
-            data.pb2.msg = msg;
-            data.pb2.indeterminate = val == 0 && msg == null;
-            force = computeProgress(data.pb2, val, max, force);
-            showDuration(data.pb2, val);
-        } else if (data.pb2.visibility)
-            data.pb2.visibility = false;
-        sendSetProgress(2, force);
+        synchronized (this) {
+            if (msg != null && val != null) {
+                if (!data.pb2.visibility)
+                    data.pb2.visibility = true;
+                data.pb2.stringPainted = true/* msg != null || val > 0 */;
+                data.pb2.msg = msg;
+                data.pb2.indeterminate = val == 0 && msg == null;
+                computeProgress(data.pb2, val, max, false);
+                showDuration(data.pb2, val);
+            } else if (data.pb2.visibility)
+                data.pb2.visibility = false;
+        }
+        publish();
     }
 
     /**
@@ -429,18 +448,19 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
      */
     @Override
     public void setProgress3(String msg, Integer val, Integer max) {
-        var force = false;
-        if (msg != null && val != null) {
-            if (!data.pb3.visibility)
-                data.pb3.visibility = true;
-            data.pb3.stringPainted = true/* msg != null || val > 0 */;
-            data.pb3.msg = msg;
-            data.pb3.indeterminate = val == 0 && msg == null;
-            force = computeProgress(data.pb3, val, max, force);
-            showDuration(data.pb3, val);
-        } else if (data.pb3.visibility)
-            data.pb3.visibility = false;
-        sendSetProgress(3, force);
+        synchronized (this) {
+            if (msg != null && val != null) {
+                if (!data.pb3.visibility)
+                    data.pb3.visibility = true;
+                data.pb3.stringPainted = true/* msg != null || val > 0 */;
+                data.pb3.msg = msg;
+                data.pb3.indeterminate = val == 0 && msg == null;
+                computeProgress(data.pb3, val, max, false);
+                showDuration(data.pb3, val);
+            } else if (data.pb3.visibility)
+                data.pb3.visibility = false;
+        }
+        publish();
     }
 
     /**

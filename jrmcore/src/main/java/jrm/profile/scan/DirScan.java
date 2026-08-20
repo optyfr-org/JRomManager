@@ -460,6 +460,7 @@ public final class DirScan extends PathAbstractor {
             if (handler.isCancel())
                 return;
             try {
+                handler.setProgress(String.format(Messages.getString("DirScan.Scanning"), c.getFile().getName())); //$NON-NLS-1$
                 scanContainer(c, handler, options);
                 handler.setProgress(String.format(Messages.getString("DirScan.Scanned"), c.getFile().getName())); //$NON-NLS-1$
                 handler.setProgress2(String.format("%d/%d (%d%%)", i.incrementAndGet(), containers.size(), //$NON-NLS-1$
