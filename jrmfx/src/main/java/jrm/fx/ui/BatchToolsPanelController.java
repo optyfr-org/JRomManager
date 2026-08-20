@@ -18,6 +18,7 @@ import java.util.stream.Stream;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
@@ -395,7 +396,7 @@ public class BatchToolsPanelController extends BaseController {
                 final var nThreads = Boolean.TRUE.equals(useParallelism) ? session.getUser().getSettings().getProperty(SettingsEnum.thread_count, Integer.class) : 1;
 
                 setInfos(nThreads <= 0 ? Runtime.getRuntime().availableProcessors() : nThreads, true);
-                tvBatchToolsCompressor.getItems().forEach(fr -> fr.setResult(""));
+                Platform.runLater(() -> tvBatchToolsCompressor.getItems().forEach(fr -> fr.setResult("")));
 
                 try (final var mt = new MultiThreadingVirtual<FileResult>("compressor", this, nThreads, fr -> {
                     if (isCancel())
@@ -440,8 +441,8 @@ public class BatchToolsPanelController extends BaseController {
     private void compress(final AtomicInteger cnt, final Compressor compressor, FileResult fr) {
         var file = fr.getFile().toFile();
         cnt.incrementAndGet();
-        Compressor.UpdResultCallBack cb = fr::setResult;
-        Compressor.UpdSrcCallBack scb = src -> fr.setFile(src.toPath());
+        Compressor.UpdResultCallBack cb = result -> Platform.runLater(() -> fr.setResult(result));
+        Compressor.UpdSrcCallBack scb = src -> Platform.runLater(() -> fr.setFile(src.toPath()));
         switch (cbbxBatchToolsCompressorFormat.getSelectionModel().getSelectedItem()) {
             case SEVENZIP -> toSevenZip(compressor, file, cb, scb);
             case ZIP -> toZip(compressor, file, cb, scb);
