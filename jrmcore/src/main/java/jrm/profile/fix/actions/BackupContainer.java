@@ -116,7 +116,7 @@ public class BackupContainer extends ContainerAction {
     /**
      * Closes all opened backup zip archive {@link FileSystem}s when all backup tasks are completed.
      */
-    public static void closeAllFS() {
+    public static synchronized void closeAllFS() {
         for (final var zipfile : zipfiles.values()) {
             try {
                 synchronized (zipfile) {
