@@ -103,7 +103,7 @@ public class Session {
      * 
      * @return the currently loaded ROM profile, or {@code null} if none is active
      */
-    private @Getter @Setter Profile currProfile = null;
+    private volatile @Getter @Setter Profile currProfile = null;
 
     /**
      * The current scan process execution state.
