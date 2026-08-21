@@ -330,7 +330,8 @@ public class BatchTrrntChkPanel extends JPanel {
     }
 
     private void trrntChk(final Session session) {
-        final var sdrl = ((SDRTableModel) tableTrntChk.getModel()).getData();
+        // Capture immutable snapshots on the EDT before handing them to the background worker.
+        final SDRList<SrcDstResult> sdrl = new SDRList<>(((SDRTableModel) tableTrntChk.getModel()).getData());
         final TrntChkMode mode = (TrntChkMode) cbbxTrntChk.getSelectedItem();
         final ResultColUpdater updater = tableTrntChk;
         final var opts = EnumSet.noneOf(TorrentChecker.Options.class);
