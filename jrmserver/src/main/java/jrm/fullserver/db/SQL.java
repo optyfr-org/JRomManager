@@ -574,12 +574,11 @@ public abstract class SQL implements SQLUtils, Closeable {
      * @throws NullPointerException if the args parameter is null
      */
     int findArrayParam(Object[] args) {
-        int pos = -1;
         if (args != null)
             for (var i = 0; i < args.length; i++)
                 if (args[i] != null && args[i].getClass().isArray())
-                    pos = i;
-        return pos;
+                    return i;
+        return -1;
     }
 
     /**
