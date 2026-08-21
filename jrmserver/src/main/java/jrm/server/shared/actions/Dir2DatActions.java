@@ -123,7 +123,37 @@ public class Dir2DatActions {
      * @param jso the incoming JSON message containing scanning options, DAT file headers, and export format settings
      */
     public void start(JsonObject jso) {
-        (ws.getSession().setWorker(new Worker(() -> executeDir2DatTransformation(jso)))).start();
+        final Dir2DatParams params = extractParams(jso);
+        (ws.getSession().setWorker(new Worker(() -> executeDir2DatTransformation(params)))).start();
+    }
+
+    /**
+     * Captured parameters for the Dir2Dat transformation, extracted from the mutable JSON request on the WebSocket thread before the
+     * worker is dispatched.
+     *
+     * @param options the parsed directory scanning options
+     * @param headers the parsed DAT metadata headers
+     */
+    private record Dir2DatParams(EnumSet<DirScan.Options> options, HashMap<String, String> headers) {
+    }
+
+    /**
+     * Extracts Dir2Dat parameters from the JSON request on the calling thread, so the worker does not depend on the mutable request
+     * object.
+     *
+     * @param jso the JSON message containing transformation parameters and settings
+     * @return the captured options and headers
+     */
+    private Dir2DatParams extractParams(JsonObject jso) {
+        JsonObject opts = jso.get("params").asObject().get("options").asObject();
+        EnumSet<DirScan.Options> options = getOptions(opts);
+        HashMap<String, String> headers = new HashMap<>();
+        JsonObject hdrs = jso.get("params").asObject().get("headers").asObject();
+        hdrs.forEach(m -> {
+            if (!m.getValue().isNull())
+                headers.put(m.getName(), m.getValue().asString());
+        });
+        return new Dir2DatParams(options, headers);
     }
 
     /**
@@ -140,9 +170,9 @@ public class Dir2DatActions {
      * <p>
      * This method is designed to run in a separate thread, allowing for non-blocking execution of the transformation process.
      * 
-     * @param jso the JSON message containing transformation parameters and settings
+     * @param params the captured transformation parameters extracted from the request
      */
-    private void executeDir2DatTransformation(JsonObject jso) {
+    private void executeDir2DatTransformation(Dir2DatParams params) {
         WebSession session = ws.getSession();
         session.getWorker().progress = new ProgressActions(ws);
         try {
@@ -150,16 +180,8 @@ public class Dir2DatActions {
             String dstdat = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_dst_file);
             String format = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_format);
 
-            JsonObject opts = jso.get("params").asObject().get("options").asObject();
-            EnumSet<DirScan.Options> options = getOptions(opts);
-            HashMap<String, String> headers = new HashMap<>();
-            JsonObject hdrs = jso.get("params").asObject().get("headers").asObject();
-            hdrs.forEach(m -> {
-                if (!m.getValue().isNull())
-                    headers.put(m.getName(), m.getValue().asString());
-            });
             if (srcdir != null && dstdat != null)
-                runDir2Dat(session, srcdir, dstdat, format, options, headers);
+                runDir2Dat(session, srcdir, dstdat, format, params.options, params.headers);
         } catch (BreakException _) {
             // user cancelled action
         } finally {

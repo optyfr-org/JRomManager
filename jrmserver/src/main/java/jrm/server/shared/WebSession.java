@@ -88,12 +88,22 @@ public class WebSession extends Session implements Closeable, Serializable {
      * The worker thread currently executing operations for this session.
      * <p>
      * This reference is set by the {@code ProgressReporter} when a background operation starts and is used to interrupt the worker
-     * if the session is closed prematurely. The field is transient because threads cannot be serialized.
+     * if the session is closed prematurely. The field is transient because threads cannot be serialized. Access is synchronized to
+     * coordinate lifecycle operations (starting, querying, and clearing) across request-handling and worker threads.
      * </p>
      *
      * @return the active worker thread, or {@code null} if no operation is running
      */
-    private transient @Getter Worker worker = null;
+    private transient volatile Worker worker = null;
+
+    /**
+     * Returns the worker thread currently executing operations for this session.
+     *
+     * @return the active worker thread, or {@code null} if no operation is running
+     */
+    public synchronized Worker getWorker() {
+        return worker;
+    }
 
     /**
      * Sets the worker thread for this session. Called when a background operation begins.
@@ -102,7 +112,7 @@ public class WebSession extends Session implements Closeable, Serializable {
      * 
      * @return the worker thread that was set
      */
-    public Worker setWorker(Worker worker) {
+    public synchronized Worker setWorker(Worker worker) {
         this.worker = worker;
         return this.worker;
     }
