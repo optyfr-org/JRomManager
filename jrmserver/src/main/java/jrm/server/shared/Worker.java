@@ -14,12 +14,12 @@ import lombok.Getter;
 public class Worker {
 
     /**
-     * The progress actions to report progress to the client. Set by the task when it starts running. Note that this is not
-     * thread-safe, but it is only set once when the worker starts, so it should be fine.
+     * The progress actions to report progress to the client. Set by the task when it starts running. Marked {@code volatile}
+     * so request-handling threads can safely observe the progress handler assigned by the worker thread.
      *
      * @return the progress actions to report progress to the client
      */
-    public @Getter ProgressActions progress = null;
+    public @Getter volatile ProgressActions progress = null;
 
     /**
      * The target to run in the worker thread.
