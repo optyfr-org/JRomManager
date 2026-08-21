@@ -120,8 +120,9 @@ class ReportSummaryTest {
             report.add(missing("dkong"));
 
             final String text = report.toCopyableText();
-            assertThat(text).contains(report.getSummaryText().trim());
-            assertThat(text).contains("dkong");
+            assertThat(text)
+                .contains(report.getSummaryText().trim())
+                .contains("dkong");
         }
     }
 
