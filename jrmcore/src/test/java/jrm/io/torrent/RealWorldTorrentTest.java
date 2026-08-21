@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -36,6 +37,8 @@ class RealWorldTorrentTest {
 
     /** Base path to the directory containing real-world torrent fixture files. */
     private static final String TORRENTS_DIR = "src/test/resources/torrents/";
+
+    private static final Pattern ANNOUNCE_URL = Pattern.compile("^(https?|udp)://.*");
 
     /** All available torrent filenames for parametrized-style tests. */
     private static final String[] ALL_TORRENTS = {
@@ -1098,7 +1101,7 @@ class RealWorldTorrentTest {
                 if (!torrent.getAnnounceList().isEmpty()) {
                     assertThat(torrent.getAnnounceList())
                         .as("Announce list entries for " + filename)
-                        .allMatch(url -> url.matches("^(https?|udp)://.*"));
+                        .allMatch(url -> ANNOUNCE_URL.matcher(url).matches());
                 }
             }
         }
