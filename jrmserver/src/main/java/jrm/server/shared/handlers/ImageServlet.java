@@ -63,15 +63,15 @@ public class ImageServlet extends HttpServlet {
      * ({@code /jrm/resicons/}).
      * </p>
      * <p>
-     * The result is cached in the static {@link #uri} and {@link #isModule} fields for subsequent calls. <b>Note:</b> This method
-     * is not thread-safe and may experience race conditions on first invocation, but the worst case is redundant initialization.
+     * The result is cached in the static {@link #uri} and {@link #isModule} fields for subsequent calls. Synchronized to prevent
+     * concurrent servlet requests from observing partially initialized or inconsistent cached values.
      * </p>
      * 
      * @return the base URI pointing to the resource icons directory
      * 
      * @throws URISyntaxException if the URI cannot be constructed
      */
-    private static URI getURI() throws URISyntaxException {
+    private static synchronized URI getURI() throws URISyntaxException {
         if (isModule == null) {
             uri = URI.create("jrt:/jrm.merged.module/jrm/resicons/");
             isModule = URIUtils.URIExists(uri);
