@@ -10,6 +10,7 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import org.apache.commons.io.IOUtils;
@@ -51,9 +52,7 @@ import lombok.val;
 public class ImageServlet extends HttpServlet {
     private static final Pattern SAFE_RESOURCE_PATH = Pattern.compile("^[a-zA-Z0-9/_\\-.]+$");
     /** Cached base URI for resource resolution (either {@code jrt:/} module path or classpath resource). */
-    private static URI uri = null;
-    /** Indicates whether the application is running in module mode ({@code true}) or classpath mode ({@code false}). */
-    private static Boolean isModule = null;
+    private static final AtomicReference<URI> uri = new AtomicReference<>();
 
     /**
      * Returns the base URI for resource icon files, detecting the deployment mode on first call.
@@ -63,22 +62,23 @@ public class ImageServlet extends HttpServlet {
      * ({@code /jrm/resicons/}).
      * </p>
      * <p>
-     * The result is cached in the static {@link #uri} and {@link #isModule} fields for subsequent calls. Synchronized to prevent
-     * concurrent servlet requests from observing partially initialized or inconsistent cached values.
+     * The result is cached in {@link #uri} for subsequent calls. Concurrent first-time callers may each resolve a candidate; only
+     * one value is published via compare-and-set.
      * </p>
      * 
      * @return the base URI pointing to the resource icons directory
      * 
      * @throws URISyntaxException if the URI cannot be constructed
      */
-    private static synchronized URI getURI() throws URISyntaxException {
-        if (isModule == null) {
-            uri = URI.create("jrt:/jrm.merged.module/jrm/resicons/");
-            isModule = URIUtils.URIExists(uri);
-            if (!isModule)
-                uri = ImageServlet.class.getResource("/jrm/resicons/").toURI();
-        }
-        return uri;
+    private static URI getURI() throws URISyntaxException {
+        final URI cached = uri.get();
+        if (cached != null)
+            return cached;
+        URI candidate = URI.create("jrt:/jrm.merged.module/jrm/resicons/");
+        if (!URIUtils.URIExists(candidate))
+            candidate = ImageServlet.class.getResource("/jrm/resicons/").toURI();
+        uri.compareAndSet(null, candidate);
+        return uri.get();
     }
 
     /**
