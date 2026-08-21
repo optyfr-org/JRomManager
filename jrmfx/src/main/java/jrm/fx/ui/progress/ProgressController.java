@@ -436,9 +436,7 @@ public class ProgressController implements Initializable {
                 label.setText(next);
             return true;
         }
-        if (next.isEmpty() && children.isEmpty())
-            return true;
-        return false;
+        return next.isEmpty() && children.isEmpty();
     }
 
     /**
