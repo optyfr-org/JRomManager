@@ -158,7 +158,7 @@ public class GlobalSettings extends Settings implements SystemSettings {
             if (!Files.isDirectory(expected) || !expected.equals(Paths.get(home).toAbsolutePath().normalize()))
                 return null;
             return expected;
-        } catch (final InvalidPathException e) {
+        } catch (final InvalidPathException _) {
             return null;
         }
     }
