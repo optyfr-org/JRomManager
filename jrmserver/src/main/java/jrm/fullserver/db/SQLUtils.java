@@ -418,9 +418,7 @@ public interface SQLUtils {
             default -> {
                 if (value == null || value.isEmpty())
                     yield " DEFAULT " + (notNull ? "0" : "NULL");
-                if (!value.isEmpty())
-                    yield " DEFAULT " + value;
-                yield "";
+                yield " DEFAULT " + value;
             }
         };
     }
@@ -439,9 +437,7 @@ public interface SQLUtils {
     default String getIntDefaultValue(String value, boolean notNull) {
         if (value == null || value.isEmpty())
             return " DEFAULT " + (notNull ? "0" : "NULL");
-        if (!value.isEmpty())
-            return " DEFAULT " + value;
-        return "";
+        return " DEFAULT " + value;
     }
 
     /**
@@ -458,9 +454,7 @@ public interface SQLUtils {
     default String getBoolDefaultValue(String value, boolean notNull) {
         if (value == null || value.isEmpty())
             return " DEFAULT " + (notNull ? "FALSE" : "NULL");
-        if (!value.isEmpty())
-            return " DEFAULT " + value;
-        return "";
+        return " DEFAULT " + value;
     }
 
     /**
