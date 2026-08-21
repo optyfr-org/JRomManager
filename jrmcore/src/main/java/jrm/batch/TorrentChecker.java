@@ -100,7 +100,23 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
         this.mode = mode;
         progress.setInfos(Math.min(Runtime.getRuntime().availableProcessors(), (int) sdrl.stream().filter(AbstractSrcDstResult::isSelected).count()), true);
         progress.setProgress2("", 0, 1); //$NON-NLS-1$
-        sdrl.stream().filter(AbstractSrcDstResult::isSelected).forEach(sdr -> updater.updateResult(sdrl.indexOf(sdr), ""));
+        final var updateLock = new Object();
+        final ResultColUpdater safeUpdater = new ResultColUpdater() {
+            @Override
+            public void updateResult(int row, String result) {
+                synchronized (updateLock) {
+                    updater.updateResult(row, result);
+                }
+            }
+
+            @Override
+            public void clearResults() {
+                synchronized (updateLock) {
+                    updater.clearResults();
+                }
+            }
+        };
+        sdrl.stream().filter(AbstractSrcDstResult::isSelected).forEach(sdr -> safeUpdater.updateResult(sdrl.indexOf(sdr), ""));
         final var use_parallelism = session.getUser().getSettings().getProperty(SettingsEnum.use_parallelism, Boolean.class);
         final var nThreads = Boolean.TRUE.equals(use_parallelism) ? session.getUser().getSettings().getProperty(SettingsEnum.thread_count, Integer.class) : 1;
         try (final var mt = new MultiThreadingVirtual<T>("torrent-checker", progress, nThreads, sdr -> {
@@ -108,9 +124,9 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
                 return;
             try {
                 final int row = sdrl.indexOf(sdr);
-                updater.updateResult(row, "In progress...");
+                safeUpdater.updateResult(row, "In progress...");
                 final String result = check(progress, sdr);
-                updater.updateResult(row, result);
+                safeUpdater.updateResult(row, result);
                 progress.setProgress(null, -1, null, "");
             } catch (IOException | TorrentException e) {
                 Log.err(e.getMessage(), e);
