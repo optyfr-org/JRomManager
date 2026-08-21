@@ -369,7 +369,9 @@ public class BatchDirUpd8rPanel extends JPanel {
 
     private void dat2dir(final Session session, boolean dryrun) {
         if (listBatchToolsDat2DirSrc.getModel().getSize() > 0) {
-            final SDRList<SrcDstResult> sdrl = ((SDRTableModel) tableBatchToolsDat2Dir.getModel()).getData();
+            // Capture immutable snapshots on the EDT before handing them to the background worker.
+            final SDRList<SrcDstResult> sdrl = new SDRList<>(((SDRTableModel) tableBatchToolsDat2Dir.getModel()).getData());
+            final List<File> srcDirs = StreamEx.of(listBatchToolsDat2DirSrc.getModel().elements()).map(f -> PathAbstractor.getAbsolutePath(session, f.toString()).toFile()).toList();
             if (sdrl.stream().filter(sdr -> !session.getUser().getSettings().getProfileSettingsFile(PathAbstractor.getAbsolutePath(session, sdr.getSrc()).toFile()).exists())
                     .count() > 0)
                 JOptionPane.showMessageDialog(SwingUtilities.getWindowAncestor(this), Messages.getString("MainFrame.AllDatsPresetsAssigned"));
@@ -377,9 +379,7 @@ public class BatchDirUpd8rPanel extends JPanel {
                 new SwingWorkerProgress<DirUpdater, Void>(SwingUtilities.getWindowAncestor(this)) {
                     @Override
                     protected DirUpdater doInBackground() throws Exception {
-                        return new DirUpdater(session, sdrl, this,
-                                StreamEx.of(listBatchToolsDat2DirSrc.getModel().elements()).map(f -> PathAbstractor.getAbsolutePath(session, f.toString()).toFile()).toList(),
-                                tableBatchToolsDat2Dir, dryrun);
+                        return new DirUpdater(session, sdrl, this, srcDirs, tableBatchToolsDat2Dir, dryrun);
                     }
 
                     @Override
