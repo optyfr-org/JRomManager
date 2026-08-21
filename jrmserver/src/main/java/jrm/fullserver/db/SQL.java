@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -67,6 +68,8 @@ public abstract class SQL implements SQLUtils, Closeable {
      * The QueryRunner object from Apache Commons DbUtils for executing SQL queries and updates.
      */
     protected QueryRunner qryRunner = new QueryRunner();
+
+    private static final Pattern ANY_PARAM = Pattern.compile("=\\s*?ANY\\(\\?\\)");
 
     /**
      * Constructs a new SQL object with the specified shouldClose flag and SystemSettings. The database connection is initialized to
@@ -603,7 +606,7 @@ public abstract class SQL implements SQLUtils, Closeable {
                     newargs[i + pos] = Array.get(args[pos], i);
                 for (var i = pos + 1; i < args.length; i++)
                     newargs[i - 1 + arrlen] = args[i];
-                query = query.replaceFirst("=\\s*?ANY\\(\\?\\)", " IN(" + appendParam(arrlen) + ")");
+                query = ANY_PARAM.matcher(query).replaceFirst(" IN(" + appendParam(arrlen) + ")");
                 args = newargs;
             }
         argsRef.set(args);
