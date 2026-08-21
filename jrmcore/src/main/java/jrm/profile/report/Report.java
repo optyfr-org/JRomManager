@@ -136,15 +136,14 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
             subjects = Collections.synchronizedList(new ArrayList<>());
         if (stats == null)
             stats = new Stats();
-        subjectHash = subjects.stream()
-                .peek(s -> {
-                    s.parent = this;
-                    if (s.getNotes() != null)
-                        s.getNotes().forEach(n -> n.parent = s);
-                    if (s.ware instanceof Anyware ware)
-                        ware.initTransient();
-                })
-                .collect(Collectors.toMap(Subject::getWareName, Function.identity(), (_, _) -> null));
+        subjects.forEach(s -> {
+            s.parent = this;
+            if (s.getNotes() != null)
+                s.getNotes().forEach(n -> n.parent = s);
+            if (s.ware instanceof Anyware ware)
+                ware.initTransient();
+        });
+        subjectHash = subjects.stream().collect(Collectors.toMap(Subject::getWareName, Function.identity(), (_, _) -> null));
         filterPredicate = new FilterPredicate(new HashSet<>());
     }
 
