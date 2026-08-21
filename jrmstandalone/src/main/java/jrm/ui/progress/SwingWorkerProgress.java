@@ -39,8 +39,8 @@ public abstract class SwingWorkerProgress<T, V> extends SwingWorker<T, V> implem
     /** The progress dialog displaying operation status. */
     private final Progress progress;
 
-    /** List of error messages collected during execution. */
-    private final List<String> errors = new ArrayList<>();
+    /** List of error messages collected during execution. Thread-safe because errors are added from background threads and read on the EDT when closing. */
+    private final List<String> errors = Collections.synchronizedList(new ArrayList<>());
 
     /** Number of threads used for parallel operations. */
     private int threadCnt;
@@ -98,8 +98,12 @@ public abstract class SwingWorkerProgress<T, V> extends SwingWorker<T, V> implem
                 break;
             case "close":
                 progress.close();
-                if (!errors.isEmpty())
-                    JOptionPane.showMessageDialog(owner, errors.stream().collect(Collectors.joining("\n")), "Error", JOptionPane.ERROR_MESSAGE);
+                final String errorMessage;
+                synchronized (errors) {
+                    errorMessage = errors.isEmpty() ? null : errors.stream().collect(Collectors.joining("\n"));
+                }
+                if (errorMessage != null)
+                    JOptionPane.showMessageDialog(owner, errorMessage, "Error", JOptionPane.ERROR_MESSAGE);
                 break;
             default:
                 break;
