@@ -56,7 +56,7 @@ public abstract class Settings extends SettingsImpl {
     /**
      * Pending debounced save task, or {@code null} when no save is scheduled.
      */
-    private transient ScheduledFuture<?> saveFuture;
+    private ScheduledFuture<?> saveFuture;
 
     /**
      * Whether there are unsaved changes since the last persistence.
