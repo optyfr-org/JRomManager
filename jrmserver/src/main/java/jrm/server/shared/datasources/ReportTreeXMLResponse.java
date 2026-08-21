@@ -52,15 +52,7 @@ public class ReportTreeXMLResponse extends XMLResponse {
         writer.writeStartElement(RESPONSE);
         writer.writeElement(STATUS, "0");
 
-        var report = request.session.getReport();
-        if (operation.hasData("src")) {
-            final var srcfile = pathAbstractor.getAbsolutePath(operation.getData("src")).toFile();
-            final var reportfile = ReportIntf.getReportFile(request.session, srcfile);
-            if (request.session.getTmpReport() == null || !(request.session.getTmpReport().getReportFile(request.session).equals(reportfile)
-                    && request.session.getTmpReport().getFileModified() == reportfile.lastModified()))
-                request.session.setTmpReport(Report.load(request.session, srcfile));
-            report = request.session.getTmpReport();
-        }
+        final var report = resolveReport(operation);
 
         final var parentID = Integer.parseInt(operation.getData(PARENT_ID));
         if (parentID == 0) {
@@ -159,60 +151,62 @@ public class ReportTreeXMLResponse extends XMLResponse {
     @Override
     protected void custom(Operation operation) throws XMLStreamException, IOException {
         if ("copy".equals(operation.getOperationId().toString())) {
-            var report = request.session.getReport();
-            if (operation.hasData("src")) {
-                final var srcfile = pathAbstractor.getAbsolutePath(operation.getData("src")).toFile();
-                final var reportfile = ReportIntf.getReportFile(request.session, srcfile);
-                if (request.session.getTmpReport() == null || !(request.session.getTmpReport().getReportFile(request.session).equals(reportfile)
-                        && request.session.getTmpReport().getFileModified() == reportfile.lastModified()))
-                    request.session.setTmpReport(Report.load(request.session, srcfile));
-                report = request.session.getTmpReport();
-            }
-            writer.writeStartElement(RESPONSE);
-            writer.writeElement(STATUS, "0");
-            writer.writeStartElement("data");
-            writer.writeStartElement(RECORD);
-            writer.writeAttribute("ID", "0");
-            writer.writeStartElement("Text");
-            writer.writeCData(report != null ? report.toCopyableText() : "");
-            writer.writeEndElement();
-            writer.writeEndElement();
-            writer.writeEndElement();
-            writer.writeEndElement();
+            writeCopy(resolveReport(operation));
             return;
         }
         if ("detail".equals(operation.getOperationId().toString())) {
-            var report = request.session.getReport();
-            if (operation.hasData("src")) {
-                final var srcfile = pathAbstractor.getAbsolutePath(operation.getData("src")).toFile();
-                final var reportfile = ReportIntf.getReportFile(request.session, srcfile);
-                if (request.session.getTmpReport() == null || !(request.session.getTmpReport().getReportFile(request.session).equals(reportfile)
-                        && request.session.getTmpReport().getFileModified() == reportfile.lastModified()))
-                    request.session.setTmpReport(Report.load(request.session, srcfile));
-                report = request.session.getTmpReport();
+            writeDetail(operation, resolveReport(operation));
+            return;
+        }
+        super.custom(operation);
+    }
+
+    private Report resolveReport(Operation operation) throws IOException {
+        if (!operation.hasData("src"))
+            return request.session.getReport();
+        final var srcfile = pathAbstractor.getAbsolutePath(operation.getData("src")).toFile();
+        final var reportfile = ReportIntf.getReportFile(request.session, srcfile);
+        final var tmp = request.session.getTmpReport();
+        if (tmp == null || !(tmp.getReportFile(request.session).equals(reportfile) && tmp.getFileModified() == reportfile.lastModified()))
+            request.session.setTmpReport(Report.load(request.session, srcfile));
+        return request.session.getTmpReport();
+    }
+
+    private void writeCopy(Report report) throws XMLStreamException {
+        writer.writeStartElement(RESPONSE);
+        writer.writeElement(STATUS, "0");
+        writer.writeStartElement("data");
+        writer.writeStartElement(RECORD);
+        writer.writeAttribute("ID", "0");
+        writer.writeStartElement("Text");
+        writer.writeCData(report != null ? report.toCopyableText() : "");
+        writer.writeEndElement();
+        writer.writeEndElement();
+        writer.writeEndElement();
+        writer.writeEndElement();
+    }
+
+    private void writeDetail(Operation operation, Report report) throws XMLStreamException {
+        final var parentID = Integer.parseInt(operation.getData(PARENT_ID));
+        final var subject = report.getHandler().getFilteredReport().findSubject(parentID);
+        writer.writeStartElement(RESPONSE);
+        writer.writeElement(STATUS, "0");
+        writer.writeStartElement("data");
+        for (Note n : subject) {
+            if (n.getId() == Integer.valueOf(operation.getData("ID"))) {
+                writer.writeStartElement(RECORD);
+                writer.writeAttribute("ID", Integer.toString(n.getId()));
+                writer.writeAttribute(PARENT_ID, Integer.toString(parentID));
+                writer.writeAttribute("Name", n.getName());
+                writer.writeAttribute("CRC", n.getCrc());
+                writer.writeAttribute("SHA1", n.getSha1());
+                writer.writeStartElement("Detail");
+                writer.writeCData(n.getDetail());
+                writer.writeEndElement();
+                writer.writeEndElement();
             }
-            final var parentID = Integer.parseInt(operation.getData(PARENT_ID));
-            final var subject = report.getHandler().getFilteredReport().findSubject(parentID);
-            writer.writeStartElement(RESPONSE);
-            writer.writeElement(STATUS, "0");
-            writer.writeStartElement("data");
-            for (Note n : subject) {
-                if (n.getId() == Integer.valueOf(operation.getData("ID"))) {
-                    writer.writeStartElement(RECORD);
-                    writer.writeAttribute("ID", Integer.toString(n.getId()));
-                    writer.writeAttribute(PARENT_ID, Integer.toString(parentID));
-                    writer.writeAttribute("Name", n.getName());
-                    writer.writeAttribute("CRC", n.getCrc());
-                    writer.writeAttribute("SHA1", n.getSha1());
-                    writer.writeStartElement("Detail");
-                    writer.writeCData(n.getDetail());
-                    writer.writeEndElement();
-                    writer.writeEndElement();
-                }
-            }
-            writer.writeEndElement();
-            writer.writeEndElement();
-        } else
-            super.custom(operation);
+        }
+        writer.writeEndElement();
+        writer.writeEndElement();
     }
 }
