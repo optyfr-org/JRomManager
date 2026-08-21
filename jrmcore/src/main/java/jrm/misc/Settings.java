@@ -61,7 +61,7 @@ public abstract class Settings extends SettingsImpl {
     /**
      * Whether there are unsaved changes since the last persistence.
      */
-    private transient boolean dirty;
+    private boolean dirty;
 
     /**
      * Protected default constructor.
