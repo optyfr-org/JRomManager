@@ -161,7 +161,7 @@ public class MameLaunch {
                 return null;
             }
             return resolved;
-        } catch (SecurityException | InvalidPathException e) {
+        } catch (SecurityException | InvalidPathException _) {
             return null;
         }
     }
