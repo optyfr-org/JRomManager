@@ -44,7 +44,7 @@ import lombok.val;
 public class AdminXMLResponse extends XMLResponse {
     private static final String CAN_T_DO_THAT = "Can't do that!";
     private static final String ROLES = "Roles";
-    private static final String PASSWORD_TITLE = "Password";
+    private static final String PWTITLE = "Password";
     private static final String LOGIN = "Login";
     private static final String RESPONSE = "response";
     private static final String STATUS = "status";
@@ -95,7 +95,7 @@ public class AdminXMLResponse extends XMLResponse {
     private void writeRecord(UserCredential user) throws XMLStreamException {
         writer.writeStartElement("record");
         writer.writeAttribute(LOGIN, user.getLogin());
-        writer.writeAttribute(PASSWORD_TITLE, user.getPassword());
+        writer.writeAttribute(PWTITLE, user.getPassword());
         writer.writeAttribute(ROLES, user.getRoles());
         writer.writeEndElement();
     }
@@ -112,9 +112,9 @@ public class AdminXMLResponse extends XMLResponse {
     @Override
     public void add(Operation operation) throws XMLStreamException {
         if (request.getSession().getUser().isAdmin()) {
-            if (operation.hasData(LOGIN) && operation.hasData(PASSWORD_TITLE)) {
+            if (operation.hasData(LOGIN) && operation.hasData(PWTITLE)) {
                 try (final var login = new Login()) {
-                    login.update("INSERT INTO USERS VALUES(?, ?, ?)", operation.getData(LOGIN), CryptCredential.hash(operation.getData(PASSWORD_TITLE)),
+                    login.update("INSERT INTO USERS VALUES(?, ?, ?)", operation.getData(LOGIN), CryptCredential.hash(operation.getData(PWTITLE)),
                             Optional.ofNullable(operation.getData(ROLES)).orElse("admin"));
                     fetchSingle(operation, login);
                 } catch (Exception e) {
@@ -138,9 +138,9 @@ public class AdminXMLResponse extends XMLResponse {
     @Override
     public void update(Operation operation) throws XMLStreamException {
         if (request.getSession().getUser().isAdmin()) {
-            if (operation.hasData(LOGIN) && operation.hasData(PASSWORD_TITLE)) {
+            if (operation.hasData(LOGIN) && operation.hasData(PWTITLE)) {
                 try (final var login = new Login()) {
-                    login.update("UPDATE USERS SET PASSWORD=?, ROLES=? WHERE LOGIN=?", CryptCredential.hash(operation.getData(PASSWORD_TITLE)),
+                    login.update("UPDATE USERS SET PASSWORD=?, ROLES=? WHERE LOGIN=?", CryptCredential.hash(operation.getData(PWTITLE)),
                             Optional.ofNullable(operation.getData(ROLES)).orElse("admin"), operation.getData(LOGIN));
                     fetchSingle(operation, login);
                 } catch (Exception e) {
