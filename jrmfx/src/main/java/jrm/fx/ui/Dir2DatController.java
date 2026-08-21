@@ -353,18 +353,7 @@ public class Dir2DatController extends BaseController {
         return new ProgressTask<Void>((Stage) dstDat.getScene().getWindow()) {
             @Override
             protected Void call() throws Exception {
-                if (src != null && !src.isEmpty() && dst != null && !dst.isEmpty()) {
-                    final File srcdir = new File(src);
-                    if (srcdir.isDirectory()) {
-                        final File dstdat = new File(dst);
-                        final File dstdir = dstdat.getParentFile();
-                        if ((dstdir == null || dstdir.isDirectory()) && (dstdat.exists() || dstdat.createNewFile())) {
-                            final var options = initOptions(session);
-                            final var type = ExportType.valueOf(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_format)); // $NON-NLS-1$
-                            new Dir2Dat(session, srcdir, dstdat, this, options, type, headers);
-                        }
-                    }
-                }
+                executeDir2Dat(src, dst, headers, this);
                 return null;
             }
 
@@ -375,20 +364,39 @@ public class Dir2DatController extends BaseController {
 
             @Override
             protected void failed() {
-                if (getException() instanceof BreakException)
-                    Dialogs.showAlert("Cancelled");
-                else {
-                    this.close();
-                    Optional.ofNullable(getException().getCause()).ifPresentOrElse(cause -> {
-                        Log.err(cause.getMessage(), cause);
-                        Dialogs.showError(cause);
-                    }, () -> {
-                        Log.err(getException().getMessage(), getException());
-                        Dialogs.showError(getException());
-                    });
-                }
+                handleDir2DatFailure(this);
             }
         };
+    }
+
+    private void executeDir2Dat(final String src, final String dst, final HashMap<String, String> headers, final ProgressTask<Void> task) throws IOException {
+        if (src == null || src.isEmpty() || dst == null || dst.isEmpty())
+            return;
+        final File srcdir = new File(src);
+        if (!srcdir.isDirectory())
+            return;
+        final File dstdat = new File(dst);
+        final File dstdir = dstdat.getParentFile();
+        if ((dstdir == null || dstdir.isDirectory()) && (dstdat.exists() || dstdat.createNewFile())) {
+            final var options = initOptions(session);
+            final var type = ExportType.valueOf(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_format)); // $NON-NLS-1$
+            new Dir2Dat(session, srcdir, dstdat, task, options, type, headers);
+        }
+    }
+
+    private static void handleDir2DatFailure(final ProgressTask<Void> task) {
+        if (task.getException() instanceof BreakException)
+            Dialogs.showAlert("Cancelled");
+        else {
+            task.close();
+            Optional.ofNullable(task.getException().getCause()).ifPresentOrElse(cause -> {
+                Log.err(cause.getMessage(), cause);
+                Dialogs.showError(cause);
+            }, () -> {
+                Log.err(task.getException().getMessage(), task.getException());
+                Dialogs.showError(task.getException());
+            });
+        }
     }
 
     /**
