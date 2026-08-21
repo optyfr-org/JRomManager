@@ -143,6 +143,19 @@ public class Compressor implements StatusRendererFactory {
                 return getResult();
             }
         }
+
+        /**
+         * Updates the file path under this instance's lock and returns the stored value.
+         *
+         * @param next the file path to store
+         * @return the stored file path
+         */
+        public Path applyFile(Path next) {
+            synchronized (lock) {
+                setFile(next);
+                return getFile();
+            }
+        }
     }
 
     /**
