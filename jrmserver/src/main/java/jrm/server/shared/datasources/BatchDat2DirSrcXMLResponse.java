@@ -50,7 +50,10 @@ public class BatchDat2DirSrcXMLResponse extends XMLResponse {
      */
     @Override
     protected void fetch(Operation operation) throws XMLStreamException {
-        final String[] srcdirs = getSrcDirs();
+        final String[] srcdirs;
+        synchronized (request.getSession().getUser().getSettings()) {
+            srcdirs = getSrcDirs();
+        }
         writer.writeStartElement(RESPONSE);
         writer.writeElement(STATUS, "0");
         fetchArray(operation, srcdirs.length, (i, _) -> writeRecord(srcdirs[i]));
@@ -76,11 +79,16 @@ public class BatchDat2DirSrcXMLResponse extends XMLResponse {
     @Override
     protected void add(Operation operation) throws XMLStreamException {
         if (operation.hasData("name")) {
-            final List<String> lsrcdirs = Stream.of(getSrcDirs()).collect(Collectors.toList());
-            final List<String> names = operation.getDatas("name").stream().filter(n -> !lsrcdirs.contains(n)).toList();
+            final List<String> names;
+            synchronized (request.getSession().getUser().getSettings()) {
+                final List<String> lsrcdirs = Stream.of(getSrcDirs()).collect(Collectors.toList());
+                names = operation.getDatas("name").stream().filter(n -> !lsrcdirs.contains(n)).toList();
+                if (!names.isEmpty()) {
+                    lsrcdirs.addAll(names);
+                    save(lsrcdirs);
+                }
+            }
             if (!names.isEmpty()) {
-                lsrcdirs.addAll(names);
-                save(lsrcdirs);
                 writeResponse(operation, names);
             } else {
                 failure("Entry already exists");
@@ -136,11 +144,16 @@ public class BatchDat2DirSrcXMLResponse extends XMLResponse {
     @Override
     protected void remove(Operation operation) throws XMLStreamException {
         if (operation.hasData("name")) {
-            final List<String> lsrcdirs = Stream.of(getSrcDirs()).collect(Collectors.toList());
-            final List<String> names = operation.getDatas("name").stream().filter(lsrcdirs::contains).toList();
+            final List<String> names;
+            synchronized (request.getSession().getUser().getSettings()) {
+                final List<String> lsrcdirs = Stream.of(getSrcDirs()).collect(Collectors.toList());
+                names = operation.getDatas("name").stream().filter(lsrcdirs::contains).toList();
+                if (!names.isEmpty()) {
+                    lsrcdirs.removeAll(names);
+                    save(lsrcdirs);
+                }
+            }
             if (!names.isEmpty()) {
-                lsrcdirs.removeAll(names);
-                save(lsrcdirs);
                 writeResponse(operation, names);
             } else {
                 failure("Entry does not exist");
