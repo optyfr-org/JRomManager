@@ -105,11 +105,12 @@ class ReportSummaryTest {
             report.add(foundIncomplete("galaga"));
 
             final String summary = report.getSummaryText();
-            assertThat(summary).contains(report.getStats().getStatus());
-            assertThat(summary).contains("pacman");
-            assertThat(summary).contains("galaga");
-            assertThat(summary).contains("MISSING");
-            assertThat(summary).contains("PARTIAL");
+            assertThat(summary)
+                .contains(report.getStats().getStatus())
+                .contains("pacman")
+                .contains("galaga")
+                .contains("MISSING")
+                .contains("PARTIAL");
         }
 
         @Test
