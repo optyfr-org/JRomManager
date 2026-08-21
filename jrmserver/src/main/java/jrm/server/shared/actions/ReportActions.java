@@ -45,6 +45,8 @@ import jrm.server.shared.Worker;
  */
 public class ReportActions {
 
+    private static final String PARAMS = "params";
+
     /**
      * The {@link ActionsMgr} instance used for managing session interactions and WebSocket communications.
      */
@@ -94,7 +96,7 @@ public class ReportActions {
      *        if {@code false}, applies filters to the primary report ({@link jrm.server.shared.WebSession#getReport()})
      */
     public void setFilter(JsonObject jso, boolean lite) {
-        final JsonObject pjso = jso.get("params").asObject();
+        final JsonObject pjso = jso.get(PARAMS).asObject();
         final Report report = lite ? ws.getSession().getTmpReport() : ws.getSession().getReport();
         Set<FilterOptions> options = ((EnumSet<FilterOptions>) report.getHandler().getFilterOptions()).clone();
         for (Member m : pjso) {
@@ -115,7 +117,7 @@ public class ReportActions {
             if (ws.isOpen()) {
                 final var params = new JsonObject();
                 EnumSet.allOf(FilterOptions.class).forEach(f -> params.add(f.toString(), options.contains(f)));
-                ws.send(Json.object().add("cmd", lite ? "ReportLite.applyFilters" : "Report.applyFilters").add("params", params).toString());
+                ws.send(Json.object().add("cmd", lite ? "ReportLite.applyFilters" : "Report.applyFilters").add(PARAMS, params).toString());
             }
         } catch (IOException e) {
             Log.err(e.getMessage(), e);
@@ -140,7 +142,7 @@ public class ReportActions {
      * @return the destination path, or {@code null} if missing
      */
     private String extractFixDatPath(JsonObject jso) {
-        final JsonValue pathValue = jso.get("params") != null ? jso.get("params").asObject().get("path") : null;
+        final JsonValue pathValue = jso.get(PARAMS) != null ? jso.get(PARAMS).asObject().get("path") : null;
         return pathValue != null && !pathValue.isNull() ? pathValue.asString() : null;
     }
 
@@ -181,7 +183,7 @@ public class ReportActions {
                 final var params = new JsonObject();
                 params.add("path", path);
                 params.add("success", true);
-                ws.send(Json.object().add("cmd", "Report.fixDatCreated").add("params", params).toString());
+                ws.send(Json.object().add("cmd", "Report.fixDatCreated").add(PARAMS, params).toString());
             }
         } catch (IOException e) {
             Log.err(e.getMessage(), e);
