@@ -7,6 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
+import java.util.concurrent.AtomicReference;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -50,7 +51,7 @@ public abstract class Settings extends SettingsImpl {
     /**
      * Optional callback responsible for persisting this settings instance when marked dirty.
      */
-    private volatile Runnable saveHandler;
+    private final AtomicReference<Runnable> saveHandler = new AtomicReference<>();
 
     /**
      * Pending debounced save task, or {@code null} when no save is scheduled.
@@ -74,7 +75,7 @@ public abstract class Settings extends SettingsImpl {
      * @param saveHandler the persistence callback, or {@code null} to disable automatic saving
      */
     public void setSaveHandler(final Runnable saveHandler) {
-        this.saveHandler = saveHandler;
+        this.saveHandler.set(saveHandler);
     }
 
     /**
@@ -82,7 +83,7 @@ public abstract class Settings extends SettingsImpl {
      * are coalesced into a single save.
      */
     protected void markDirty() {
-        if (saveHandler == null)
+        if (saveHandler.get() == null)
             return;
         synchronized (this) {
             dirty = true;
@@ -115,7 +116,7 @@ public abstract class Settings extends SettingsImpl {
             if (!dirty)
                 return;
             dirty = false;
-            handler = saveHandler;
+            handler = saveHandler.get();
         }
         if (handler != null)
             handler.run();
