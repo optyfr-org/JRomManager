@@ -1,6 +1,7 @@
 package jrm.security;
 
 import java.util.ResourceBundle;
+import java.util.concurrent.atomic.AtomicReference;
 
 import jrm.locale.Messages;
 import jrm.profile.Profile;
@@ -103,7 +104,15 @@ public class Session {
      * 
      * @return the currently loaded ROM profile, or {@code null} if none is active
      */
-    private volatile @Getter @Setter Profile currProfile = null;
+    private final AtomicReference<Profile> currProfile = new AtomicReference<>();
+
+    public Profile getCurrProfile() {
+        return currProfile.get();
+    }
+
+    public void setCurrProfile(Profile currProfile) {
+        this.currProfile.set(currProfile);
+    }
 
     /**
      * The current scan process execution state.
