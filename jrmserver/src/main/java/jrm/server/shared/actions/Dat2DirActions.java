@@ -228,17 +228,21 @@ public class Dat2DirActions {
         return new ResultColUpdater() {
             @Override
             public void updateResult(int row, String result) {
-                sdrl.get(row).setResult(result);
-                session.getUser().getSettings().setProperty(SettingsEnum.dat2dir_sdr, AbstractSrcDstResult.toJSON(sdrl));
-                session.getUser().getSettings().saveSettings();
+                synchronized (session.getUser().getSettings()) {
+                    sdrl.get(row).setResult(result);
+                    session.getUser().getSettings().setProperty(SettingsEnum.dat2dir_sdr, AbstractSrcDstResult.toJSON(sdrl));
+                    session.getUser().getSettings().saveSettings();
+                }
                 Dat2DirActions.this.updateResult(row, result);
             }
 
             @Override
             public void clearResults() {
-                sdrl.forEach(sdr -> sdr.setResult(""));
-                session.getUser().getSettings().setProperty(SettingsEnum.dat2dir_sdr, AbstractSrcDstResult.toJSON(sdrl));
-                session.getUser().getSettings().saveSettings();
+                synchronized (session.getUser().getSettings()) {
+                    sdrl.forEach(sdr -> sdr.setResult(""));
+                    session.getUser().getSettings().setProperty(SettingsEnum.dat2dir_sdr, AbstractSrcDstResult.toJSON(sdrl));
+                    session.getUser().getSettings().saveSettings();
+                }
                 Dat2DirActions.this.clearResults();
             }
         };
