@@ -118,12 +118,7 @@ public class CompressorActions {
         try {
             final int i = values.indexOf(fr);
             var file = PathAbstractor.getAbsolutePath(session, fr.getFile().toString()).toFile();
-            Compressor.UpdResultCallBack cb = txt -> {
-                synchronized (fr) {
-                    fr.setResult(txt);
-                    updateResult(i, fr.getResult());
-                }
-            };
+            Compressor.UpdResultCallBack cb = txt -> updateResult(i, fr.applyResult(txt));
             Compressor.UpdSrcCallBack scb = src -> {
                 synchronized (fr) {
                     fr.setFile(PathAbstractor.getRelativePath(session, src.toPath()));

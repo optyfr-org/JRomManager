@@ -30,7 +30,9 @@ import jtrrntzip.SimpleTorrentZipOptions;
 import jtrrntzip.TorrentZip;
 import jtrrntzip.TrrntZipStatus;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.ToString;
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.model.ZipParameters;
 import net.lingala.zip4j.model.enums.CompressionLevel;
@@ -92,6 +94,10 @@ public class Compressor implements StatusRendererFactory {
      * reporting of results in batch operations.
      */
     public static @Data class FileResult {
+        @EqualsAndHashCode.Exclude
+        @ToString.Exclude
+        private final Object lock = new Object();
+
         /**
          * The Path object representing the file that was processed during the compression operation. This path typically points to
          * the file that was compressed or converted, allowing for easy reference to the file in subsequent operations or for
@@ -123,6 +129,19 @@ public class Compressor implements StatusRendererFactory {
          */
         public FileResult(Path file) {
             this.file = file;
+        }
+
+        /**
+         * Updates the result text under this instance's lock and returns the stored value.
+         *
+         * @param txt the result text to store
+         * @return the stored result
+         */
+        public String applyResult(String txt) {
+            synchronized (lock) {
+                setResult(txt);
+                return getResult();
+            }
         }
     }
 
