@@ -430,7 +430,7 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
                     data.pb2.visibility = true;
                 data.pb2.stringPainted = true/* msg != null || val > 0 */;
                 data.pb2.msg = msg;
-                data.pb2.indeterminate = val == 0 && msg == null;
+                data.pb2.indeterminate = val == 0;
                 computeProgress(data.pb2, val, max, false);
                 showDuration(data.pb2, val);
             } else if (data.pb2.visibility)
@@ -454,7 +454,7 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
                     data.pb3.visibility = true;
                 data.pb3.stringPainted = true/* msg != null || val > 0 */;
                 data.pb3.msg = msg;
-                data.pb3.indeterminate = val == 0 && msg == null;
+                data.pb3.indeterminate = val == 0;
                 computeProgress(data.pb3, val, max, false);
                 showDuration(data.pb3, val);
             } else if (data.pb3.visibility)
