@@ -917,7 +917,8 @@ public class ScannerPanelController extends BaseController implements ProfileLoa
             protected void succeeded() {
                 try {
                     final var fix = get();
-                    fixBtn.setDisable(fix.getActionsRemain() <= 0);
+                    if (fix != null)
+                        fixBtn.setDisable(fix.getActionsRemain() <= 0);
                     close();
                     updateProfileViewer();
                     runScanAutomation(session);
