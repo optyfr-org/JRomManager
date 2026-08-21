@@ -142,19 +142,16 @@ public class DefaultEnvironmentProperties {
      * @return the resolved boolean value, or the default value
      */
     public Boolean getProperty(String key, Boolean def) {
-        final Boolean env = getEnvironmentProperties(key).map(v -> parseBoolean(v)).orElse(null);
-        if (env != null)
-            return env;
-        final Boolean sys = parseBoolean(System.getProperty(key, def.toString()));
-        return sys != null ? sys : def;
+        return getEnvironmentProperties(key).flatMap(DefaultEnvironmentProperties::parseBoolean)
+                .or(() -> parseBoolean(System.getProperty(key, def.toString()))).orElse(def);
     }
 
-    private static Boolean parseBoolean(String value) {
+    private static Optional<Boolean> parseBoolean(String value) {
         if (value.equalsIgnoreCase("true")) //$NON-NLS-1$
-            return Boolean.TRUE;
+            return Optional.of(Boolean.TRUE);
         if (value.equalsIgnoreCase("false")) //$NON-NLS-1$
-            return Boolean.FALSE;
-        return null;
+            return Optional.of(Boolean.FALSE);
+        return Optional.empty();
     }
 
     /**
