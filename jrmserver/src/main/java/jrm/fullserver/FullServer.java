@@ -429,7 +429,7 @@ public class FullServer extends AbstractServer {
          * default value is defined by SESSIONTIMEOUT_DEFAULT.
          */
         @Parameter(names = { "--session-timeout" }, arity = 1, description = "session timeout, default is " + SESSIONTIMEOUT_DEFAULT)
-        private int sessionTimeOut = MINTHREADS_DEFAULT;
+        private int sessionTimeOut = SESSIONTIMEOUT_DEFAULT;
 
     }
 
