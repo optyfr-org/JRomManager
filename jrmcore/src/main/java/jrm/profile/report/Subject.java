@@ -37,7 +37,7 @@ public abstract class Subject extends AbstractList<Note> implements StatusRender
      *
      * @return the list of Note instances
      */
-    protected @Getter List<Note> notes;
+    private @Getter List<Note> notes;
 
     /**
      * The root report containing this subject.

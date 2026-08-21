@@ -114,7 +114,7 @@ public class SubjectSet extends Subject {
      */
     @Override
     public Stream<Note> stream(Set<FilterOptions> filterOptions) {
-        return notes.stream().sorted(Note.getComparator()).filter(n -> !(!filterOptions.contains(FilterOptions.SHOWOK) && n instanceof EntryOK));
+        return getNotes().stream().sorted(Note.getComparator()).filter(n -> !(!filterOptions.contains(FilterOptions.SHOWOK) && n instanceof EntryOK));
     }
 
     /**
@@ -167,7 +167,7 @@ public class SubjectSet extends Subject {
      * @return {@code true} if there is at least one non-OK validation note; {@code false} otherwise
      */
     public boolean hasNotes() {
-        return notes.stream().filter(n -> !(n instanceof EntryOK)).count() > 0;
+        return getNotes().stream().filter(n -> !(n instanceof EntryOK)).count() > 0;
     }
 
     /**
@@ -178,7 +178,7 @@ public class SubjectSet extends Subject {
      * @return {@code true} if the romset is fully repairable; {@code false} otherwise
      */
     public boolean isFixable() {
-        return notes.stream().filter(n -> (n instanceof EntryMissing || n instanceof EntryWrongHash)).count() == 0;
+        return getNotes().stream().filter(n -> (n instanceof EntryMissing || n instanceof EntryWrongHash)).count() == 0;
     }
 
     /**
@@ -187,7 +187,7 @@ public class SubjectSet extends Subject {
      * @return {@code true} if there are repairable discrepancies; {@code false} otherwise
      */
     public boolean hasFix() {
-        return notes.stream().filter(n -> !(n instanceof EntryOK || n instanceof EntryMissing || n instanceof EntryWrongHash)).count() > 0;
+        return getNotes().stream().filter(n -> !(n instanceof EntryOK || n instanceof EntryMissing || n instanceof EntryWrongHash)).count() > 0;
     }
 
     /**

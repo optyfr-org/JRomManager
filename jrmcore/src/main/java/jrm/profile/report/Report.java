@@ -139,8 +139,8 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
         subjectHash = subjects.stream()
                 .peek(s -> {
                     s.parent = this;
-                    if (s.notes != null)
-                        s.notes.forEach(n -> n.parent = s);
+                    if (s.getNotes() != null)
+                        s.getNotes().forEach(n -> n.parent = s);
                     if (s.ware instanceof Anyware ware)
                         ware.initTransient();
                 })
@@ -576,7 +576,7 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
     /**
      * The linked progress and status updater hook.
      */
-    private StatusHandler statusHandler = null;
+    private transient StatusHandler statusHandler = null;
 
     /**
      * Registers a status updater hook to output live scanner updates.
@@ -900,7 +900,7 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
         else {
             if (!modes.contains(ReportMode.COMPACT))
                 reportWriter.println(subject);
-            subject.notes.stream().filter(new ReportNoteFilter(modes)).forEach(note -> writeReport(reportWriter, note, modes));
+            subject.getNotes().stream().filter(new ReportNoteFilter(modes)).forEach(note -> writeReport(reportWriter, note, modes));
         }
     }
 

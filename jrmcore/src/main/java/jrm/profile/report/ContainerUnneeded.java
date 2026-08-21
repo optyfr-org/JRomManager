@@ -59,6 +59,6 @@ public class ContainerUnneeded extends ContainerSubject {
      */
     @Override
     public Stream<Note> stream(Set<FilterOptions> filterOptions) {
-        return notes.stream();
+        return getNotes().stream();
     }
 }

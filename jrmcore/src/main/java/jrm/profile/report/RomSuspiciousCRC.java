@@ -75,7 +75,7 @@ public class RomSuspiciousCRC extends Subject {
      */
     @Override
     public Stream<Note> stream(Set<FilterOptions> filterOptions) {
-        return notes.stream();
+        return getNotes().stream();
     }
 
     /**
