@@ -49,7 +49,7 @@ public class ReportTreeXMLResponse extends XMLResponse {
      */
     @Override
     protected void fetch(Operation operation) throws XMLStreamException, IOException {
-        writer.writeStartElement("response");
+        writer.writeStartElement(RESPONSE);
         writer.writeElement(STATUS, "0");
 
         var report = request.session.getReport();
@@ -168,7 +168,7 @@ public class ReportTreeXMLResponse extends XMLResponse {
                     request.session.setTmpReport(Report.load(request.session, srcfile));
                 report = request.session.getTmpReport();
             }
-            writer.writeStartElement("response");
+            writer.writeStartElement(RESPONSE);
             writer.writeElement(STATUS, "0");
             writer.writeStartElement("data");
             writer.writeStartElement(RECORD);
@@ -193,7 +193,7 @@ public class ReportTreeXMLResponse extends XMLResponse {
             }
             final var parentID = Integer.parseInt(operation.getData(PARENT_ID));
             final var subject = report.getHandler().getFilteredReport().findSubject(parentID);
-            writer.writeStartElement("response");
+            writer.writeStartElement(RESPONSE);
             writer.writeElement(STATUS, "0");
             writer.writeStartElement("data");
             for (Note n : subject) {
