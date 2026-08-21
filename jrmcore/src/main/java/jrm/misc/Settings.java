@@ -7,7 +7,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Properties;
-import java.util.concurrent.AtomicReference;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;

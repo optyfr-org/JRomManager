@@ -5,7 +5,7 @@ import java.io.Serializable;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
-import java.util.concurrent.AtomicReference;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
