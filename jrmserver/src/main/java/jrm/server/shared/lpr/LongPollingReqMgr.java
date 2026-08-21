@@ -1,8 +1,8 @@
 package jrm.server.shared.lpr;
 
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;
@@ -27,13 +27,12 @@ public class LongPollingReqMgr implements ActionsMgr {
     /**
      * A global registry storing active long polling request managers indexed by their web session IDs.
      * <p>
-     * <strong>Concurrency Note:</strong> This map is implemented as a standard, non-synchronized {@link HashMap}. Concurrent
-     * modifications (e.g., sessions being registered or unregistered from different threads) must be managed externally, or
-     * accessed under contexts ensuring thread safety.
+     * <strong>Concurrency Note:</strong> This map is implemented as a {@link ConcurrentHashMap} so that registration,
+     * unregistration, and iteration from different threads do not require external synchronization.
      * </p>
      */
     @Getter
-    private static final Map<String, LongPollingReqMgr> cmds = new HashMap<>();
+    private static final Map<String, LongPollingReqMgr> cmds = new ConcurrentHashMap<>();
 
     /**
      * The web session associated with this long polling request manager. Used to retrieve session configurations, user profiles,
