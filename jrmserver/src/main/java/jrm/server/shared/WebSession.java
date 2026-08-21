@@ -5,6 +5,7 @@ import java.io.Serializable;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Map;
+import java.util.concurrent.AtomicReference;
 import java.util.concurrent.BlockingDeque;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -167,7 +168,7 @@ public class WebSession extends Session implements Closeable, Serializable {
      * synchronization.
      * </p>
      */
-    private transient volatile ConcurrentSkipListMap<Integer, Path> cachedProfileList = null;
+    private final transient AtomicReference<ConcurrentSkipListMap<Integer, Path>> cachedProfileList = new AtomicReference<>();
 
     /**
      * Cache of compressor results for this session, keyed by file identifier.
@@ -262,7 +263,7 @@ public class WebSession extends Session implements Closeable, Serializable {
      * @param path the filesystem path where the profile list is stored
      */
     public void putProfileList(Integer id, Path path) {
-        cachedProfileList.put(id, path);
+        cachedProfileList.get().put(id, path);
     }
 
     /**
@@ -274,7 +275,7 @@ public class WebSession extends Session implements Closeable, Serializable {
      * @param id the identifier of the profile list to remove
      */
     public void removeProfileList(Integer id) {
-        cachedProfileList.remove(id);
+        cachedProfileList.get().remove(id);
     }
 
     /**
@@ -285,7 +286,7 @@ public class WebSession extends Session implements Closeable, Serializable {
      * </p>
      */
     public void newProfileList() {
-        cachedProfileList = new ConcurrentSkipListMap<>();
+        cachedProfileList.set(new ConcurrentSkipListMap<>());
     }
 
     /**
@@ -297,7 +298,8 @@ public class WebSession extends Session implements Closeable, Serializable {
      * @return the last profile list key, or 0 if no lists are cached
      */
     public Integer getLastProfileListKey() {
-        return cachedProfileList != null && !cachedProfileList.isEmpty() ? cachedProfileList.lastKey() : 0;
+        final var list = cachedProfileList.get();
+        return list != null && !list.isEmpty() ? list.lastKey() : 0;
     }
 
     /**
@@ -311,6 +313,6 @@ public class WebSession extends Session implements Closeable, Serializable {
      * @return the filesystem path to the profile list, or {@code null} if not found
      */
     public Path getProfileList(Integer id) {
-        return cachedProfileList.get(id);
+        return cachedProfileList.get().get(id);
     }
 }
