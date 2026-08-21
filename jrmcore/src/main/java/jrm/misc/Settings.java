@@ -50,7 +50,7 @@ public abstract class Settings extends SettingsImpl {
     /**
      * Optional callback responsible for persisting this settings instance when marked dirty.
      */
-    private transient volatile Runnable saveHandler;
+    private volatile Runnable saveHandler;
 
     /**
      * Pending debounced save task, or {@code null} when no save is scheduled.
