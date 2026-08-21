@@ -591,7 +591,7 @@ public class ProgressActions implements ProgressHandler {
      * </p>
      */
     @Override
-    public void clearInfos() {
+    public synchronized void clearInfos() {
         for (var i = 0; i < data.infos.length; i++)
             data.infos[i] = null;
         for (var i = 0; i < data.subinfos.length; i++)
@@ -639,7 +639,7 @@ public class ProgressActions implements ProgressHandler {
      * @param submsg the sub-message to display (or null to keep current sub-message)
      */
     @Override
-    public void setProgress(String msg, Integer val, Integer max, String submsg) {
+    public synchronized void setProgress(String msg, Integer val, Integer max, String submsg) {
         int offset = getOffset();
         if (msg != null)
             data.infos[offset] = msg;
@@ -676,7 +676,7 @@ public class ProgressActions implements ProgressHandler {
      * @param max the maximum progress value (or null to keep current max)
      */
     @Override
-    public void setProgress2(String msg, Integer val, Integer max) {
+    public synchronized void setProgress2(String msg, Integer val, Integer max) {
         var force = false;
         if (msg != null && val != null) {
             if (!data.pb2.visibility)
@@ -703,7 +703,7 @@ public class ProgressActions implements ProgressHandler {
      * @param max the maximum progress value (or null to keep current max)
      */
     @Override
-    public void setProgress3(String msg, Integer val, Integer max) {
+    public synchronized void setProgress3(String msg, Integer val, Integer max) {
         var force = false;
         if (msg != null && val != null) {
             if (!data.pb3.visibility)
