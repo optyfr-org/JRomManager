@@ -5,9 +5,7 @@ import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.time.DurationFormatUtils;
@@ -560,9 +558,6 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
         errors.add(error);
     }
 
-    /** The progress handler option flags. */
-    private Set<Option> options = EnumSet.noneOf(Option.class);
-
     /**
      * Sets the progress handler option flags.
      *
@@ -571,8 +566,6 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
      */
     @Override
     public void setOptions(Option first, Option... rest) {
-        options = EnumSet.of(first, rest);
-
     }
 
     /** The offset provider for multi-threaded progress reporting. */
