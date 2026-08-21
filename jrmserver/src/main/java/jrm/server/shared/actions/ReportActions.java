@@ -128,10 +128,23 @@ public class ReportActions {
      * @param jso JSON with {@code params.path} as the destination abstract path
      */
     public void createFixDat(JsonObject jso) {
-        ws.getSession().setWorker(new Worker(() -> performCreateFixDat(jso))).start();
+        final String path = extractFixDatPath(jso);
+        ws.getSession().setWorker(new Worker(() -> performCreateFixDat(path))).start();
     }
 
-    private void performCreateFixDat(JsonObject jso) {
+    /**
+     * Extracts the destination path from the JSON request on the calling thread, so the worker does not depend on the mutable
+     * request object.
+     *
+     * @param jso JSON with {@code params.path} as the destination abstract path
+     * @return the destination path, or {@code null} if missing
+     */
+    private String extractFixDatPath(JsonObject jso) {
+        final JsonValue pathValue = jso.get("params") != null ? jso.get("params").asObject().get("path") : null;
+        return pathValue != null && !pathValue.isNull() ? pathValue.asString() : null;
+    }
+
+    private void performCreateFixDat(String path) {
         final WebSession session = ws.getSession();
         session.getWorker().progress = new ProgressActions(ws);
         try {
@@ -140,17 +153,16 @@ public class ReportActions {
                 new GlobalActions(ws).warn("No profile loaded.");
                 return;
             }
-            final JsonValue pathValue = jso.get("params") != null ? jso.get("params").asObject().get("path") : null;
-            if (pathValue == null || pathValue.isNull()) {
+            if (path == null) {
                 new GlobalActions(ws).warn("No destination file.");
                 return;
             }
-            final Path dest = PathAbstractor.getWritableAbsolutePath(session, pathValue.asString());
+            final Path dest = PathAbstractor.getWritableAbsolutePath(session, path);
             File file = dest.toFile();
             if (!file.getName().contains("."))
                 file = new File(file.getParentFile(), file.getName() + ".xml");
             Export.export(profile, file, Report.resolveFixDatType(profile), EnumSet.of(ExportMode.MISSING), null, session.getWorker().progress);
-            sendFixDatCreated(pathValue.asString());
+            sendFixDatCreated(path);
         } catch (SecurityException e) {
             Log.err(() -> "Path validation failed for fixDAT export: " + e.getMessage(), e);
             new GlobalActions(ws).warn("Invalid destination file path. Operation cancelled for security reasons.");
