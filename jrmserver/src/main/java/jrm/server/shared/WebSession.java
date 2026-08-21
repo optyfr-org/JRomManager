@@ -94,7 +94,7 @@ public class WebSession extends Session implements Closeable, Serializable {
      *
      * @return the active worker thread, or {@code null} if no operation is running
      */
-    private transient volatile Worker worker = null;
+    private transient Worker worker = null;
 
     /**
      * Returns the worker thread currently executing operations for this session.
