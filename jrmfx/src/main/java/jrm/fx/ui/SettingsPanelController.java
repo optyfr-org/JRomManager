@@ -414,11 +414,11 @@ public class SettingsPanelController extends BaseController {
         }
 
         /**
-         * @return the default identity hash code
+         * @return a hash code derived from the thread count, consistent with {@link #equals(Object)}
          */
         @Override
         public int hashCode() {
-            return super.hashCode();
+            return Integer.hashCode(cnt);
         }
 
         /**
