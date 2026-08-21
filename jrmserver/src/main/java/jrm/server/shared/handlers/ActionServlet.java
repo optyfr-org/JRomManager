@@ -193,8 +193,8 @@ public class ActionServlet extends HttpServlet {
             new CatVerActions(cmd).loaded(sess.getCurrProfile());
             new NPlayersActions(cmd).loaded(sess.getCurrProfile());
         }
-        if (sess.getWorker() != null && sess.getWorker().isAlive() && sess.getWorker().progress != null)
-            sess.getWorker().progress.reload(cmd);
+        if (sess.getWorker() != null && sess.getWorker().isAlive() && sess.getWorker().getProgress() != null)
+            sess.getWorker().getProgress().reload(cmd);
     }
 
     /**

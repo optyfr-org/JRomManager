@@ -154,15 +154,15 @@ public class ProfileActions extends PathAbstractor {
      */
     private void performMameImport(JsonObject jso) {
         WebSession session = ws.getSession();
-        session.getWorker().progress = new ProgressActions(ws);
-        session.getWorker().progress.canCancel(false);
-        session.getWorker().progress.setProgress(session.getMsgs().getString("MainFrame.ImportingFromMame"), -1); //$NON-NLS-1$
+        session.getWorker().setProgress(new ProgressActions(ws));
+        session.getWorker().getProgress().canCancel(false);
+        session.getWorker().getProgress().setProgress(session.getMsgs().getString("MainFrame.ImportingFromMame"), -1); //$NON-NLS-1$
         try {
             JsonObject jsobj = jso.get(PARAMS).asObject();
             String filename = FindCmd.findMame();
             if (filename != null) {
                 final var sl = jsobj.getBoolean("sl", false);
-                final var imprt = new Import(session, new File(filename), sl, session.getWorker().progress);
+                final var imprt = new Import(session, new File(filename), sl, session.getWorker().getProgress());
                 if (imprt.getFile() != null)
                     doImport(session, jsobj, sl, imprt);
                 else
@@ -175,8 +175,8 @@ public class ProfileActions extends PathAbstractor {
             Log.err(e.getMessage(), e);
             new GlobalActions(ws).warn(e.getMessage());
         } finally {
-            session.getWorker().progress.close();
-            session.getWorker().progress = null;
+            session.getWorker().getProgress().close();
+            session.getWorker().setProgress(null);
             session.setLastAction(Instant.now());
         }
     }
@@ -282,11 +282,11 @@ public class ProfileActions extends PathAbstractor {
         WebSession session = ws.getSession();
         if (session.getCurrProfile() != null)
             session.getCurrProfile().saveSettings();
-        session.getWorker().progress = new ProgressActions(ws);
+        session.getWorker().setProgress(new ProgressActions(ws));
         try {
             JsonObject jsobj = jso.get(PARAMS).asObject();
             val file = getAbsolutePath(jsobj.getString(PARENT, null)).resolve(jsobj.getString("file", null));
-            session.setCurrProfile(jrm.profile.Profile.load(session, file.toFile(), session.getWorker().progress));
+            session.setCurrProfile(jrm.profile.Profile.load(session, file.toFile(), session.getWorker().getProgress()));
             if (session.getCurrProfile() != null) {
                 session.getCurrProfile().getNfo().save(session);
                 session.getReport().setProfile(session.getCurrProfile());
@@ -297,8 +297,8 @@ public class ProfileActions extends PathAbstractor {
         } catch (BreakException _) {
             // user cancelled action
         } finally {
-            session.getWorker().progress.close();
-            session.getWorker().progress = null;
+            session.getWorker().getProgress().close();
+            session.getWorker().setProgress(null);
             session.setLastAction(Instant.now());
         }
     }
@@ -447,16 +447,16 @@ public class ProfileActions extends PathAbstractor {
      */
     private void performScan(JsonObject jso, final boolean automate) {
         WebSession session = ws.getSession();
-        session.getWorker().progress = new ProgressActions(ws);
+        session.getWorker().setProgress(new ProgressActions(ws));
         try {
-            session.setCurrScan(new Scan(session.getCurrProfile(), session.getWorker().progress));
+            session.setCurrScan(new Scan(session.getCurrProfile(), session.getWorker().getProgress()));
         } catch (BreakException _) {
             // user cancelled action
         } catch (ScanException ex) {
-            session.getWorker().progress.addError(ex.getMessage());
+            session.getWorker().getProgress().addError(ex.getMessage());
         }
-        session.getWorker().progress.close();
-        session.getWorker().progress = null;
+        session.getWorker().getProgress().close();
+        session.getWorker().setProgress(null);
         session.setLastAction(Instant.now());
         final var automation = ScanAutomation.valueOf(session.getCurrProfile().getSettings().getProperty(ProfileSettingsEnum.automation_scan));
         scanned(session.getCurrScan(), automation.hasReport());
@@ -520,24 +520,24 @@ public class ProfileActions extends PathAbstractor {
      */
     private void performFix(final JsonObject jso) {
         final var session = ws.getSession();
-        session.getWorker().progress = new ProgressActions(ws);
+        session.getWorker().setProgress(new ProgressActions(ws));
         try {
             if (session.getCurrProfile().hasPropsChanged()) {
-                session.setCurrScan(new Scan(session.getCurrProfile(), session.getWorker().progress));
+                session.setCurrScan(new Scan(session.getCurrProfile(), session.getWorker().getProgress()));
                 boolean needfix = session.getCurrScan().actions.stream().mapToInt(Collection::size).sum() > 0;
                 if (!needfix)
                     return;
             }
-            final var fix = new Fix(session.getCurrProfile(), session.getCurrScan(), session.getWorker().progress);
+            final var fix = new Fix(session.getCurrProfile(), session.getCurrScan(), session.getWorker().getProgress());
             fixed(fix);
         } catch (ScanException ex) {
-            session.getWorker().progress.addError(ex.getMessage());
+            session.getWorker().getProgress().addError(ex.getMessage());
         } finally {
             final var automation = ScanAutomation.valueOf(session.getCurrProfile().getSettings().getProperty(ProfileSettingsEnum.automation_scan));
             if (automation.hasScanAgain())
                 scan(jso, false);
-            session.getWorker().progress.close();
-            session.getWorker().progress = null;
+            session.getWorker().getProgress().close();
+            session.getWorker().setProgress(null);
             session.setLastAction(Instant.now());
         }
     }

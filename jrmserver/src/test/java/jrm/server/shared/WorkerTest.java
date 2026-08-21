@@ -69,7 +69,7 @@ class WorkerTest {
             final Worker worker = new Worker(() -> {
             });
             assertThat(worker.getProgress()).isNull();
-            worker.progress = null;
+            worker.setProgress(null);
             assertThat(worker.getProgress()).isNull();
         }
     }

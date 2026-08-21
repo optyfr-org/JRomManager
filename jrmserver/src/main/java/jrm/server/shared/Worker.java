@@ -1,11 +1,12 @@
 package jrm.server.shared;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 import jrm.server.shared.actions.ProgressActions;
-import lombok.Getter;
 
 /**
  * Worker that runs a background task on a virtual thread and can report progress to the client. The progress actions are set by
- * the task itself (via {@code session.getWorker().progress = ...}) once it starts running.
+ * the task itself (via {@code session.getWorker().setProgress(...)}) once it starts running.
  * <p>
  * This class composes a {@link Thread} rather than extending it, following the recommendation in <i>Effective Java</i> to prefer
  * composition over inheritance for thread-like abstractions. The underlying thread is a virtual thread, which is well-suited for
@@ -14,12 +15,10 @@ import lombok.Getter;
 public class Worker {
 
     /**
-     * The progress actions to report progress to the client. Set by the task when it starts running. Marked {@code volatile}
-     * so request-handling threads can safely observe the progress handler assigned by the worker thread.
-     *
-     * @return the progress actions to report progress to the client
+     * The progress actions to report progress to the client. Set by the task when it starts running. Stored in an
+     * {@link AtomicReference} so request-handling threads can safely observe the progress handler assigned by the worker thread.
      */
-    public @Getter volatile ProgressActions progress = null;
+    private final AtomicReference<ProgressActions> progress = new AtomicReference<>();
 
     /**
      * The target to run in the worker thread.
@@ -39,6 +38,24 @@ public class Worker {
      */
     public Worker(Runnable target) {
         this.target = target;
+    }
+
+    /**
+     * Returns the progress actions to report progress to the client.
+     *
+     * @return the progress actions, or {@code null} if none is set
+     */
+    public ProgressActions getProgress() {
+        return progress.get();
+    }
+
+    /**
+     * Sets the progress actions to report progress to the client.
+     *
+     * @param progress the progress actions, or {@code null} to clear
+     */
+    public void setProgress(ProgressActions progress) {
+        this.progress.set(progress);
     }
 
     /**

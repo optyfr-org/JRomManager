@@ -174,7 +174,7 @@ public class Dir2DatActions {
      */
     private void executeDir2DatTransformation(Dir2DatParams params) {
         WebSession session = ws.getSession();
-        session.getWorker().progress = new ProgressActions(ws);
+        session.getWorker().setProgress(new ProgressActions(ws));
         try {
             String srcdir = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_src_dir);
             String dstdat = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_dst_file);
@@ -188,8 +188,8 @@ public class Dir2DatActions {
             Dir2DatActions.this.end();
             session.setCurrProfile(null);
             session.setCurrScan(null);
-            session.getWorker().progress.close();
-            session.getWorker().progress = null;
+            session.getWorker().getProgress().close();
+            session.getWorker().setProgress(null);
             session.setLastAction(Instant.now());
         }
     }
@@ -206,7 +206,7 @@ public class Dir2DatActions {
             final Path validatedSrcDir = PathAbstractor.getAbsolutePath(session, srcdir);
             final Path validatedDstDat = PathAbstractor.getWritableAbsolutePath(session, dstdat);
 
-            new Dir2Dat(session, validatedSrcDir.toFile(), validatedDstDat.toFile(), session.getWorker().progress,
+            new Dir2Dat(session, validatedSrcDir.toFile(), validatedDstDat.toFile(), session.getWorker().getProgress(),
                     options, ExportType.valueOf(format), headers);
         } catch (SecurityException e) {
             Log.err(() -> "Path validation failed for Dir2Dat operation: " + e.getMessage(), e);

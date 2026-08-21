@@ -148,7 +148,7 @@ public class ReportActions {
 
     private void performCreateFixDat(String path) {
         final WebSession session = ws.getSession();
-        session.getWorker().progress = new ProgressActions(ws);
+        session.getWorker().setProgress(new ProgressActions(ws));
         try {
             final Profile profile = session.getCurrProfile();
             if (profile == null) {
@@ -163,7 +163,7 @@ public class ReportActions {
             File file = dest.toFile();
             if (!file.getName().contains("."))
                 file = new File(file.getParentFile(), file.getName() + ".xml");
-            Export.export(profile, file, Report.resolveFixDatType(profile), EnumSet.of(ExportMode.MISSING), null, session.getWorker().progress);
+            Export.export(profile, file, Report.resolveFixDatType(profile), EnumSet.of(ExportMode.MISSING), null, session.getWorker().getProgress());
             sendFixDatCreated(path);
         } catch (SecurityException e) {
             Log.err(() -> "Path validation failed for fixDAT export: " + e.getMessage(), e);
@@ -171,8 +171,8 @@ public class ReportActions {
         } catch (BreakException _) {
             // user cancelled
         } finally {
-            session.getWorker().progress.close();
-            session.getWorker().progress = null;
+            session.getWorker().getProgress().close();
+            session.getWorker().setProgress(null);
             session.setLastAction(Instant.now());
         }
     }

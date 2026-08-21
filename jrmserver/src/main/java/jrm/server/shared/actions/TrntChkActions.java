@@ -149,16 +149,16 @@ public class TrntChkActions {
         if (Boolean.TRUE.equals(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_detect_archived_folders, Boolean.class)))
             opts.add(TorrentChecker.Options.DETECTARCHIVEDFOLDERS);
 
-        session.getWorker().progress = new ProgressActions(ws);
+        session.getWorker().setProgress(new ProgressActions(ws));
         try {
             SDRList<SrcDstResult> sdrl = SrcDstResult.fromJSON(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_sdr));
-            new TorrentChecker<SrcDstResult>(session, session.getWorker().progress, sdrl, mode, createResultColUpdater(session, sdrl), opts);
+            new TorrentChecker<SrcDstResult>(session, session.getWorker().getProgress(), sdrl, mode, createResultColUpdater(session, sdrl), opts);
         } catch (BreakException _) {
             // user cancelled action
         } finally {
             TrntChkActions.this.end();
-            session.getWorker().progress.close();
-            session.getWorker().progress = null;
+            session.getWorker().getProgress().close();
+            session.getWorker().setProgress(null);
             session.setLastAction(Instant.now());
         }
     }

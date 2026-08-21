@@ -64,16 +64,16 @@ public class CompressorActions {
         final var useParallelism = session.getUser().getSettings().getProperty(SettingsEnum.use_parallelism, Boolean.class);
         final var nThreads = Boolean.TRUE.equals(useParallelism) ? session.getUser().getSettings().getProperty(SettingsEnum.thread_count, Integer.class) : 1;
 
-        session.getWorker().progress = new ProgressActions(ws);
-        session.getWorker().progress.setInfos(Math.min(Runtime.getRuntime().availableProcessors(), ws.getSession().getCachedCompressorList().size()), true);
+        session.getWorker().setProgress(new ProgressActions(ws));
+        session.getWorker().getProgress().setInfos(Math.min(Runtime.getRuntime().availableProcessors(), ws.getSession().getCachedCompressorList().size()), true);
         try {
             clearResults();
             startParallelCompression(session, format, force, nThreads);
 
         } catch (BreakException _) { // user requested to stop the process
-            session.getWorker().progress.doCancel();
+            session.getWorker().getProgress().doCancel();
         } finally {
-            session.getWorker().progress.close();
+            session.getWorker().getProgress().close();
             CompressorActions.this.end();
         }
     }
@@ -91,8 +91,8 @@ public class CompressorActions {
     private void startParallelCompression(final WebSession session, final CompressorFormat format, final Boolean force, final int nThreads) {
         List<FileResult> values = new ArrayList<>(session.getCachedCompressorList().values());
         final var cnt = new AtomicInteger();
-        final var compressor = new Compressor(session, cnt, session.getCachedCompressorList().size(), session.getWorker().progress);
-        try (final var mt = new MultiThreadingVirtual<Compressor.FileResult>("compressor", session.getWorker().progress, nThreads,
+        final var compressor = new Compressor(session, cnt, session.getCachedCompressorList().size(), session.getWorker().getProgress());
+        try (final var mt = new MultiThreadingVirtual<Compressor.FileResult>("compressor", session.getWorker().getProgress(), nThreads,
                 fr -> doCompress(session, format, force, cnt, compressor, values, fr))) {
             mt.start(session.getCachedCompressorList().values().stream());
         }
@@ -113,7 +113,7 @@ public class CompressorActions {
      */
     private void doCompress(final WebSession session, final CompressorFormat format, final boolean force, final AtomicInteger cnt, final Compressor compressor,
             List<FileResult> values, FileResult fr) {
-        if (session.getWorker().progress.isCancel())
+        if (session.getWorker().getProgress().isCancel())
             return;
         try {
             final int i = values.indexOf(fr);
@@ -128,7 +128,7 @@ public class CompressorActions {
                     /* nothing to do */}
             }
         } catch (BreakException _) { // user requested to stop the process
-            session.getWorker().progress.doCancel();
+            session.getWorker().getProgress().doCancel();
         } catch (final Exception e) { // oops! something unexpected happened
             Log.err(e.getMessage(), e);
         } finally {

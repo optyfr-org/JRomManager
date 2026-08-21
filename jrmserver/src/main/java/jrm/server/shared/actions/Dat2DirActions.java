@@ -164,7 +164,7 @@ public class Dat2DirActions {
     private void processDat2Dir() {
         WebSession session = ws.getSession();
         boolean dryrun = session.getUser().getSettings().getProperty(SettingsEnum.dat2dir_dry_run, Boolean.class);
-        session.getWorker().progress = new ProgressActions(ws);
+        session.getWorker().setProgress(new ProgressActions(ws));
         try {
             String[] srcdirs = StringUtils.split(session.getUser().getSettings().getProperty(SettingsEnum.dat2dir_srcdirs), '|');
             if (srcdirs.length > 0) {
@@ -172,7 +172,7 @@ public class Dat2DirActions {
                 if (countMissingProfiles(session, sdrl) > 0)
                     new GlobalActions(ws).warn(ws.getSession().getMsgs().getString("MainFrame.AllDatsPresetsAssigned")); //$NON-NLS-1$
                 else {
-                    new DirUpdater(session, sdrl, session.getWorker().progress, toSrcDirFileList(session, srcdirs), createResultColUpdater(session, sdrl), dryrun);
+                    new DirUpdater(session, sdrl, session.getWorker().getProgress(), toSrcDirFileList(session, srcdirs), createResultColUpdater(session, sdrl), dryrun);
                 }
             } else
                 new GlobalActions(ws).warn(ws.getSession().getMsgs().getString("MainFrame.AtLeastOneSrcDir"));
@@ -182,8 +182,8 @@ public class Dat2DirActions {
             Dat2DirActions.this.end();
             session.setCurrProfile(null);
             session.setCurrScan(null);
-            session.getWorker().progress.close();
-            session.getWorker().progress = null;
+            session.getWorker().getProgress().close();
+            session.getWorker().setProgress(null);
             session.setLastAction(Instant.now());
         }
     }
