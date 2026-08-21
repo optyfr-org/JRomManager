@@ -13,7 +13,9 @@ import java.awt.Rectangle;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.swing.ImageIcon;
@@ -201,7 +203,7 @@ public class MainFrame extends JFrame implements Popup {
     }
 
     /** Cache of loaded {@link ImageIcon} instances keyed by resource path. */
-    private static HashMap<String, ImageIcon> iconsCache = new HashMap<>();
+    private static final Map<String, ImageIcon> iconsCache = Collections.synchronizedMap(new HashMap<>());
     /** The module providing icon resources, if available on the module layer. */
     private static Optional<Module> iconsModule = ModuleLayer.boot().findModule("res.icons");
 
@@ -215,24 +217,30 @@ public class MainFrame extends JFrame implements Popup {
      * @return the icon, or an empty {@link ImageIcon} if the resource cannot be found
      */
     public static ImageIcon getIcon(String res) {
-        if (!iconsCache.containsKey(res)) {
-            iconsModule.ifPresentOrElse(module -> {
-                try (final var in = module.getResourceAsStream(res)) {
-                    iconsCache.put(res, in != null ? new ImageIcon(in.readAllBytes()) : new ImageIcon());
-                } catch (Exception e) {
-                    Log.err(e.getMessage(), e);
+        synchronized (iconsCache) {
+            ImageIcon icon = iconsCache.get(res);
+            if (icon == null) {
+                iconsModule.ifPresentOrElse(module -> {
+                    try (final var in = module.getResourceAsStream(res)) {
+                        if (in != null)
+                            iconsCache.put(res, new ImageIcon(in.readAllBytes()));
+                    } catch (Exception e) {
+                        Log.err(e.getMessage(), e);
+                    }
+                }, () -> {
+                    try (final var in = MainFrame.class.getResourceAsStream(res)) {
+                        if (in != null)
+                            iconsCache.put(res, new ImageIcon(in.readAllBytes()));
+                    } catch (Exception e) {
+                        Log.err(e.getMessage(), e);
+                    }
+                });
+                icon = iconsCache.get(res);
+                if (icon == null)
                     iconsCache.put(res, new ImageIcon());
-                }
-            }, () -> {
-                try (final var in = MainFrame.class.getResourceAsStream(res)) {
-                    iconsCache.put(res, in != null ? new ImageIcon(in.readAllBytes()) : new ImageIcon());
-                } catch (Exception e) {
-                    Log.err(e.getMessage(), e);
-                    iconsCache.put(res, new ImageIcon());
-                }
-            });
+            }
+            return icon;
         }
-        return iconsCache.get(res);
     }
 
 }
