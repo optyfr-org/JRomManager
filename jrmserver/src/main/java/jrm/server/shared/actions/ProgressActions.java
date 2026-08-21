@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.commons.lang3.time.DurationFormatUtils;
 
@@ -71,14 +73,14 @@ public class ProgressActions implements ProgressHandler {
     /** The {@link ActionsMgr} instance used for sending WebSocket messages to the client. */
     private ActionsMgr ws;
 
-    /** List of error messages accumulated during the operation, sent to client on close. */
-    private final List<String> errors = new ArrayList<>();
+    /** List of error messages accumulated during the operation, sent to client on close. Thread-safe for concurrent adds. */
+    private final List<String> errors = Collections.synchronizedList(new ArrayList<>());
 
     /** Flag indicating whether the operation has been cancelled by the user. */
-    private boolean cancel = false;
+    private final AtomicBoolean cancel = new AtomicBoolean(false);
 
-    /** Flag indicating whether the operation supports cancellation. */
-    private boolean canCancel = true;
+    /** Flag indicating whether the operation supports cancellation. Visible across threads. */
+    private volatile boolean canCancel = true;
 
     /** Gson instance for JSON serialization, configured to exclude transient fields. */
     private Gson gson;
@@ -798,7 +800,7 @@ public class ProgressActions implements ProgressHandler {
      * @return the current progress value for pb1
      */
     @Override
-    public int getCurrent() {
+    public synchronized int getCurrent() {
         return data.pb1.val;
     }
 
@@ -808,7 +810,7 @@ public class ProgressActions implements ProgressHandler {
      * @return the current progress value for pb2
      */
     @Override
-    public int getCurrent2() {
+    public synchronized int getCurrent2() {
         return data.pb2.val;
     }
 
@@ -818,7 +820,7 @@ public class ProgressActions implements ProgressHandler {
      * @return the current progress value for pb3
      */
     @Override
-    public int getCurrent3() {
+    public synchronized int getCurrent3() {
         return data.pb3.val;
     }
 
@@ -829,7 +831,7 @@ public class ProgressActions implements ProgressHandler {
      */
     @Override
     public boolean isCancel() {
-        return cancel;
+        return cancel.get();
     }
 
     /**
@@ -841,7 +843,7 @@ public class ProgressActions implements ProgressHandler {
      */
     @Override
     public void doCancel() {
-        cancel = true;
+        cancel.set(true);
     }
 
     /**
@@ -871,8 +873,13 @@ public class ProgressActions implements ProgressHandler {
     @Override
     public void close() {
         try {
-            if (ws.isOpen())
-                ws.send(gson.toJson(new Close(errors)));
+            if (ws.isOpen()) {
+                final List<String> errorsSnapshot;
+                synchronized (errors) {
+                    errorsSnapshot = new ArrayList<>(errors);
+                }
+                ws.send(gson.toJson(new Close(errorsSnapshot)));
+            }
         } catch (IOException e) {
             Log.err(e.getMessage(), e);
         }
