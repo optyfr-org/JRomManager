@@ -48,8 +48,11 @@ class ReportTreeXMLResponseTest {
                 </request>
                 """;
         final String output = TestDataSets.processResponse(new ReportTreeXMLResponse(TestDataSets.xmlRequest(session, xml)));
-        assertThat(output).contains("<status>0</status>").contains("<totalRows>0</totalRows>");
-        assertThat(output).contains("<infos>").contains("<summary>");
+        assertThat(output)
+            .contains("<status>0</status>")
+            .contains("<totalRows>0</totalRows>")
+            .contains("<infos>")
+            .contains("<summary>");
     }
 
     @Test
