@@ -1,6 +1,7 @@
 package jrm.aui.basic;
 
 import java.util.ArrayList;
+import java.util.Collection;
 
 import lombok.Getter;
 
@@ -26,6 +27,15 @@ public class SDRList<T> extends ArrayList<T> {
      */
     public SDRList() {
         super();
+    }
+
+    /**
+     * Constructs an SDRList containing the elements of the specified collection.
+     *
+     * @param c the collection whose elements are to be placed into this list
+     */
+    public SDRList(Collection<? extends T> c) {
+        super(c);
     }
     
     /**
