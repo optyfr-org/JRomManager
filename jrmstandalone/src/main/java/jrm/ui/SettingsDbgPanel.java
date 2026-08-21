@@ -14,6 +14,7 @@ import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.border.BevelBorder;
 import javax.swing.border.SoftBevelBorder;
 
@@ -112,12 +113,17 @@ public class SettingsDbgPanel extends JPanel {
 
     /**
      * Update memory.
+     * <p>
+     * This method may be invoked from the scheduled executor thread or the Swing event dispatch thread. All Swing component access
+     * is dispatched to the EDT to comply with Swing's single-thread rule.
+     * </p>
      */
     void updateMemory() {
         final Runtime rt = Runtime.getRuntime();
-        lblMemoryUsage.setText(String.format(Messages.getString("MainFrame.MemoryUsage"), String.format(XX_MIB, rt.totalMemory() / 1048576.0), //$NON-NLS-1$
+        final String text = String.format(Messages.getString("MainFrame.MemoryUsage"), String.format(XX_MIB, rt.totalMemory() / 1048576.0), //$NON-NLS-1$
                 String.format(XX_MIB, (rt.totalMemory() - rt.freeMemory()) / 1048576.0), String.format(XX_MIB, rt.freeMemory() / 1048576.0),
-                String.format(XX_MIB, rt.maxMemory() / 1048576.0))); // $NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+                String.format(XX_MIB, rt.maxMemory() / 1048576.0)); // $NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
+        SwingUtilities.invokeLater(() -> lblMemoryUsage.setText(text));
     }
 
 }
