@@ -8,9 +8,10 @@
  */
 package jrm.profile.fix;
 
+import java.io.InputStream;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -20,6 +21,7 @@ import jrm.aui.progress.ProgressHandler;
 import jrm.misc.BreakException;
 import jrm.misc.Log;
 import jrm.misc.MultiThreadingVirtual;
+import jrm.misc.OffsetProvider;
 import jrm.misc.ProfileSettingsEnum;
 import jrm.misc.SettingsEnum;
 import jrm.profile.Profile;
@@ -105,6 +107,10 @@ public class Fix {
 
     /**
      * Internal worker method executing a single container action in the multi-threading pool context.
+     * <p>
+     * A thread-safe wrapper around the shared progress handler is passed to the action so concurrent progress updates are
+     * serialized while the actual container work still runs in parallel.
+     * </p>
      * 
      * @param currProfile the active {@link Profile} context
      * @param progress the active UI progress status tracker
@@ -113,21 +119,119 @@ public class Fix {
      * @param action the actual container repair task to apply
      */
     private void doAction(final Profile currProfile, final ProgressHandler progress, final AtomicInteger i, final List<ContainerAction> done, ContainerAction action) {
-        if (progress.isCancel())
+        final var safeProgress = new SynchronizedProgressHandler(progress);
+        if (safeProgress.isCancel())
             return;
         try {
-            if (!action.doAction(currProfile.getSession(), progress)) // do action...
+            if (!action.doAction(currProfile.getSession(), safeProgress)) // do action...
             {
                 Log.warn(() -> "Action " + action.toString() + " has failed, remaining actions processing will be cancelled");
-                progress.doCancel(); // ... and cancel all if it failed
+                safeProgress.doCancel(); // ... and cancel all if it failed
             } else
                 done.add(action); // add to "done" list successful action
-            progress.setProgress("", i.addAndGet(1 + action.count() + (int) (action.estimatedSize() >> 20))); // update progression
+            safeProgress.setProgress("", i.addAndGet(1 + action.count() + (int) (action.estimatedSize() >> 20))); // update progression
         } catch (final BreakException _) { // special catch case from BreakException thrown from underlying streams
-            progress.doCancel();
+            safeProgress.doCancel();
         } catch (final Exception e) { // oups! something unexpected happened
-            progress.setProgress("");
+            safeProgress.setProgress("");
             Log.err(e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Thread-safe wrapper that serializes all calls to a delegate {@link ProgressHandler}. This allows parallel actions to share a
+     * single progress handler without corrupting its internal state.
+     */
+    private static final class SynchronizedProgressHandler implements ProgressHandler {
+        private final ProgressHandler delegate;
+
+        SynchronizedProgressHandler(ProgressHandler delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public synchronized void setOptions(ProgressHandler.Option first, ProgressHandler.Option... rest) {
+            delegate.setOptions(first, rest);
+        }
+
+        @Override
+        public synchronized void setInfos(int threadCnt, Boolean multipleSubInfos) {
+            delegate.setInfos(threadCnt, multipleSubInfos);
+        }
+
+        @Override
+        public synchronized void clearInfos() {
+            delegate.clearInfos();
+        }
+
+        @Override
+        public synchronized void setProgress(String msg, Integer val, Integer max, String submsg) {
+            delegate.setProgress(msg, val, max, submsg);
+        }
+
+        @Override
+        public synchronized void setProgress2(String msg, Integer val, Integer max) {
+            delegate.setProgress2(msg, val, max);
+        }
+
+        @Override
+        public synchronized void setProgress3(String msg, Integer val, Integer max) {
+            delegate.setProgress3(msg, val, max);
+        }
+
+        @Override
+        public synchronized int getCurrent() {
+            return delegate.getCurrent();
+        }
+
+        @Override
+        public synchronized int getCurrent2() {
+            return delegate.getCurrent2();
+        }
+
+        @Override
+        public synchronized int getCurrent3() {
+            return delegate.getCurrent3();
+        }
+
+        @Override
+        public synchronized boolean isCancel() {
+            return delegate.isCancel();
+        }
+
+        @Override
+        public synchronized void doCancel() {
+            delegate.doCancel();
+        }
+
+        @Override
+        public synchronized void canCancel(boolean canCancel) {
+            delegate.canCancel(canCancel);
+        }
+
+        @Override
+        public synchronized boolean canCancel() {
+            return delegate.canCancel();
+        }
+
+        @Override
+        public synchronized InputStream getInputStream(InputStream in, Integer len) {
+            return delegate.getInputStream(in, len);
+        }
+
+        @Override
+        public synchronized void close() {
+            delegate.close();
+        }
+
+        @Override
+        public synchronized void addError(String error) {
+            delegate.addError(error);
+        }
+
+        @Override
+        public synchronized void setOffsetProvider(OffsetProvider offsetProvider) {
+            delegate.setOffsetProvider(offsetProvider);
         }
     }
 
