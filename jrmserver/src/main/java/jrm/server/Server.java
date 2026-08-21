@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -187,7 +188,6 @@ public class Server extends AbstractServer {
         Optional.ofNullable(env.getProperty("jrm.server.clientpath", jArgs.clientPath)).ifPresent(v -> jArgs.clientPath = v);
         Optional.ofNullable(env.getProperty("jrm.server.workpath", jArgs.workPath)).ifPresent(v -> jArgs.workPath = v);
         Optional.ofNullable(env.getProperty("jrm.server.debug", jArgs.debug)).ifPresent(v -> jArgs.debug = v);
-        Optional.ofNullable(env.getProperty("jrm.server.log.level", jArgs.debug)).ifPresent(v -> jArgs.debug = v);
         Optional.ofNullable(env.getProperty("jrm.server.http", jArgs.httpPort)).ifPresent(v -> jArgs.httpPort = v);
         Optional.ofNullable(env.getProperty("jrm.server.bind", jArgs.bind)).ifPresent(v -> jArgs.bind = v);
     }
@@ -221,6 +221,8 @@ public class Server extends AbstractServer {
             Locale.setDefault(Locale.US);
             System.setProperty("file.encoding", "UTF-8");
             Log.init(getLogPath() + "/Server.%g.log", debug, 1024 * 1024, 5);
+            if (!debug)
+                Optional.ofNullable(env.getProperty("jrm.server.log.level")).ifPresent(v -> Log.setLevel(Level.parse(v)));
         } catch (ParameterException e) {
             Log.err(e.getMessage(), e);
             cmd.usage();
