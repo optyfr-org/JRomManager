@@ -117,7 +117,9 @@ class MameLaunchTest {
         Files.writeString(script.toPath(), "echo pwned");
         script.setExecutable(true, false);
 
-        assertThatThrownBy(() -> MameLaunch.machine(script, "pacman", script.getParent(), List.of()))
+        final String homePath = script.getParent();
+        final List<String> destDirs = List.of();
+        assertThatThrownBy(() -> MameLaunch.machine(script, "pacman", homePath, destDirs))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("MAME executable");
     }
