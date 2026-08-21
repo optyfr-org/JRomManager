@@ -40,6 +40,8 @@ class RealWorldTorrentTest {
 
     private static final Pattern ANNOUNCE_URL = Pattern.compile("^(https?|udp)://.*");
 
+    private static final Pattern HEX_HASH = Pattern.compile("[0-9a-fA-F]+");
+
     /** All available torrent filenames for parametrized-style tests. */
     private static final String[] ALL_TORRENTS = {
         "ubuntu-24.04.3-desktop-amd64.iso.torrent",
@@ -739,7 +741,7 @@ class RealWorldTorrentTest {
 
                 assertThat(torrent.getPieces())
                     .as("Piece hashes for " + filename)
-                    .allMatch(hash -> hash.length() == 40 && hash.matches("[0-9a-fA-F]+"));
+                    .allMatch(hash -> hash.length() == 40 && HEX_HASH.matcher(hash).matches());
             }
         }
 
