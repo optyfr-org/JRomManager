@@ -1087,7 +1087,7 @@ public class ProfilePanelController implements Initializable {
      * @return the resulting MAME status, or {@link MameStatus#NOTFOUND} if the file does not exist
      */
     MameStatus updateFromMameRelocate(final ProfileNFO nfo, File mame) {
-        if (mame.exists())
+        if (mame != null && mame.exists())
             return nfo.getMame().relocate(mame);
         return MameStatus.NOTFOUND;
     }
