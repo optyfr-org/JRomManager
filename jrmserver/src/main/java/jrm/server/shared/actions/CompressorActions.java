@@ -119,12 +119,16 @@ public class CompressorActions {
             final int i = values.indexOf(fr);
             var file = PathAbstractor.getAbsolutePath(session, fr.getFile().toString()).toFile();
             Compressor.UpdResultCallBack cb = txt -> {
-                fr.setResult(txt);
-                updateResult(i, fr.getResult());
+                synchronized (fr) {
+                    fr.setResult(txt);
+                    updateResult(i, fr.getResult());
+                }
             };
             Compressor.UpdSrcCallBack scb = src -> {
-                fr.setFile(PathAbstractor.getRelativePath(session, src.toPath()));
-                updateFile(i, fr.getFile());
+                synchronized (fr) {
+                    fr.setFile(PathAbstractor.getRelativePath(session, src.toPath()));
+                    updateFile(i, fr.getFile());
+                }
             };
             switch (format) {
                 case SEVENZIP -> doCompress2SevenZip(force, compressor, file, cb, scb);
