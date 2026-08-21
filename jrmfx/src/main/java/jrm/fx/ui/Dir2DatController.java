@@ -322,10 +322,17 @@ public class Dir2DatController extends BaseController {
 
     /**
      * Starts the Dir2Dat conversion on a virtual thread.
+     * <p>
+     * Text field values and DAT headers are captured on the JavaFX thread before the background task is started, because JavaFX
+     * controls are not thread-safe.
+     * </p>
      */
     private void dir2dat() {
         try {
-            Thread.startVirtualThread(dir2DatTask());
+            final String src = srcDir.getText();
+            final String dst = dstDat.getText();
+            final var headers = initHeaders();
+            Thread.startVirtualThread(dir2DatTask(src, dst, headers));
         } catch (IOException | URISyntaxException e) {
             Log.err(e.getMessage(), e);
             Dialogs.showError(e);
@@ -335,16 +342,17 @@ public class Dir2DatController extends BaseController {
     /**
      * Creates the Dir2Dat background task.
      *
+     * @param src the captured source directory path from the FX text field
+     * @param dst the captured destination DAT file path from the FX text field
+     * @param headers the captured DAT metadata headers from the FX text fields
      * @return the progress task
      * @throws IOException if an I/O error occurs
      * @throws URISyntaxException if the FXML resource URI is invalid
      */
-    private ProgressTask<Void> dir2DatTask() throws IOException, URISyntaxException {
+    private ProgressTask<Void> dir2DatTask(final String src, final String dst, final HashMap<String, String> headers) throws IOException, URISyntaxException {
         return new ProgressTask<Void>((Stage) dstDat.getScene().getWindow()) {
             @Override
             protected Void call() throws Exception {
-                final String src = srcDir.getText();
-                final String dst = dstDat.getText();
                 if (src != null && !src.isEmpty() && dst != null && !dst.isEmpty()) {
                     final File srcdir = new File(src);
                     if (srcdir.isDirectory()) {
@@ -352,7 +360,6 @@ public class Dir2DatController extends BaseController {
                         if (dstdat.getParentFile().isDirectory() && (dstdat.exists() || dstdat.createNewFile())) {
                             final var options = initOptions(session);
                             final var type = ExportType.valueOf(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_format)); // $NON-NLS-1$
-                            final var headers = initHeaders();
                             new Dir2Dat(session, srcdir, dstdat, this, options, type, headers);
                         }
                     }
