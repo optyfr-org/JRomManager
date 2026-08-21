@@ -183,7 +183,7 @@ public class WebSession extends Session implements Closeable, Serializable {
      *
      * @return the cached compressor results map
      */
-    private transient volatile @Getter ConcurrentSkipListMap<String, FileResult> cachedCompressorList = new ConcurrentSkipListMap<>();
+    private transient @Getter ConcurrentSkipListMap<String, FileResult> cachedCompressorList = new ConcurrentSkipListMap<>();
 
     /**
      * Creates a new web session for single-session mode.
