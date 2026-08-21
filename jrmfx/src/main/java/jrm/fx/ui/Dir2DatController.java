@@ -357,7 +357,8 @@ public class Dir2DatController extends BaseController {
                     final File srcdir = new File(src);
                     if (srcdir.isDirectory()) {
                         final File dstdat = new File(dst);
-                        if (dstdat.getParentFile().isDirectory() && (dstdat.exists() || dstdat.createNewFile())) {
+                        final File dstdir = dstdat.getParentFile();
+                        if ((dstdir == null || dstdir.isDirectory()) && (dstdat.exists() || dstdat.createNewFile())) {
                             final var options = initOptions(session);
                             final var type = ExportType.valueOf(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_format)); // $NON-NLS-1$
                             new Dir2Dat(session, srcdir, dstdat, this, options, type, headers);
