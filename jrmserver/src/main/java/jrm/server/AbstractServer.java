@@ -371,7 +371,7 @@ public abstract class AbstractServer implements Daemon {
             if (Resources.exists(resource))
                 return resource;
         }
-        throw new FileNotFoundException("Unable to find webclient path");
+        throw new FileNotFoundException("Unable to find localhost certificate");
     }
 
     /**
