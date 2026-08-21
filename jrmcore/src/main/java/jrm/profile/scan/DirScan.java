@@ -15,6 +15,7 @@ import java.io.InputStream;
 import java.security.NoSuchAlgorithmException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.DirectoryStream;
+import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.FileVisitOption;
 import java.nio.file.FileVisitResult;
@@ -1431,16 +1432,9 @@ public final class DirScan extends PathAbstractor {
      */
     private void updateEntryExt(final Entry entry, final Path entryPath, List<Algo> algorithms) throws IOException {
         if (!algorithms.isEmpty())
-            try {
-                var path = entryPath;
-                if (entryPath == null)
-                    path = getPath(entry);
-                try {
-                    MDigest[] digests = computeHash(path, algorithms);
-                    updateEntryFromHashes(entry, digests);
-                } finally {
-                    closeOwnedPath(path, entryPath);
-                }
+            try (var owned = OwnedPath.of(entry, entryPath)) {
+                MDigest[] digests = computeHash(owned.path(), algorithms);
+                updateEntryFromHashes(entry, digests);
             } catch (NoSuchAlgorithmException e) {
                 Log.err(e.getMessage(), e);
             }
@@ -1456,11 +1450,8 @@ public final class DirScan extends PathAbstractor {
      * @throws IOException if stream reading fails
      */
     private void updateEntryCHD(final Entry entry, final Path entryPath, ScanOptions options) throws IOException {
-        var path = entryPath;
-        if (entryPath == null)
-            path = getPath(entry);
-        try {
-            final var chdInfo = new CHDInfoReader(path.toFile());
+        try (var owned = OwnedPath.of(entry, entryPath)) {
+            final var chdInfo = new CHDInfoReader(owned.path().toFile());
             if (options.sha1Disks) {
                 entry.setSha1(chdInfo.getSHA1());
                 if (null != entry.getSha1())
@@ -1471,8 +1462,6 @@ public final class DirScan extends PathAbstractor {
                 if (null != entry.getMd5())
                     entriesByMd5.put(entry.getMd5(), entry);
             }
-        } finally {
-            closeOwnedPath(path, entryPath);
         }
     }
 
@@ -1486,15 +1475,10 @@ public final class DirScan extends PathAbstractor {
      */
     private void updatEntryZip(final Entry entry, final Path entryPath) throws IOException {
         if (entry.getSize() == 0 && entry.getCrc() == null) {
-            var path = entryPath;
-            if (entryPath == null)
-                path = getPath(entry);
-            try {
-                final Map<String, Object> entryZipAttrs = Files.readAttributes(path, "zip:*"); //$NON-NLS-1$
+            try (var owned = OwnedPath.of(entry, entryPath)) {
+                final Map<String, Object> entryZipAttrs = Files.readAttributes(owned.path(), "zip:*"); //$NON-NLS-1$
                 entry.setSize((Long) entryZipAttrs.get("size")); //$NON-NLS-1$
                 entry.setCrc(String.format("%08x", entryZipAttrs.get("crc"))); //$NON-NLS-1$ //$NON-NLS-2$
-            } finally {
-                closeOwnedPath(path, entryPath);
             }
         }
         entriesByCrc.put(entry.getCrc() + "." + entry.getSize(), entry); //$NON-NLS-1$
@@ -1583,24 +1567,43 @@ public final class DirScan extends PathAbstractor {
     }
 
     /**
-     * Retrieves an isolated zip virtual path representing the target entry.
-     * The returned path's filesystem stays open; callers that opened it via this
-     * method must close it with {@link #closeOwnedPath(Path, Path)} after use.
-     * 
-     * @param entry the target entry details
-     * 
-     * @return a virtual file path sequence
-     * 
-     * @throws IOException if the target archive zip filesystem cannot be mapped
+     * Holds a path that may own a zip {@link FileSystem}. Use in try-with-resources.
+     * When {@code entryPath} is null, a filesystem is opened for the entry's parent
+     * archive and closed on {@link #close()}; otherwise the borrowed path is not closed.
      */
-    private Path getPath(final Entry entry) throws IOException {
-        final var srcfs = FileSystems.newFileSystem(entry.getParent().getFile().toPath(), (ClassLoader) null);
-        return srcfs.getPath(entry.getFile());
-    }
+    private static final class OwnedPath implements AutoCloseable {
+        private final Path path;
+        private final FileSystem fileSystem;
 
-    private static void closeOwnedPath(final Path path, final Path entryPath) throws IOException {
-        if (entryPath == null && path != null)
-            path.getFileSystem().close();
+        private OwnedPath(final Path borrowed) {
+            this.path = borrowed;
+            this.fileSystem = null;
+        }
+
+        private OwnedPath(final Entry entry) throws IOException {
+            final var fs = FileSystems.newFileSystem(entry.getParent().getFile().toPath(), (ClassLoader) null);
+            try {
+                this.fileSystem = fs;
+                this.path = fs.getPath(entry.getFile());
+            } catch (RuntimeException e) {
+                fs.close();
+                throw e;
+            }
+        }
+
+        static OwnedPath of(final Entry entry, final Path entryPath) throws IOException {
+            return entryPath == null ? new OwnedPath(entry) : new OwnedPath(entryPath);
+        }
+
+        Path path() {
+            return path;
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (fileSystem != null)
+                fileSystem.close();
+        }
     }
 
     /**
