@@ -287,8 +287,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * Reinitializes transient list/entity state after Fory deserialization.
      */
     public void afterLoad() {
-        if (machineListList != null)
-            machineListList.afterLoad();
+        machineListList.afterLoad();
     }
 
     /**
