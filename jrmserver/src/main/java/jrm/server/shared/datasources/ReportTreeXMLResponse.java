@@ -161,7 +161,7 @@ public class ReportTreeXMLResponse extends XMLResponse {
         super.custom(operation);
     }
 
-    private Report resolveReport(Operation operation) throws IOException {
+    private Report resolveReport(Operation operation) {
         if (!operation.hasData("src"))
             return request.session.getReport();
         final var srcfile = pathAbstractor.getAbsolutePath(operation.getData("src")).toFile();
