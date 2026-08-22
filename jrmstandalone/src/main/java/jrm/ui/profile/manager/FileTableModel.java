@@ -166,7 +166,7 @@ public class FileTableModel extends AbstractTableModel implements StatusRenderer
             Arrays.asList("", ".properties", ".cache").forEach(ext -> { //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
                 final var oldfile = new File(currDir.getFile(), pnfo.getName() + ext);
                 final var newfile = new File(currDir.getFile(), aValue + ext);
-                if (oldfile.renameTo(newfile))
+                if (!oldfile.renameTo(newfile))
                     Log.warn(() -> "Can't rename " + oldfile.getName() + " to " + newfile.getName());
             });
             final var newNfoFile = new File(currDir.getFile(), aValue.toString());
