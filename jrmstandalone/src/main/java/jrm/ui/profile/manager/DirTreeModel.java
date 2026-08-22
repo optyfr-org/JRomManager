@@ -66,9 +66,10 @@ public class DirTreeModel extends DefaultTreeModel implements TreeModelListener 
     @Override
     public void treeNodesRemoved(final TreeModelEvent e) {
         try {
-            final int index = e.getChildIndices()[0];
             final Object[] children = e.getChildren();
-            final DirNode child = (DirNode) children[index];
+            if (children == null || children.length == 0)
+                return;
+            final DirNode child = (DirNode) children[0];
             FileUtils.deleteDirectory(child.getDir().getFile());
         } catch (NullPointerException | IOException exc) {
             Log.err(exc.getMessage(), exc);
