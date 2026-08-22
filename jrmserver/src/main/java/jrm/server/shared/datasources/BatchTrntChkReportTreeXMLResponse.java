@@ -43,7 +43,7 @@ public class BatchTrntChkReportTreeXMLResponse extends XMLResponse {
      * Fetches the transaction check report tree data and writes it to the XML response.
      * <p>
      * Loads or retrieves the cached report based on the source file path. Depending on the requested parent ID, it delegates to
-     * either {@link #fetchRoot(Operation, TrntChkReport, Boolean)} or {@link #fetchNode(TrntChkReport, Long)}.
+     * either {@link #fetchRoot(Operation, TrntChkReport, Boolean)} or {@link #fetchNode(TrntChkReport, long)}.
      * </p>
      *
      * @param operation the operation containing request parameters (e.g., "src", "showOK", "ParentID")
