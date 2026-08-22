@@ -79,10 +79,9 @@ public class NPlayersXMLResponse extends XMLResponse {
         writer.writeStartElement("response");
         writer.writeElement("status", "0");
         writer.writeElement("startRow", "0");
-        writer.writeElement("endRow",
-                Integer.toString((session.getCurrProfile().getNplayers() == null ? 0 : request.getSession().getCurrProfile().getNplayers().getListNPlayers().size()) - 1));
-        writer.writeElement("totalRows",
-                Integer.toString(session.getCurrProfile().getNplayers() == null ? 0 : request.getSession().getCurrProfile().getNplayers().getListNPlayers().size()));
+        final int rowCount = session.getCurrProfile().getNplayers() == null ? 0 : request.getSession().getCurrProfile().getNplayers().getListNPlayers().size();
+        writer.writeElement("endRow", Integer.toString(rowCount == 0 ? 0 : rowCount - 1));
+        writer.writeElement("totalRows", Integer.toString(rowCount));
         writer.writeStartElement("data");
         if (session.getCurrProfile().getNplayers() != null) {
             for (NPlayer nplayer : session.getCurrProfile().getNplayers()) {
