@@ -7,6 +7,7 @@ import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -330,10 +331,10 @@ public class BatchTrrntChkPanel extends JPanel {
     }
 
     private void trrntChk(final Session session) {
-        // Capture immutable snapshots on the EDT before handing them to the background worker.
+        // Snapshot the row list on the EDT; table updates are marshalled back to the EDT.
         final SDRList<SrcDstResult> sdrl = new SDRList<>(((SDRTableModel) tableTrntChk.getModel()).getData());
         final TrntChkMode mode = (TrntChkMode) cbbxTrntChk.getSelectedItem();
-        final ResultColUpdater updater = tableTrntChk;
+        final ResultColUpdater updater = edtUpdater(tableTrntChk);
         final var opts = EnumSet.noneOf(TorrentChecker.Options.class);
         if (cbRemoveUnknownFiles.isSelected())
             opts.add(TorrentChecker.Options.REMOVEUNKNOWNFILES);
@@ -353,6 +354,39 @@ public class BatchTrrntChkPanel extends JPanel {
                 close();
             }
         }.execute();
+    }
+
+    private static ResultColUpdater edtUpdater(ResultColUpdater delegate) {
+        return new ResultColUpdater() {
+            @Override
+            public void updateResult(int row, String result) {
+                runOnEdt(() -> delegate.updateResult(row, result));
+            }
+
+            @Override
+            public void clearResults() {
+                runOnEdt(delegate::clearResults);
+            }
+        };
+    }
+
+    private static void runOnEdt(Runnable action) {
+        if (SwingUtilities.isEventDispatchThread()) {
+            action.run();
+            return;
+        }
+        try {
+            SwingUtilities.invokeAndWait(action);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (InvocationTargetException e) {
+            final var cause = e.getCause();
+            if (cause instanceof RuntimeException re)
+                throw re;
+            if (cause instanceof Error err)
+                throw err;
+            throw new IllegalStateException(cause);
+        }
     }
 
 }
