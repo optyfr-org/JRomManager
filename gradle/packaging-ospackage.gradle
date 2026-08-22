@@ -1,0 +1,55 @@
+apply plugin: 'com.netflix.nebula.ospackage'
+
+ospackage {
+    packageName = 'jrommanager'
+    packageDescription = 'A Mame and Retrogaming Rom Manager, Java alternative to ClrMamePro'
+    release = '1'
+    type = BINARY
+    license = 'GPL-2'
+    vendor = 'optyfr'
+    packager = 'optyfr'
+    maintainer = 'optyfr'
+    user = 'root'
+    permissionGroup = 'root'
+    url = 'https://github.com/optyfr/JRomManager'
+    into '/opt/jrommanager'
+    from (configurations.noarchConfig) {
+        into('lib')
+        exclude '*.zip'
+        include '*.jar'
+    }
+    from (jar)
+    from ('dist') {
+        include '*.bat'
+        include '*.sh'
+        include '*.shconf'
+        filePermissions { unix(0755) }
+    }
+    from ('dist') {
+        include name+'.desktop'
+        into '/usr/share/applications'
+    }
+    from ('dist') {
+        include name+'.png'
+        into '/usr/share/pixmaps'
+    }
+    link('/usr/bin/jrommanager', '/opt/jrommanager/JRomManager-multi.sh')
+}
+
+buildDeb {
+    requires('java25-runtime')
+    arch = "all"
+}
+
+buildRpm {
+    requires('java', '1:25', EQUAL).or('java-25')
+    arch = NOARCH
+    os = LINUX
+    addParentDirs = false
+    createDirectoryEntry = false
+}
+
+buildRpm.dependsOn distZip
+build.dependsOn buildRpm
+buildDeb.dependsOn distZip
+build.dependsOn buildDeb

@@ -1,0 +1,127 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
+
+apply plugin: 'java'
+apply plugin: 'jacoco'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.compilerArgs += ['-Xlint:deprecation']
+    options.encoding = 'UTF-8'
+    if (project.name == 'WebClient') {
+        options.release = 17
+    }
+}
+
+tasks.withType(AbstractTestTask).configureEach {
+    failOnNoDiscoveredTests = false
+}
+
+version = props.getProperty("Specification-Version") + '.' + props.getProperty("Implementation-Version")
+
+repositories {
+    mavenCentral()
+    maven {
+        url = uri("https://maven.pkg.github.com/optyfr/Jtrrntzip")
+        credentials {
+            username = "public"
+            password = System.getenv("GITHUB_TOKEN") ?: ""
+        }
+    }
+    maven { url = "https://jitpack.io" }
+}
+
+test {
+    useJUnitPlatform {
+        includeEngines 'junit-jupiter'
+    }
+    jacoco {
+        enabled = true
+    }
+    finalizedBy tasks.named('jacocoTestReport')
+    minHeapSize = "256m"
+    maxHeapSize = "3G"
+    jvmArgs '-XX:+EnableDynamicAgentLoading',
+        '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.lang.invoke=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.util=ALL-UNNAMED',
+        '--enable-native-access=ALL-UNNAMED'
+    testLogging {
+        events TestLogEvent.FAILED,
+                TestLogEvent.PASSED,
+                TestLogEvent.SKIPPED
+        exceptionFormat = TestExceptionFormat.SHORT
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+        debug {
+            events TestLogEvent.STARTED,
+                    TestLogEvent.FAILED,
+                    TestLogEvent.PASSED,
+                    TestLogEvent.SKIPPED,
+                    TestLogEvent.STANDARD_ERROR,
+                    TestLogEvent.STANDARD_OUT
+            exceptionFormat = TestExceptionFormat.FULL
+            showExceptions = true
+            showCauses = true
+            showStackTraces = true
+        }
+        info.events = debug.events
+        info.exceptionFormat = debug.exceptionFormat
+        addTestListener(new TestListener() {
+            void aftersuite(TestDescriptor desc, TestResult result) {
+                if (!desc.parent) {
+                    def output = "Results: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)"
+                    def startItem = '|  ', endItem = '  |'
+                    def repeatLength = startItem.length() + output.length() + endItem.length()
+                    println('\n' + ('-' * repeatLength) + '\n' + startItem + output + endItem + '\n' + ('-' * repeatLength))
+                }
+            }
+        })
+    }
+}
+
+tasks.named('jacocoTestReport') {
+    dependsOn tasks.named('test')
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+sonar {
+    properties {
+        property "sonar.projectKey", "optyfr_JRomManager"
+        property "sonar.organization", "optyfr"
+        property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.sourceEncoding", "utf-8"
+        property "sonar.log.level", "INFO"
+        property "sonar.verbose", "true"
+        property "sonar.scm.provider", "github"
+        property "sonar.coverage.exclusions", "**/src-jfx/**/*"
+        property "sonar.coverage.jacoco.xmlReportPaths", "${rootDir}/build/reports/jacoco/codeCoverageReport/codeCoverageReport.xml"
+    }
+}
+
+dependencies {
+    compileOnly 'com.google.code.findbugs:jsr305:3.0.2'
+}
+
+jar {
+    manifest {
+        attributes(
+            "Manifest-Version"     : "1.0",
+            "Specification-Title"  : "JRomManager",
+            "Specification-Version": props.getProperty("Specification-Version"),
+            "Implementation-Title" : "jrm",
+            "Implementation-Version" : props.getProperty("Implementation-Version")
+        )
+    }
+    archiveFileName = 'jrm-' + project.name + '-' + project.version + '.jar'
+}

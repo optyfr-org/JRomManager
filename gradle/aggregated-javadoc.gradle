@@ -1,0 +1,25 @@
+task aggregatedJavadocs(type: Javadoc, description: 'Generate javadocs from all child projects as if it was a single project', group: 'Documentation') {
+    destinationDir = file("$buildDir/docs/javadoc")
+    title = "$project.name $version API"
+    options.author true
+    options.links 'https://docs.oracle.com/en/java/javase/21/docs/api', 'https://openjfx.io/javadoc/21/'
+
+    dependsOn subprojects.findAll { it.javadoc.enabled }.collect { it.javadoc }
+
+    def projectsWithJavadoc = subprojects.findAll { it.javadoc.enabled }
+    source = projectsWithJavadoc.collect { it.buildDir.toPath().resolve("generated/sources/delombok/java/main").toFile() }
+    classpath = files(projectsWithJavadoc.collect { it.sourceSets.main.compileClasspath })
+    includes = projectsWithJavadoc.collectMany { it.javadoc.getIncludes() }
+    excludes = projectsWithJavadoc.collectMany { it.javadoc.getExcludes() }
+}
+
+task docZip(type: Zip, dependsOn: aggregatedJavadocs) {
+    destinationDirectory = buildDir
+    archiveClassifier = 'javadocs'
+    from javadoc.outputs.files
+    into "docs"
+    archiveFileName = project.name + '-' + project.version + '-apidocs' + '.zip'
+    destinationDirectory = file("$buildDir/distributions/")
+}
+
+build.dependsOn docZip

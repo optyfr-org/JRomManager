@@ -1,0 +1,161 @@
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+
+def os = DefaultNativePlatform.currentOperatingSystem
+def arch = DefaultNativePlatform.currentArchitecture
+
+distributions {
+    main {
+        distributionBaseName = 'JRomManager'
+        distributionClassifier = 'nogui-noarch'
+        contents {
+            from (configurations.noarchConfig) {
+                into('lib')
+                exclude '*.zip'
+                include '*.jar'
+            }
+            from (jar)
+            if (os.isLinux()) {
+                from ("${buildDir}/jsvc/commons-daemon-"+props.getProperty("Commons-Daemon-Version")+"-native-src/unix") {
+                    include 'jsvc'
+                    filePermissions {unix(0755)}
+                }
+            }
+            from ("${buildDir}/commons-daemon-"+props.getProperty("Commons-Daemon-Version")+"-bin-windows") {
+                filePermissions {unix(0755)}
+            }
+            from ('dist/logs') {
+                include '.do_not_delete'
+                into 'logs'
+                dirPermissions {unix(0777)}
+            }
+            from ('dist') {
+                include '*.bat'
+                include '*.sh'
+                filePermissions {unix(0755)}
+            }
+        }
+    }
+    win {
+        distributionBaseName = 'JRomManager'
+        if(arch.isI386())
+            distributionClassifier = 'win-x32'
+        else if(arch.isAmd64())
+            distributionClassifier = 'win-x64'
+        else if(arch.isArm32())
+            distributionClassifier = 'win-arm32'
+        else if(arch.isArm64())
+            distributionClassifier = 'win-arm64'
+        else
+            distributionClassifier = 'win-'+arch.getName()
+        contents {
+            from (configurations.jlinkConfig) {
+                into('lib')
+                exclude '*.zip'
+                include '*.jar'
+            }
+            from (jar)
+            from ("${buildDir}/commons-daemon-"+props.getProperty("Commons-Daemon-Version")+"-bin-windows") {
+                filePermissions {unix(0755)}
+            }
+            from ('dist/logs') {
+                include '.do_not_delete'
+                into 'logs'
+                dirPermissions {unix(0777)}
+            }
+            from ('dist') {
+                include '*.bat'
+                filePermissions {unix(0755)}
+            }
+            from ('dist/full') {
+                include '*.bat'
+                filePermissions {unix(0755)}
+            }
+        }
+    }
+    linux {
+        distributionBaseName = 'JRomManager'
+        if(arch.isI386())
+            distributionClassifier = 'linux-x32'
+        else if(arch.isAmd64())
+            distributionClassifier = 'linux-x64'
+        else if(arch.isArm32())
+            distributionClassifier = 'linux-arm32'
+        else if(arch.isArm64())
+            distributionClassifier = 'linux-arm64'
+        else
+            distributionClassifier = 'linux-'+arch.getName()
+        contents {
+            from (configurations.jlinkConfig) {
+                into('lib')
+                exclude '*.zip'
+                include '*.jar'
+            }
+            from (jar)
+            from ("${buildDir}/jsvc/commons-daemon-"+props.getProperty("Commons-Daemon-Version")+"-native-src/unix") {
+                include 'jsvc'
+                filePermissions {unix(0755)}
+            }
+            from ('dist/logs') {
+                include '.do_not_delete'
+                into 'logs'
+                dirPermissions {unix(0777)}
+            }
+            from ('dist') {
+                include '*.sh'
+                filePermissions {unix(0755)}
+            }
+            from ('dist/full') {
+                include '*.sh'
+                filePermissions {unix(0755)}
+            }
+        }
+    }
+}
+
+distTar {
+    compression = Compression.GZIP
+    archiveExtension = "tar.gz"
+}
+
+distZip.dependsOn jar
+distZip.dependsOn ':WebClient:jar'
+distZip.dependsOn extractDaemonWin
+distTar.dependsOn jar
+distTar.dependsOn ':WebClient:jar'
+distTar.dependsOn extractDaemonWin
+installDist.dependsOn jar
+installDist.dependsOn ':WebClient:jar'
+installDist.dependsOn extractDaemonWin
+if (os.isLinux()) {
+    winDistZip.enabled = false
+    winDistTar.enabled = false
+    linuxDistZip.enabled = false
+    linuxDistTar.dependsOn jar
+    linuxDistTar.dependsOn ':WebClient:jar'
+    linuxDistTar.dependsOn compileDaemonLinux
+    linuxDistTar {
+        compression = Compression.GZIP
+        archiveExtension = "tar.gz"
+    }
+    distZip.dependsOn compileDaemonLinux
+    distTar.dependsOn compileDaemonLinux
+    installDist.dependsOn compileDaemonLinux
+    build.dependsOn linuxDistTar
+}
+else if (os.isWindows()) {
+    linuxDistTar.enabled = false
+    linuxDistZip.enabled = false
+    winDistTar.enabled = false
+    winDistZip.dependsOn jar
+    winDistZip.dependsOn ':WebClient:jar'
+    winDistZip.dependsOn extractDaemonWin
+    build.dependsOn winDistZip
+}
+else {
+    linuxDistTar.enabled = false
+    linuxDistZip.enabled = false
+    winDistZip.enabled = false
+    winDistTar.enabled = false
+}
+
+build.dependsOn installDist

@@ -1,0 +1,107 @@
+apply plugin: "io.freefair.lombok"
+apply plugin: "eclipse"
+apply plugin: 'application'
+
+compileJava.dependsOn ':WebClient:jar'
+
+def wcjar = project(':WebClient').jar
+
+dependencies {
+    implementation project(':jrmcore')
+    implementation project(':res-icons')
+    implementation 'com.beust:jcommander:1.+'
+    implementation 'commons-io:commons-io:2.+'
+    implementation 'commons-daemon:commons-daemon:latest.release'
+    implementation 'org.apache.commons:commons-lang3:3.+'
+    implementation 'org.eclipse.jetty:jetty-server:12.1.12'
+    implementation 'org.eclipse.jetty.ee9:jetty-ee9-servlet:12.1.12'
+    implementation 'org.eclipse.jetty:jetty-security:12.1.12'
+    implementation 'org.eclipse.jetty:jetty-session:12.1.12'
+    implementation 'org.eclipse.jetty:jetty-alpn-server:12.1.12'
+    implementation 'org.eclipse.jetty:jetty-alpn-java-server:12.1.12'
+    implementation 'org.eclipse.jetty.http2:jetty-http2-server:12.1.12'
+    implementation 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
+    implementation 'com.google.code.gson:gson:latest.release'
+    implementation 'one.util:streamex:0.9.+'
+    implementation 'commons-dbutils:commons-dbutils:latest.release'
+    implementation 'com.h2database:h2:2.4.+'
+    implementation 'org.mindrot:jbcrypt:0.4'
+    implementation 'net.java.dev.jna:jna:latest.release'
+    implementation 'de.mkammerer:argon2-jvm:latest.release'
+    implementation 'ch.qos.logback:logback-core:latest.release'
+    implementation 'ch.qos.logback:logback-classic:latest.release'
+    implementation files(wcjar)
+    runtimeOnly 'org.jspecify:jspecify:1.0.1'
+
+    testImplementation 'org.eclipse.jetty:jetty-client:12.1.12'
+    testImplementation 'org.eclipse.jetty:jetty-http:12.1.12'
+    testImplementation 'org.awaitility:awaitility:4.+'
+    testImplementation("org.junit.jupiter:junit-jupiter:latest.release")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:latest.release")
+    testImplementation 'org.assertj:assertj-core:3.27.7'
+    testImplementation 'org.mockito:mockito-core:latest.release'
+}
+
+apply from: "$rootDir/gradle/delombok-javadoc.gradle"
+
+javadoc {
+    exclude '**/LICENSE'
+}
+
+test {
+    dependsOn ':WebClient:jar'
+    def tmpDir = temporaryDir
+    systemProperty "JRomManager.rootPath", "${rootDir}"
+    systemProperty "file.encoding", "utf-8"
+    systemProperty 'java.io.tmpdir', "${tmpDir}"
+    systemProperty 'jrommanager.dir', "${tmpDir}"
+}
+
+application.mainClass = 'jrm.server.Server'
+
+run {
+    group = 'application'
+    description = 'Runs the JRomManager server with all dependencies.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'jrm.server.Server'
+    jvmArgs (
+        '--enable-native-access=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.lang.invoke=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.util=ALL-UNNAMED'
+    )
+    args (
+        '-d', '-w', '%HOMEPATH%/.jrommanager'
+    )
+    workingDir = project.rootDir
+    standardInput System.in
+}
+
+task runFullServer(type: JavaExec) {
+    group = 'application'
+    description = 'Runs the JRomManager server with all dependencies.'
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'jrm.fullserver.FullServer'
+    jvmArgs (
+        '--enable-native-access=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.lang.invoke=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.lang.reflect=ALL-UNNAMED',
+        '--add-opens', 'java.base/java.util=ALL-UNNAMED'
+    )
+    args (
+        '-d', '-w', '%HOMEPATH%/.jrommanager'
+    )
+    workingDir = project.rootDir
+    standardInput System.in
+}
+
+jar {
+    manifest {
+        attributes(
+            "Specification-Title"  : "JRomManager Server",
+            "Implementation-Title" : "jrmserver",
+        )
+    }
+}

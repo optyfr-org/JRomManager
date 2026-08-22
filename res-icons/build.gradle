@@ -1,0 +1,29 @@
+sourceSets {
+    main {
+        java {
+            srcDirs = ["src/main/java"]
+        }
+    }
+    main {
+        resources {
+            srcDirs = ["src/main/java"]
+        }
+    }
+}
+
+jar {
+    manifest {
+        attributes(
+            "Specification-Title"  : "JRomManager Resources",
+            "Implementation-Title" : "res-icons",
+        )
+    }
+}
+
+javadoc {
+    enabled = false
+}
+
+sonar {
+    skipProject = true
+}

@@ -1,0 +1,53 @@
+apply plugin: "io.freefair.lombok"
+apply plugin: "eclipse"
+apply plugin: 'application'
+
+dependencies {
+    implementation project(':jrmcore')
+    implementation project(':res-icons')
+    implementation 'commons-codec:commons-codec:1.+'
+    implementation 'com.beust:jcommander:1.+'
+    implementation 'commons-io:commons-io:2.+'
+    implementation 'org.apache.commons:commons-lang3:3.+'
+    implementation 'one.util:streamex:0.9.+'
+    implementation 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
+    implementation 'com.sun.activation:javax.activation:1.2.+'
+    runtimeOnly 'org.jspecify:jspecify:1.0.1'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:latest.release'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:latest.release'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:latest-release'
+}
+
+application.mainClass = 'jrm.JRomManagerMulti'
+
+run {
+    jvmArgs (
+    )
+}
+
+jar {
+    manifest {
+        attributes(
+            "Manifest-Version"     : "1.0",
+            "Specification-Title"  : "JRomManager Standalone",
+        )
+    }
+}
+
+apply from: "$rootDir/gradle/delombok-javadoc.gradle"
+
+javadoc {
+    exclude '**/LICENSE'
+}
+
+test {
+    def tmpDir = temporaryDir
+    systemProperty "file.encoding", "utf-8"
+    systemProperty 'java.io.tmpdir', "${tmpDir}"
+    systemProperty 'jrommanager.dir', "${tmpDir}"
+}
+
+sonar {
+    skipProject = true
+}

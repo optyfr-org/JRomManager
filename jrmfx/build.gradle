@@ -1,0 +1,65 @@
+apply plugin: "io.freefair.lombok"
+apply plugin: "org.openjfx.javafxplugin"
+apply plugin: "eclipse"
+apply plugin: 'application'
+
+javafx {
+    version = '22'
+    modules = [ 'javafx.controls', 'javafx.fxml', 'javafx.web', 'javafx.swing' ]
+}
+
+dependencies {
+    implementation project(':jrmcore')
+    implementation project(':res-icons')
+    implementation 'com.beust:jcommander:1.+'
+    implementation 'commons-io:commons-io:2.+'
+    implementation 'org.apache.commons:commons-text:1.+'
+    implementation 'org.apache.commons:commons-lang3:3.+'
+    implementation 'com.google.code.gson:gson:latest.release'
+    implementation 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:latest.release'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:latest.release'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:latest.release'
+    testImplementation 'org.assertj:assertj-core:3.27.7'
+    testImplementation 'org.mockito:mockito-core:latest.release'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:latest-release'
+    testImplementation 'io.gitlab.fx-labs:testfx-junit:0.2.0'
+    testImplementation 'io.gitlab.fx-labs:testfx-assertj:0.2.0'
+}
+
+application.mainClass = 'jrm.fx.JRomManagerMulti'
+
+run {
+    jvmArgs (
+        '--enable-native-access=javafx.graphics',
+        '--add-opens', 'javafx.controls/javafx.scene.control.skin=ALL-UNNAMED',
+        '--sun-misc-unsafe-memory-access=allow'
+    )
+}
+
+jar {
+    manifest {
+        attributes(
+            "Manifest-Version"     : "1.0",
+            "Specification-Title"  : "JRomManager JFX",
+            "Specification-Version": props.getProperty("Specification-Version"),
+            "Implementation-Title"  : "jrm",
+            "Implementation-Version" : props.getProperty("Implementation-Version"),
+        )
+    }
+}
+
+apply from: "$rootDir/gradle/delombok-javadoc.gradle"
+
+javadoc {
+    exclude '**/*.fxml'
+    exclude '**/*.css'
+}
+
+test {
+    def tmpDir = temporaryDir
+    systemProperty "file.encoding", "utf-8"
+    systemProperty 'java.io.tmpdir', "${tmpDir}"
+    systemProperty 'jrommanager.dir', "${tmpDir}"
+}

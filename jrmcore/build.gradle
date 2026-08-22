@@ -1,0 +1,50 @@
+apply plugin: "io.freefair.lombok"
+apply plugin: "eclipse"
+
+dependencies {
+    implementation 'com.github.optyfr:sevenzipjbindingallinone:1.1'
+    implementation 'com.github.optyfr:jtrrntzip:1.3.1'
+    implementation 'commons-codec:commons-codec:1.+'
+    implementation 'commons-io:commons-io:[2.7,3.0)'
+    implementation 'org.apache.commons:commons-text:1.+'
+    implementation 'org.apache.commons:commons-compress:[1.21,2.0)'
+    implementation 'one.util:streamex:0.9.+'
+    runtimeOnly 'org.jspecify:jspecify:1.0.1'
+    implementation 'com.sun.activation:javax.activation:1.2.+'
+    implementation 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
+    implementation 'net.lingala.zip4j:zip4j:latest.release'
+    implementation 'org.apache.fory:fory-core:1.6.1'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:latest.release'
+    testImplementation 'org.junit.jupiter:junit-jupiter-engine:latest.release'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:latest.release'
+    testImplementation 'org.assertj:assertj-core:3.27.7'
+    testImplementation 'org.mockito:mockito-core:latest.release'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:latest-release'
+}
+
+jar {
+    manifest {
+        attributes(
+            "Specification-Title"  : "JRomManager Core",
+            "Implementation-Title" : "jrmcore",
+        )
+    }
+}
+
+apply from: "$rootDir/gradle/delombok-javadoc.gradle"
+
+javadoc {
+    exclude '**/LICENSE'
+    options {
+        addBooleanOption('Xdoclint:all', true)
+        addBooleanOption('html5', true)
+    }
+}
+
+test {
+    def tmpDir = temporaryDir
+    systemProperty "file.encoding", "utf-8"
+    systemProperty 'java.io.tmpdir', "${tmpDir}"
+    systemProperty 'jrommanager.dir', "${tmpDir}"
+}

@@ -1,0 +1,46 @@
+task downloadDaemonWin(type: Download) {
+    src 'https://archive.apache.org/dist/commons/daemon/binaries/windows/commons-daemon-'+props.getProperty("Commons-Daemon-Version")+'-bin-windows.zip'
+    dest file("$buildDir/commons-daemon-"+props.getProperty("Commons-Daemon-Version")+"-bin-windows.zip")
+    onlyIfModified true
+}
+
+task extractDaemonWin(type: Copy) {
+    dependsOn downloadDaemonWin
+    from zipTree(file("${buildDir}/commons-daemon-"+props.getProperty("Commons-Daemon-Version")+"-bin-windows.zip"))
+    include('amd64/*.exe', 'prunmgr.exe')
+    eachFile {
+        path = name
+    }
+    includeEmptyDirs = false
+    into "${buildDir}/commons-daemon-"+props.getProperty("Commons-Daemon-Version")+"-bin-windows"
+}
+
+task downloadDaemonLinux(type: Download) {
+    src 'https://archive.apache.org/dist/commons/daemon/source/commons-daemon-'+props.getProperty("Commons-Daemon-Version")+'-native-src.tar.gz'
+    dest file("$buildDir/commons-daemon-"+props.getProperty("Commons-Daemon-Version")+"-native-src.tar.gz")
+    onlyIfModified true
+}
+
+task extractDaemonLinux(type: Copy) {
+    dependsOn downloadDaemonLinux
+    from tarTree(file("${buildDir}/commons-daemon-"+props.getProperty("Commons-Daemon-Version")+"-native-src.tar.gz"))
+    into "${buildDir}/jsvc"
+}
+
+task configureDaemonLinux(type:Exec, dependsOn:extractDaemonLinux){
+    workingDir "${buildDir}/jsvc/commons-daemon-"+props.getProperty("Commons-Daemon-Version")+"-native-src/unix"
+    commandLine './configure', '--silent', '--with-java='+System.properties['java.home']
+    standardOutput = new ByteArrayOutputStream()
+    doLast{
+        print standardOutput.toString().trim()
+    }
+}
+
+task compileDaemonLinux(type:Exec, dependsOn:configureDaemonLinux){
+    workingDir "${buildDir}/jsvc/commons-daemon-"+props.getProperty("Commons-Daemon-Version")+"-native-src/unix"
+    commandLine 'make', '--silent'
+    standardOutput = new ByteArrayOutputStream()
+    doLast{
+        print standardOutput.toString().trim()
+    }
+}

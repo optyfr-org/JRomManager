@@ -1,0 +1,58 @@
+configurations {
+    jlinkConfig
+    noarchConfig.extendsFrom runtimeClasspath, runtime
+}
+
+dependencies {
+    jlinkConfig project(':jrmstandalone')
+    jlinkConfig project(':jrmfx')
+    jlinkConfig project(':jrmcli')
+    jlinkConfig project(':jrmserver')
+    noarchConfig project(':jrmcli')
+    noarchConfig project(':jrmserver')
+}
+
+configurations.jlinkConfig {
+    def runtimeAttributes = configurations.runtimeClasspath.attributes
+    runtimeAttributes.keySet().each { key ->
+        attributes.attribute(key, runtimeAttributes.getAttribute(key))
+    }
+}
+
+jar {
+    def mainClassName = "jrm.server.Server"
+    manifest {
+        def path = configurations.noarchConfig.filter { it.name.endsWith('.jar') }.collect { 'lib/' + it.getName() }.join(' ')
+        attributes(
+            "Manifest-Version"     : "1.0",
+            "Specification-Title"  : "JRomManager",
+            "Specification-Version": props.getProperty("Specification-Version"),
+            "Implementation-Title" : "jrm",
+            "Implementation-Version" : props.getProperty("Implementation-Version"),
+            "Main-Class"           : mainClassName,
+            "Class-Path"           : path
+        )
+        archiveFileName = project.name + '.jar'
+    }
+}
+
+task cliFatJar(type: Jar) {
+    def mainClassName = "jrm.cli.JRomManagerCLI"
+    manifest {
+        attributes(
+            "Manifest-Version"     : "1.0",
+            "Specification-Title"  : "JRomManager",
+            "Specification-Version": props.getProperty("Specification-Version"),
+            "Implementation-Title" : "jrm",
+            "Implementation-Version" : props.getProperty("Implementation-Version"),
+            'Main-Class': mainClassName
+        )
+    }
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+    archiveBaseName = 'JRomManagerCLI'
+    from(project(':jrmcli').sourceSets.main.output.classesDirs)
+    from(project(':jrmcli').sourceSets.main.resources)
+    from { project(':jrmcli').configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) } }
+}
+
+build.dependsOn cliFatJar

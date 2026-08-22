@@ -1,0 +1,14 @@
+javadoc {
+    dependsOn delombok
+    source = fileTree("$buildDir/generated/sources/delombok/java/main") {
+        include '**/*.java'
+    }
+    options {
+        encoding = 'UTF-8'
+        memberLevel = JavadocMemberLevel.PACKAGE
+        outputLevel = JavadocOutputLevel.QUIET
+        addBooleanOption('Xdoclint', true)
+        addStringOption('Xmaxwarns', '0')
+        addBooleanOption('-syntax-highlight', true)
+    }
+}

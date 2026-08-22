@@ -1,0 +1,78 @@
+apply plugin: "org.beryx.jlink"
+
+jlink {
+    mergedModuleName = "jrm.merged.module"
+    configuration = 'jlinkConfig'
+    addExtraDependencies("javafx")
+    mergedModule {
+        additive = true
+        requires 'ch.qos.logback.classic'
+        requires 'jdk.zipfs'
+        requires 'java.desktop'
+    }
+    launcher {
+        name = 'JRomManager'
+        moduleName = 'jrm.merged.module'
+        mainClass = 'jrm.fx.JRomManagerMulti'
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
+    }
+    secondaryLauncher {
+        name = 'JRomManagerSwing'
+        moduleName = 'jrm.merged.module'
+        mainClass = 'jrm.JRomManagerMulti'
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
+    }
+    secondaryLauncher {
+        name = 'JRomManagerCLI'
+        moduleName = 'jrm.merged.module'
+        mainClass = 'jrm.cli.JRomManagerCLI'
+        winConsole = true
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--enable-native-access=jrm.merged.module,org.jline.terminal.ffm', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
+    }
+    secondaryLauncher {
+        name = 'JRomManagerServer'
+        moduleName = 'jrm.merged.module'
+        mainClass = 'jrm.server.Server'
+        winConsole = true
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
+        args = ['--workpath','%HOMEPATH%/.jrommanager']
+    }
+    secondaryLauncher {
+        name = 'JRomManagerFullServer'
+        moduleName = 'jrm.merged.module'
+        mainClass = 'jrm.fullserver.FullServer'
+        winConsole = true
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
+        args = ['--workpath','%HOMEPATH%/.jrommanager']
+    }
+    jpackage {
+        installerType = project.findProperty('installerType')
+        targetPlatformName = project.findProperty('targetPlatform')
+        installerOutputDir = file("$buildDir/installer")
+        imageName = 'JRomManager'
+        icon = 'dist/JRomManager.ico'
+        if (installerType == 'msi') {
+            imageOptions = ['--icon', 'dist/JRomManager.ico']
+            installerOptions = [
+                '--win-dir-chooser', '--win-menu', '--win-shortcut'
+            ]
+            installerName = 'JRomManager-' + targetPlatformName
+        }
+        if (installerType == 'deb' || installerType=='rpm') {
+            imageOptions = ['--icon', 'dist/JRomManager.png']
+            installerOptions = [
+                '--linux-package-name', 'jrommanager',
+                '--linux-app-category', 'utils',
+                '--linux-app-release', 1,
+                '--linux-rpm-license-type', 'GPL-2',
+                '--linux-menu-group', 'Utility',
+                '--linux-shortcut'
+            ]
+        }
+        if (installerType == 'dmg') {
+            installerName = 'JRomManager-' + targetPlatformName
+        }
+    }
+}
+
+prepareMergedJarsDir.dependsOn jar
