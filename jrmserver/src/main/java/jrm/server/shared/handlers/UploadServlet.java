@@ -176,6 +176,20 @@ public class UploadServlet extends HttpServlet {
     }
 
     /**
+     * Delegates to the parent class doPut method with exception handling.
+     *
+     * @param req the HTTP servlet request
+     * @param resp the HTTP servlet response
+     */
+    private void superPut(final HttpServletRequest req, final HttpServletResponse resp) {
+        try {
+            super.doPut(req, resp);
+        } catch (ServletException | IOException e) {
+            Log.err(e.getMessage(), e);
+        }
+    }
+
+    /**
      * Sends an HTTP 500 Internal Server Error response and logs the exception.
      * <p>
      * This method handles I/O errors that occur during response generation. If sending the error response itself fails, the
@@ -365,7 +379,7 @@ public class UploadServlet extends HttpServlet {
      * <li>Deletes the file if upload fails or size verification fails</li>
      * </ul>
      * Returns a JSON response with the final upload status. If the request URI does not match "/upload/", the request is delegated
-     * to the parent class implementation via {@link #superPost}.
+     * to the parent class implementation via {@link #superPut}.
      * 
      * @param req the HTTP servlet request containing the file data and metadata headers
      * @param resp the HTTP servlet response for returning JSON status
@@ -377,7 +391,7 @@ public class UploadServlet extends HttpServlet {
         if ("/upload/".equals(req.getRequestURI())) {
             handlePutUpload(req, resp);
         } else {
-            superPost(req, resp);
+            superPut(req, resp);
         }
     }
 
