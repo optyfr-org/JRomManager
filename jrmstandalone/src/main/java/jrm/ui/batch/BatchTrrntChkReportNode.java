@@ -101,7 +101,7 @@ public class BatchTrrntChkReportNode extends ReportNodeGeneric<TrntChkReport> {
 
         @Override
         public TreeNode getParent() {
-            return BatchTrrntChkReportNode.this;
+            return child.getParent() == null ? BatchTrrntChkReportNode.this : getNode(child.getParent());
         }
 
         @Override
