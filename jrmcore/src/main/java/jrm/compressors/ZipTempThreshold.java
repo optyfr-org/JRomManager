@@ -16,9 +16,9 @@ public enum ZipTempThreshold {
      */
     _NEVER(Messages.getString("ZipTempThreshold.Never"), -1L), //$NON-NLS-1$ // NOSONAR
     /**
-     * Option indicating that temporary files should always be used during ZIP compression, regardless of the size of the data being
-     * compressed. This option is represented by a threshold value of 0, which signifies that temporary files will be utilized for
-     * all compression operations, regardless of the data size.
+     * Option indicating that temporary files should be used during ZIP compression when the size of the data being compressed
+     * exceeds 1 megabyte (MB). This option is represented by a threshold value of 1,000,000 bytes, which signifies that temporary
+     * files will be utilized for compression operations involving data sizes greater than 1 MB.
      */
     _1MB(Messages.getString("ZipTempThreshold.1MB"), 1_000_000L), //$NON-NLS-1$ // NOSONAR
     /**
