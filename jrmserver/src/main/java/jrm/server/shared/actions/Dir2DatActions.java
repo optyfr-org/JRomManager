@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.eclipsesource.json.JsonObject;
 
@@ -124,7 +125,10 @@ public class Dir2DatActions {
      */
     public void start(JsonObject jso) {
         final Dir2DatParams params = extractParams(jso);
-        (ws.getSession().setWorker(new Worker(() -> executeDir2DatTransformation(params)))).start();
+        final var workerRef = new AtomicReference<Worker>();
+        final var worker = new Worker(() -> executeDir2DatTransformation(params, workerRef.get()));
+        workerRef.set(worker);
+        ws.getSession().setWorker(worker).start();
     }
 
     /**
@@ -171,25 +175,26 @@ public class Dir2DatActions {
      * This method is designed to run in a separate thread, allowing for non-blocking execution of the transformation process.
      * 
      * @param params the captured transformation parameters extracted from the request
+     * @param worker the worker that owns this run; do not re-read it from the session
      */
-    private void executeDir2DatTransformation(Dir2DatParams params) {
+    private void executeDir2DatTransformation(Dir2DatParams params, Worker worker) {
         WebSession session = ws.getSession();
-        session.getWorker().setProgress(new ProgressActions(ws));
+        worker.setProgress(new ProgressActions(ws));
         try {
             String srcdir = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_src_dir);
             String dstdat = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_dst_file);
             String format = session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_format);
 
             if (srcdir != null && dstdat != null)
-                runDir2Dat(session, srcdir, dstdat, format, params.options, params.headers);
+                runDir2Dat(session, worker, srcdir, dstdat, format, params.options, params.headers);
         } catch (BreakException _) {
             // user cancelled action
         } finally {
             Dir2DatActions.this.end();
             session.setCurrProfile(null);
             session.setCurrScan(null);
-            session.getWorker().getProgress().close();
-            session.getWorker().setProgress(null);
+            worker.getProgress().close();
+            worker.setProgress(null);
             session.setLastAction(Instant.now());
         }
     }
@@ -200,13 +205,13 @@ public class Dir2DatActions {
      * {@code %shared/...} placeholders and must never be passed raw to {@code FileOutputStream}.
      * {@link Dir2Dat} re-checks the final destination stays under work/shared roots.
      */
-    private void runDir2Dat(WebSession session, String srcdir, String dstdat, String format,
+    private void runDir2Dat(WebSession session, Worker worker, String srcdir, String dstdat, String format,
             EnumSet<DirScan.Options> options, HashMap<String, String> headers) {
         try {
             final Path validatedSrcDir = PathAbstractor.getAbsolutePath(session, srcdir);
             final Path validatedDstDat = PathAbstractor.getWritableAbsolutePath(session, dstdat);
 
-            new Dir2Dat(session, validatedSrcDir.toFile(), validatedDstDat.toFile(), session.getWorker().getProgress(),
+            new Dir2Dat(session, validatedSrcDir.toFile(), validatedDstDat.toFile(), worker.getProgress(),
                     options, ExportType.valueOf(format), headers);
         } catch (SecurityException e) {
             Log.err(() -> "Path validation failed for Dir2Dat operation: " + e.getMessage(), e);
