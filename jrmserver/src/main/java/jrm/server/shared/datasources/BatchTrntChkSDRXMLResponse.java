@@ -86,7 +86,7 @@ public class BatchTrntChkSDRXMLResponse extends SDRXMLResponse {
     @Override
     protected void update(Operation operation) throws XMLStreamException {
         if (!operation.hasData("id")) {
-            failure(SRC_IS_MISSING_IN_REQUEST);
+            failure(ID_IS_MISSING_IN_REQUEST);
             return;
         }
         final AbstractSrcDstResult result;
@@ -145,7 +145,7 @@ public class BatchTrntChkSDRXMLResponse extends SDRXMLResponse {
             }
             writeResponseKey(result);
         } else {
-            failure(SRC_IS_MISSING_IN_REQUEST);
+            failure(ID_IS_MISSING_IN_REQUEST);
         }
     }
 }

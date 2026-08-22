@@ -20,6 +20,8 @@ import jrm.xml.SimpleAttribute;
 abstract class SDRXMLResponse extends XMLResponse {
     /** Message constant indicating that the source information was missing from the incoming request. */
     protected static final String SRC_IS_MISSING_IN_REQUEST = "Src is missing in request";
+    /** Message constant indicating that the identifier was missing from the incoming request. */
+    protected static final String ID_IS_MISSING_IN_REQUEST = "id is missing in request";
     /** XML attribute key representing the operation result status. */
     protected static final String RESULT = "result";
     /** XML element name used for a single record within the response. */
