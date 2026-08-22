@@ -107,7 +107,7 @@ public class JFileDropTextField extends JTextField implements FocusListener, JFi
      * @throws HeadlessException if the component is created in a headless environment
      */
     public JFileDropTextField(final String text, final int columns, final SetCallBack callback) throws HeadlessException {
-        this(null, "", columns, callback); //$NON-NLS-1$
+        this(null, text, columns, callback);
     }
 
     /**
