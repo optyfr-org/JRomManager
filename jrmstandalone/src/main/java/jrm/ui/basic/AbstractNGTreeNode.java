@@ -107,15 +107,15 @@ public abstract class AbstractNGTreeNode implements NGTreeNode {
     /**
      * {@inheritDoc}
      * <p>
-     * Default implementation returns {@code 0}.
+     * Default implementation returns {@code -1}, indicating the node is not a child.
      * </p>
      *
      * @param node the child node to find the index of
-     * @return {@code 0} in this default implementation
+     * @return {@code -1} in this default implementation
      */
     @Override
     public int getIndex(TreeNode node) {
-        return 0;
+        return -1;
     }
 
     /**
