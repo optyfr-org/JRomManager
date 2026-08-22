@@ -83,7 +83,7 @@ public class BatchDat2DirSDRXMLResponse extends SDRXMLResponse {
     @Override
     protected void update(Operation operation) throws XMLStreamException {
         if (!operation.hasData("id")) {
-            failure(SRC_IS_MISSING_IN_REQUEST);
+            failure(ID_IS_MISSING_IN_REQUEST);
             return;
         }
         final SDRList<SrcDstResult> sdrl = SrcDstResult.fromJSON(request.getSession().getUser().getSettings().getProperty(SettingsEnum.dat2dir_sdr));
@@ -135,7 +135,7 @@ public class BatchDat2DirSDRXMLResponse extends SDRXMLResponse {
                 failure("not in the list");
             }
         } else {
-            failure(SRC_IS_MISSING_IN_REQUEST);
+            failure(ID_IS_MISSING_IN_REQUEST);
         }
     }
 }
