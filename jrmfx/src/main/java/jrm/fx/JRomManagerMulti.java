@@ -12,7 +12,7 @@ public class JRomManagerMulti {
      *
      * @param args command-line arguments (ignored; the multi-user flags are always appended)
      */
-    public static void main(String[] args) {
+    public static void main(String[] args /* NOSONAR */) {
         JRomManager.main(new String[] { "--multiuser", "--noupdate" });
     }
 
