@@ -62,18 +62,23 @@ class JRomManagerCLITest {
         progress = new Progress();
 
         setField(cli, "out", printWriter);
+        setField(cli, "printer", new CLIPrinter(printWriter));
         setField(cli, "handler", progress);
         setField(cli, "cwdir", tempDir);
         setField(cli, "rootdir", tempDir);
+
+        setFinalField(cli, "parser", new CommandLineParser(cli));
+
+        setFinalField(cli.parser, "splitLinePattern", Pattern.compile("\"([^\"]*)\"|(\\S+)"));
+        setFinalField(cli.parser, "envPattern", Pattern.compile("\\$(?:([\\w\\.]+)|\\{([\\w\\.]+)\\})"));
 
         setFinalField(cli, "dirUpd8rCLI", new DirUpd8rCLI(cli));
         setFinalField(cli, "trntChkCLI", new TrntChkCLI(cli));
         setFinalField(cli, "compressorCLI", new CompressorCLI(cli));
         setFinalField(cli, "fsCLI", new FileSystemCLI(cli));
         setFinalField(cli, "profileCLI", new ProfileCLI(cli));
-
-        setFinalField(cli, "splitLinePattern", Pattern.compile("\"([^\"]*)\"|(\\S+)"));
-        setFinalField(cli, "envPattern", Pattern.compile("\\$(?:([\\w\\.]+)|\\{([\\w\\.]+)\\})"));
+        setFinalField(cli, "prefsCLI", new PrefsCLI(cli));
+        setFinalField(cli, "runner", new CLIRunner(cli));
 
         JRomManagerCLI.setSession(null);
     }
@@ -107,7 +112,7 @@ class JRomManagerCLITest {
      * @throws Exception if the field does not exist or cannot be set
      */
     private static void setField(Object obj, String fieldName, Object value) throws Exception {
-        Field field = JRomManagerCLI.class.getDeclaredField(fieldName);
+        Field field = obj.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         field.set(obj, value);
     }
@@ -123,7 +128,7 @@ class JRomManagerCLITest {
      */
     @SuppressWarnings("removal")
     private static void setFinalField(Object obj, String fieldName, Object value) throws Exception {
-        Field field = JRomManagerCLI.class.getDeclaredField(fieldName);
+        Field field = obj.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         Field uf = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
         uf.setAccessible(true);

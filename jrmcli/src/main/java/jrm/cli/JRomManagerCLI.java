@@ -1,45 +1,20 @@
 package jrm.cli;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.Reader;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-
-
 import java.util.List;
-
 import java.util.Optional;
-
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 
 
-import org.jline.reader.Completer;
-import org.jline.reader.EndOfFileException;
-import org.jline.reader.LineReader;
-import org.jline.reader.LineReaderBuilder;
-import org.jline.reader.UserInterruptException;
-import org.jline.reader.impl.completer.AggregateCompleter;
-import org.jline.reader.impl.completer.ArgumentCompleter;
-import org.jline.reader.impl.completer.NullCompleter;
-import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
-import org.jline.terminal.TerminalBuilder;
-import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
@@ -73,27 +48,12 @@ import lombok.val;
 public class JRomManagerCLI {
     static final String CLI_ERR_UNKNOWN_COMMAND = "CLI_ERR_UnknownCommand";
     static final String CLI_ERR_WRONG_ARGS = "CLI_ERR_WrongArgs";
-    /**
-     * Red bold style for error messages.
-     */
-    static final AttributedStyle STYLE_RED_BOLD = AttributedStyle.DEFAULT.foreground(AttributedStyle.RED).bold();
-    /**
-     * Yellow bold style for warning messages.
-     */
-    static final AttributedStyle STYLE_YELLOW_BOLD = AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW).bold();
-    /**
-     * Green bold style for success messages.
-     */
-    static final AttributedStyle STYLE_GREEN_BOLD = AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN).bold();
-    /**
-     * Cyan bold style for key=value pairs.
-     */
-    static final AttributedStyle STYLE_CYAN_BOLD = AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN).bold();
-    /**
-     * Dim style for less important text, using bright color and italic.
-     */
-    @SuppressWarnings("unused")
-    private static final AttributedStyle STYLE_DIM = AttributedStyle.DEFAULT.foreground(AttributedStyle.BRIGHT).italic();
+
+    // Styles are defined in CLIPrinter
+    static final AttributedStyle STYLE_RED_BOLD = CLIPrinter.STYLE_RED_BOLD;
+    static final AttributedStyle STYLE_YELLOW_BOLD = CLIPrinter.STYLE_YELLOW_BOLD;
+    static final AttributedStyle STYLE_GREEN_BOLD = CLIPrinter.STYLE_GREEN_BOLD;
+    static final AttributedStyle STYLE_CYAN_BOLD = CLIPrinter.STYLE_CYAN_BOLD;
 
     /**
      * Session object for managing user sessions and profiles.
@@ -130,35 +90,50 @@ public class JRomManagerCLI {
     private final CompressorCLI compressorCLI;
     private final FileSystemCLI fsCLI;
     private final ProfileCLI profileCLI;
+    private final PrefsCLI prefsCLI;
+
+    CLIPrinter printer;
+
+    private final CLIRunner runner;
+
+    final CommandLineParser parser = new CommandLineParser(this);
+
+    Optional<String> getEnv(final String name) {
+        return parser.getEnv(name);
+    }
+
+    String[] splitLine(final String line) {
+        return parser.splitLine(line);
+    }
 
     /**
      * Command line arguments for the JRomManagerCLI.
      */
     @Parameters(separators = " =")
-    private static class Args {
+    static class Args {
         /**
          * Flag to indicate if help message should be displayed.
          */
         @Parameter(names = { "--help", "-h" }, help = true)
-        private boolean help = false;
+        boolean help = false;
 
         /**
          * Flag to indicate if the interactive shell should be started.
          */
         @Parameter(names = { "--interactive", "-i" }, description = "Interactive shell")
-        private boolean interactive = false;
+        boolean interactive = false;
 
         /**
          * Flag to indicate if the debug mode should be enabled.
          */
         @Parameter(names = { "--debug", "-d" }, description = "Debug mode")
-        private boolean debug = false;
+        boolean debug = false;
 
         /**
          * Input file for reading commands. If not provided, commands will be read from standard input.
          */
         @Parameter(names = { "--file", "-f" }, description = "Input file", arity = 1)
-        private String file = null;
+        String file = null;
     }
 
     /**
@@ -190,12 +165,14 @@ public class JRomManagerCLI {
         compressorCLI = new CompressorCLI(this);
         fsCLI = new FileSystemCLI(this);
         profileCLI = new ProfileCLI(this);
+        prefsCLI = new PrefsCLI(this);
+        runner = new CLIRunner(this);
 
         if (cmd.interactive) {
             /* Start terminal that support interactive mode */
-            interactive(cmd);
+            runner.interactive(cmd);
         } else {
-            stream(cmd);
+            runner.stream(cmd);
         }
     }
 
@@ -205,7 +182,7 @@ public class JRomManagerCLI {
      * @param msg The error message to be printed
      */
     void printError(final String msg) {
-        out.println(new AttributedString(msg, STYLE_RED_BOLD).toAnsi());
+        printer.printError(msg);
     }
 
     /**
@@ -214,7 +191,7 @@ public class JRomManagerCLI {
      * @param msg The warning message to be printed
      */
     void printWarning(final String msg) {
-        out.println(new AttributedString(msg, STYLE_YELLOW_BOLD).toAnsi());
+        printer.printWarning(msg);
     }
 
     /**
@@ -223,7 +200,7 @@ public class JRomManagerCLI {
      * @param msg The info message to be printed
      */
     void printInfo(final String msg) {
-        out.println(new AttributedString(msg, STYLE_GREEN_BOLD).toAnsi());
+        printer.printInfo(msg);
     }
 
     /**
@@ -233,13 +210,7 @@ public class JRomManagerCLI {
      * @param value The value to be printed
      */
     void printKeyValue(final String key, final String value) {
-        final AttributedStringBuilder sb = new AttributedStringBuilder();
-        sb.style(STYLE_CYAN_BOLD);
-        sb.append(key);
-        sb.style(AttributedStyle.DEFAULT);
-        sb.append("="); //$NON-NLS-1$
-        sb.append(value);
-        out.println(sb.toAnsi());
+        printer.printKeyValue(key, value);
     }
 
     /**
@@ -266,163 +237,7 @@ public class JRomManagerCLI {
      * 
      * @throws IOException If an I/O error occurs while reading the input file or standard input.
      */
-    private void stream(final Args cmd) throws IOException {
-        /* Start terminal that support non-interactive mode */
-        terminal = TerminalBuilder.builder().dumb(true).build();
-        /* Create a PrintWriter for outputting messages to the terminal */
-        out = terminal.writer();
-        /* Start processing commands from the input file or standard input */
-        final Reader reader = cmd.file != null ? new FileReader(cmd.file) : new InputStreamReader(System.in);
-        try (final var in = new BufferedReader(reader);) {
-            String line;
-            while (null != (line = in.readLine())) {
-                if (line.startsWith("#")) //$NON-NLS-1$
-                    continue;
-                analyze(splitLine(line));
-            }
-        } catch (final IOException e) {
-            Log.err(e.getMessage());
-        }
-    }
 
-    /**
-     * Creates a JLine completer that provides tab completion for all commands. Uses ArgumentCompleter for positional completion
-     * (command + subcommand).
-     * 
-     * @return A JLine Completer that provides tab completion for all commands.
-     */
-    private Completer createCompleter() {
-        // Collect all command aliases from CMD enum
-        final List<String> commandNames = new ArrayList<>();
-        for (final CMD cmd : CMD.values()) {
-            if (cmd != CMD.EMPTY && cmd != CMD.UNKNOWN) {
-                cmd.allStrings().forEach(commandNames::add);
-            }
-        }
-        final StringsCompleter cmdCompleter = new StringsCompleter(commandNames);
-
-        // Collect DIRUPD8R subcommand aliases
-        final List<String> dirupd8rNames = new ArrayList<>();
-        for (final CMD_DIRUPD8R cmd : CMD_DIRUPD8R.values()) {
-            if (cmd != CMD_DIRUPD8R.EMPTY && cmd != CMD_DIRUPD8R.UNKNOWN) {
-                cmd.allStrings().forEach(dirupd8rNames::add);
-            }
-        }
-        final StringsCompleter dirupd8rCompleter = new StringsCompleter(dirupd8rNames);
-
-        // Collect TRNTCHK subcommand aliases
-        final List<String> trntchkNames = new ArrayList<>();
-        for (final CMD_TRNTCHK cmd : CMD_TRNTCHK.values()) {
-            if (cmd != CMD_TRNTCHK.EMPTY && cmd != CMD_TRNTCHK.UNKNOWN) {
-                cmd.allStrings().forEach(trntchkNames::add);
-            }
-        }
-        final StringsCompleter trntchkCompleter = new StringsCompleter(trntchkNames);
-
-        // Build completers: main commands, dirupd8r subcommands, trntchk subcommands
-        return new AggregateCompleter(
-                new ArgumentCompleter(new StringsCompleter("dirupd8r", "dirupdater"), dirupd8rCompleter, NullCompleter.INSTANCE), //$NON-NLS-1$ //$NON-NLS-2$
-                new ArgumentCompleter(new StringsCompleter("trntchk", "torrentchecker"), trntchkCompleter, NullCompleter.INSTANCE), //$NON-NLS-1$ //$NON-NLS-2$
-                new ArgumentCompleter(cmdCompleter, NullCompleter.INSTANCE));
-    }
-
-    /**
-     * Builds a colored prompt string using JLine's AttributedStringBuilder. Shows "jrm [profile]> " with green "jrm" and yellow
-     * profile name.
-     * 
-     * @return A string representing the prompt to be displayed in the interactive shell.
-     */
-    private String buildPrompt() {
-        final AttributedStringBuilder sb = new AttributedStringBuilder();
-        sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN).bold()).append("jrm");
-        if (session.getCurrProfile() != null) {
-            sb.style(AttributedStyle.DEFAULT).append(" [")
-                    .style(AttributedStyle.DEFAULT.foreground(AttributedStyle.YELLOW).bold())
-                    .append(session.getCurrProfile().getNfo().getFile().getName())
-                    .style(AttributedStyle.DEFAULT).append("]");
-        }
-        sb.style(AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN)).append("> ");
-        return sb.toAnsi();
-    }
-
-    /**
-     * Initializes the interactive shell and starts the command processing loop.
-     * 
-     * @throws IOException If an I/O error occurs during initialization.
-     */
-    private void interactive(Args cmd) throws IOException {
-        terminal = TerminalBuilder.builder().system(true).build();
-        final LineReader reader = LineReaderBuilder.builder()
-                .terminal(terminal)
-                .completer(createCompleter())
-                .option(LineReader.Option.AUTO_FRESH_LINE, true)
-                .build();
-        out = terminal.writer();
-        do {
-            boolean doBreak = false;
-            String line = null;
-            try {
-                line = reader.readLine(buildPrompt());
-            } catch (UserInterruptException | EndOfFileException _) {
-                // Ctrl+C (INT), or Ctrl+D (EOF) pressed - break the loop and exit
-                doBreak = true;
-            }
-            if (doBreak)
-                break;
-            try {
-                if (line != null && !line.trim().isEmpty())
-                    analyze(splitLine(line));
-            } catch(Exception e) {
-                out.println(e.getMessage());
-                if(cmd.debug)
-                    Log.err(e.getMessage(), e);
-            }
-        } while (true);
-    }
-
-    /**
-     * Pattern to split a command line into arguments, considering quoted strings and whitespace.
-     */
-    private final Pattern splitLinePattern = Pattern.compile("\"([^\"]*)\"|(\\S+)"); //$NON-NLS-1$
-    /**
-     * Pattern to match environment variable references in the form of $VAR or ${VAR}.
-     */
-    private final Pattern envPattern = Pattern.compile("\\$(?:([\\w\\.]+)|\\{([\\w\\.]+)\\})"); //$NON-NLS-1$
-
-    /**
-     * Retrieves the value of an environment variable or system property by name.
-     * 
-     * @param name The name of the environment variable or system property.
-     * 
-     * @return An Optional containing the value if present, or an empty Optional if not found.
-     */
-    Optional<String> getEnv(final String name) {
-        Optional<String> ret = Optional.ofNullable(System.getProperty(name));
-        if (!ret.isPresent())
-            ret = Optional.ofNullable(System.getenv(name));
-        return ret;
-    }
-
-    /**
-     * Splits a command line string into an array of arguments, handling quoted strings and environment variable substitution.
-     * 
-     * @param line The command line string to be split.
-     * 
-     * @return An array of strings representing the individual arguments.
-     */
-    private String[] splitLine(final String line) {
-        final List<String> list = new ArrayList<>();
-        final var m = splitLinePattern.matcher(line);
-        while (m.find()) {
-            final var im = envPattern.matcher(m.group(m.group(1) != null ? 1 : 2));
-            final var sb = new StringBuilder();
-            while (im.find())
-                im.appendReplacement(sb, getEnv(im.group(im.group(1) != null ? 1 : 2)).map(Matcher::quoteReplacement).orElse("")); //$NON-NLS-1$
-            im.appendTail(sb);
-            list.add(sb.toString());
-        }
-        return list.stream().toArray(String[]::new);
-    }
 
     /**
      * Analyzes the provided command line arguments and executes the corresponding command.
@@ -556,13 +371,7 @@ public class JRomManagerCLI {
      * @return An integer status code indicating the result of the operation.
      */
     private int prefs(final String... args) {
-        if (args.length == 1)
-            return prefs();
-        if (args.length == 2)
-            return prefs(jrm.misc.SettingsEnum.from(args[1]));
-        if (args.length == 3)
-            return prefs(jrm.misc.SettingsEnum.from(args[1]), args[2]);
-        return error(CLIMessages.getString(CLI_ERR_WRONG_ARGS)); // $NON-NLS-1$
+        return prefsCLI.prefs(args);
     }
 
     /**
@@ -702,39 +511,12 @@ public class JRomManagerCLI {
      * 
      * @return An integer status code indicating the result of the operation.
      */
-    private int prefs() {
-        for (final var e : SettingsEnum.values())
-            printKeyValue(e.toString(), session.getUser().getSettings().getProperty(e));
-        return 0;
-    }
-
-    /**
-     * Displays or modifies a specific application preference based on the provided name.
-     * 
-     * @param name The name of the preference to display or modify.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
     int prefs(final Enum<?> name) {
-        if (!session.getUser().getSettings().hasProperty(name))
-            printWarning(String.format(CLIMessages.getString("CLI_MSG_PropIsNotSet"), name));
-        else if (name instanceof final EnumWithDefault n)
-            printKeyValue(name.toString(), session.getUser().getSettings().getProperty(n));
-        return 0;
+        return prefsCLI.prefs(name);
     }
 
-    /**
-     * Modifies a specific application preference based on the provided name and value.
-     * 
-     * @param name The name of the preference to modify.
-     * @param value The new value for the preference.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
     int prefs(final Enum<?> name, final String value) {
-        session.getUser().getSettings().setProperty(name, value);
-        session.getUser().getSettings().saveSettings();
-        return 0;
+        return prefsCLI.prefs(name, value);
     }
 
     /**
