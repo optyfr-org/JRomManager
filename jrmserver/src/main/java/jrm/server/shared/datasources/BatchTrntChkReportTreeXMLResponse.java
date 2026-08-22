@@ -88,7 +88,7 @@ public class BatchTrntChkReportTreeXMLResponse extends XMLResponse {
         if (parent != null) {
             int nodecount = parent.getChildren() != null ? parent.getChildren().size() : 0;
             writer.writeElement("startRow", "0");
-            writer.writeElement("endRow", Integer.toString(nodecount - 1));
+            writer.writeElement("endRow", Integer.toString(nodecount == 0 ? 0 : nodecount - 1));
             writer.writeElement("totalRows", Integer.toString(nodecount));
             writer.writeStartElement("data");
             if (parent.getChildren() != null)
@@ -125,9 +125,9 @@ public class BatchTrntChkReportTreeXMLResponse extends XMLResponse {
         int start;
         int end;
         var nodecount = nodes.size();
-        start = Math.min(nodecount - 1, operation.getStartRow());
+        start = nodecount == 0 ? 0 : Math.max(0, Math.min(nodecount - 1, operation.getStartRow()));
         writer.writeElement("startRow", Integer.toString(start));
-        end = Math.min(nodecount - 1, operation.getEndRow());
+        end = nodecount == 0 ? 0 : Math.max(0, Math.min(nodecount - 1, operation.getEndRow()));
         writer.writeElement("endRow", Integer.toString(end));
         writer.writeElement("totalRows", Integer.toString(nodecount));
 
