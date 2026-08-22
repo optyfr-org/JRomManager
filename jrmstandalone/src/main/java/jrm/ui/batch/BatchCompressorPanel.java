@@ -179,7 +179,7 @@ public class BatchCompressorPanel extends JPanel implements StatusRendererFactor
             color = getBackground();
             new DropTarget(this, this);
             this.model.addTableModelListener(e -> {
-                if (e.getColumn() >= 0 && model.getColumnClass(e.getColumn()).equals(Boolean.class) && e.getType() == TableModelEvent.UPDATE)
+                if (e.getColumn() >= 0 && e.getType() == TableModelEvent.UPDATE)
                     callback.call(model.getData());
             });
             setFillsViewportHeight(true);
