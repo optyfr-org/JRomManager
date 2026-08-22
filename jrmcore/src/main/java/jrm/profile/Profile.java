@@ -1429,10 +1429,13 @@ public class Profile implements Serializable, StatusRendererFactory {
      */
     public static Profile load(final Session session, final ProfileNFO nfo, final ProgressHandler handler) {
         Profile profile = loadProfile(session, nfo, handler);
-        if (profile == null)
+        if (profile == null) {
+            session.setCurrProfile(null);
             return null;
-        
+        }
+
         initializeProfile(profile, handler);
+        session.setCurrProfile(profile);
         return profile;
     }
 
@@ -1547,11 +1550,9 @@ public class Profile implements Serializable, StatusRendererFactory {
         handler.setInfos(1, true);
         profile = new Profile();
         profile.session = session;
-        session.setCurrProfile(null);
         profile.nfo = nfo;
         if (!load(nfo, profile, handler))
             return null;
-        session.setCurrProfile(profile);
         // save cache
         handler.setInfos(1, null);
         handler.setProgress(Messages.getString("Profile.SavingCache"), -1); //$NON-NLS-1$
@@ -1602,7 +1603,6 @@ public class Profile implements Serializable, StatusRendererFactory {
         try (final var in = handler.getInputStream(new java.io.FileInputStream(cachefile), (int) cachefile.length())) {
             profile = (Profile) SignedObjectStore.read(session, in, (int) cachefile.length(), SignedObjectStore.Codec.CACHE);
             profile.session = session;
-            session.setCurrProfile(profile);
             profile.nfo = nfo;
         } catch (final Exception e) {
             // may fail to load because serialized classes did change since last cache save
