@@ -68,6 +68,9 @@ class JRomManagerCLITest {
 
         setFinalField(cli, "dirUpd8rCLI", new DirUpd8rCLI(cli));
         setFinalField(cli, "trntChkCLI", new TrntChkCLI(cli));
+        setFinalField(cli, "compressorCLI", new CompressorCLI(cli));
+        setFinalField(cli, "fsCLI", new FileSystemCLI(cli));
+        setFinalField(cli, "profileCLI", new ProfileCLI(cli));
 
         setFinalField(cli, "splitLinePattern", Pattern.compile("\"([^\"]*)\"|(\\S+)"));
         setFinalField(cli, "envPattern", Pattern.compile("\\$(?:([\\w\\.]+)|\\{([\\w\\.]+)\\})"));

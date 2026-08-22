@@ -7,26 +7,26 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Reader;
-import java.nio.file.DirectoryNotEmptyException;
+
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Comparator;
-import java.util.EnumSet;
+
+
 import java.util.List;
 
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicInteger;
+
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.commons.io.FilenameUtils;
+
 
 import org.jline.reader.Completer;
 import org.jline.reader.EndOfFileException;
@@ -52,20 +52,14 @@ import com.beust.jcommander.Parameters;
 
 import jrm.aui.status.PlainTextRenderer;
 import jrm.aui.status.StatusRendererFactory;
-import jrm.batch.Compressor;
-import jrm.batch.Compressor.FileResult;
-import jrm.batch.CompressorFormat;
+
 
 import jrm.misc.BreakException;
 import jrm.misc.EnumWithDefault;
 import jrm.misc.Log;
 
-import jrm.misc.ProfileSettingsEnum;
+
 import jrm.misc.SettingsEnum;
-import jrm.profile.Profile;
-import jrm.profile.fix.Fix;
-import jrm.profile.manager.ProfileNFO;
-import jrm.profile.scan.Scan;
 import jrm.profile.scan.ScanException;
 
 import jrm.security.Session;
@@ -133,6 +127,9 @@ public class JRomManagerCLI {
 
     private final DirUpd8rCLI dirUpd8rCLI;
     private final TrntChkCLI trntChkCLI;
+    private final CompressorCLI compressorCLI;
+    private final FileSystemCLI fsCLI;
+    private final ProfileCLI profileCLI;
 
     /**
      * Command line arguments for the JRomManagerCLI.
@@ -190,6 +187,9 @@ public class JRomManagerCLI {
 
         dirUpd8rCLI = new DirUpd8rCLI(this);
         trntChkCLI = new TrntChkCLI(this);
+        compressorCLI = new CompressorCLI(this);
+        fsCLI = new FileSystemCLI(this);
+        profileCLI = new ProfileCLI(this);
 
         if (cmd.interactive) {
             /* Start terminal that support interactive mode */
@@ -396,7 +396,7 @@ public class JRomManagerCLI {
      * 
      * @return An Optional containing the value if present, or an empty Optional if not found.
      */
-    private Optional<String> getEnv(final String name) {
+    Optional<String> getEnv(final String name) {
         Optional<String> ret = Optional.ofNullable(System.getProperty(name));
         if (!ret.isPresent())
             ret = Optional.ofNullable(System.getenv(name));
@@ -479,7 +479,7 @@ public class JRomManagerCLI {
     private int processCompressor(final String... args) throws IOException {
         if (args.length < 3)
             return error(CLIMessages.getString(CLI_ERR_WRONG_ARGS));
-        return compressor(Arrays.copyOfRange(args, 1, args.length));
+        return compressorCLI.compressor(Arrays.copyOfRange(args, 1, args.length));
     }
 
     /**
@@ -545,11 +545,7 @@ public class JRomManagerCLI {
      * @return An integer status code indicating the result of the operation.
      */
     private int cd(final String... args) {
-        if (args.length == 1)
-            return pwd();
-        if (args.length == 2)
-            return cd(args[1]);
-        return error(CLIMessages.getString(CLI_ERR_WRONG_ARGS)); // $NON-NLS-1$
+        return fsCLI.cd(args);
     }
 
     /**
@@ -577,9 +573,7 @@ public class JRomManagerCLI {
      * @return An integer status code indicating the result of the operation.
      */
     private int load(final String... args) {
-        if (args.length == 2)
-            return load(args[1]);
-        return error(CLIMessages.getString(CLI_ERR_WRONG_ARGS)); // $NON-NLS-1$
+        return profileCLI.load(args);
     }
 
     /**
@@ -590,33 +584,7 @@ public class JRomManagerCLI {
      * @return An integer status code indicating the result of the operation.
      */
     private int settings(final String... args) {
-        if (session.getCurrProfile() == null)
-            return error(CLIMessages.getString("CLI_ERR_NoProfileLoaded")); //$NON-NLS-1$
-        if (args.length == 1)
-            return settings();
-        if (args.length == 2)
-            return settings(jrm.misc.SettingsEnum.from(args[1]));
-        if (args.length == 3)
-            return settings(jrm.misc.SettingsEnum.from(args[1]), args[2]);
-        return error(CLIMessages.getString(CLI_ERR_WRONG_ARGS)); // $NON-NLS-1$
-    }
-
-    /**
-     * Command line arguments for the "rm" command, supporting recursive deletion and file list.
-     */
-    @Parameters(separators = " =")
-    private static class RmArgs {
-        /**
-         * Flag to indicate if recursive deletion should be performed.
-         */
-        @Parameter(names = { "--recursive", "-r" }, description = "Recursive delete")
-        private boolean recurisve;
-
-        /**
-         * List of files or directories to be deleted.
-         */
-        @Parameter(description = "Files")
-        private List<String> files = new ArrayList<>();
+        return profileCLI.settings(args);
     }
 
     /**
@@ -630,11 +598,7 @@ public class JRomManagerCLI {
      * @throws IOException If there is an error accessing the file system.
      */
     private int rm(final String... args) throws ParameterException, IOException {
-        final var jArgs = new RmArgs();
-        JCommander.newBuilder().addObject(jArgs).build().parse(Arrays.copyOfRange(args, 1, args.length));
-        for (final String arg : jArgs.files)
-            recursiveDelete(Paths.get(arg), jArgs.recurisve);
-        return 0;
+        return fsCLI.rm(args);
     }
 
     /**
@@ -643,15 +607,7 @@ public class JRomManagerCLI {
      * @return An integer status code indicating the result of the operation.
      */
     private int fix() {
-        if (session.getCurrScan() == null)
-            return error(CLIMessages.getString("CLI_ERR_ShouldScanFirst")); //$NON-NLS-1$
-        if (session.getCurrProfile().hasPropsChanged())
-            return error(CLIMessages.getString("CLI_ERR_PropsChanged")); //$NON-NLS-1$
-        if (session.getCurrScan().actions.stream().mapToInt(Collection::size).sum() == 0)
-            return error(CLIMessages.getString("CLI_ERR_NothingToFix")); //$NON-NLS-1$
-        final var fix = new Fix(session.getCurrProfile(), session.getCurrScan(), handler);
-        printInfo(String.format(CLIMessages.getString("CLI_MSG_ActionRemaining"), fix.getActionsRemain())); //$NON-NLS-1$
-        return fix.getActionsRemain();
+        return profileCLI.fix();
     }
 
     /**
@@ -660,14 +616,7 @@ public class JRomManagerCLI {
      * @return An integer status code indicating the result of the operation.
      */
     private int scanResult() {
-        if (session.getCurrScan() == null)
-            return error(CLIMessages.getString("CLI_ERR_ShouldScanFirst")); //$NON-NLS-1$
-        if (session.getCurrProfile().hasPropsChanged())
-            return error(CLIMessages.getString("CLI_ERR_PropsChanged")); //$NON-NLS-1$
-        if (session.getReport() == null)
-            return error(CLIMessages.getString("CLI_ERR_NoReport")); //$NON-NLS-1$
-        printInfo(session.getReport().getStats().getStatus());
-        return 0;
+        return profileCLI.scanResult();
     }
 
     /**
@@ -679,28 +628,7 @@ public class JRomManagerCLI {
      * @throws ScanException If there is an error during the scan.
      */
     private int scan() throws BreakException, ScanException {
-        if (session.getCurrProfile() == null)
-            return error(CLIMessages.getString("CLI_ERR_NoProfileLoaded")); //$NON-NLS-1$
-        session.setCurrScan(new Scan(session.getCurrProfile(), handler));
-        return session.getCurrScan().actions.stream().mapToInt(Collection::size).sum();
-    }
-
-    /**
-     * Command line arguments for the "md" command, supporting parent directory creation and file list.
-     */
-    @Parameters(separators = " =")
-    private static class MdArgs {
-        /**
-         * Flag to indicate if parent directories should be created up to the specified directory.
-         */
-        @Parameter(names = { "--parents", "-p" }, description = "Create parents up to this directory")
-        private boolean parents;
-
-        /**
-         * List of directories to be created.
-         */
-        @Parameter(description = "Files")
-        private List<String> files = new ArrayList<>();
+        return profileCLI.scan();
     }
 
     /**
@@ -714,18 +642,7 @@ public class JRomManagerCLI {
      * @throws IOException If there is an error accessing the file system.
      */
     private int md(final String... args) throws ParameterException, IOException {
-        final var jArgs = new MdArgs();
-        JCommander.newBuilder().addObject(jArgs).build().parse(Arrays.copyOfRange(args, 1, args.length));
-        for (final String arg : jArgs.files) {
-            final var path = Paths.get(arg);
-            if (!Files.exists(path)) {
-                if (jArgs.parents)
-                    Files.createDirectories(path);
-                else
-                    Files.createDirectory(path);
-            }
-        }
-        return 0;
+        return fsCLI.md(args);
     }
 
     /**
@@ -736,48 +653,7 @@ public class JRomManagerCLI {
      * @return An integer status code indicating the result of the operation.
      */
     private int set(final String... args) {
-        if (args.length == 1) {
-            System.getProperties().forEach((k, v) -> printKeyValue(String.valueOf(k), String.valueOf(v)));
-            System.getenv().forEach(this::printKeyValue);
-            return 0;
-        }
-        if (args.length == 2) {
-            getEnv(args[1]).ifPresent(out::println);
-            return 0;
-        }
-        if (args.length == 3) {
-            if (args[2].isEmpty())
-                System.clearProperty(args[1]);
-            else
-                System.setProperty(args[1], args[2]);
-            return 0;
-        }
-        return error(CLIMessages.getString(CLI_ERR_WRONG_ARGS)); // $NON-NLS-1$
-    }
-
-    /**
-     * Recursively deletes a directory and its contents.
-     * 
-     * @param path The path of the directory to delete.
-     * @param recurse Flag indicating whether to delete contents recursively.
-     * 
-     * @throws IOException If there is an error accessing the file system.
-     */
-    private void recursiveDelete(final Path path, final boolean recurse) throws IOException {
-        if (!Files.exists(path))
-            return;
-        if (!Files.isDirectory(path)) {
-            Files.delete(path);
-            return;
-        }
-        try {
-            Files.delete(path);
-        } catch (final DirectoryNotEmptyException _) {
-            if (recurse) // recursively delete from bottom to top
-                try (final var stream = Files.walk(path)) {
-                    stream.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
-                }
-        }
+        return fsCLI.set(args);
     }
 
     /**
@@ -819,74 +695,6 @@ public class JRomManagerCLI {
      */
     private int trntchk(final String cmd, final String... args) throws ParameterException {
         return trntChkCLI.trntchk(cmd, args);
-    }
-
-    /**
-     * Command line arguments for the "trntchk" command, supporting check mode and various options.
-     */
-    @Parameters(separators = " =")
-    private static class CompressorArgs {
-        /**
-         * The compression format to be used for the compression operation.
-         */
-        @Parameter(names = { "--compressor", "-c" }, arity = 1, required = true, description = "Compression format")
-        private String compressor;
-
-        /**
-         * Flag to indicate if the compression operation should be forced, even if the target file already exists.
-         */
-        @Parameter(names = { "--force", "-f" }, description = "Force compression")
-        private boolean force;
-
-        /**
-         * List of files to be compressed.
-         */
-        @Parameter(description = "Files")
-        private List<String> files = new ArrayList<>();
-    }
-
-    /**
-     * Compresses files based on the provided command line arguments.
-     * 
-     * @param args The command line arguments for the compression operation.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     * 
-     * @throws IOException If there is an error accessing the file system.
-     * @throws ParameterException If there is an error parsing the command line arguments.
-     */
-    private int compressor(final String... args) throws IOException, ParameterException {
-        final var jArgs = new CompressorArgs();
-        final var cmd = JCommander.newBuilder().addObject(jArgs).build();
-        try {
-            cmd.parse(args);
-            final CompressorFormat format = jArgs.compressor != null ? CompressorFormat.valueOf(jArgs.compressor) : CompressorFormat.TZIP;
-            for (final var arg : jArgs.files) {
-                final var path = Paths.get(arg);
-                final List<FileResult> frl;
-                if (Files.isDirectory(path)) {
-                    try (final var stream = Files.walk(path)) {
-                        frl = stream.filter(p -> Files.isRegularFile(p) && FilenameUtils.isExtension(p.getFileName().toString(), Compressor.getExtensions())).map(FileResult::new)
-                                .toList();
-                    }
-                } else
-                    frl = Arrays.asList(new FileResult(path));
-                final var cnt = new AtomicInteger();
-                final var compressor = new Compressor(session, cnt, frl.size(), handler);
-                frl.parallelStream().forEach(fr -> {
-                    final Path file = fr.getFile();
-                    cnt.incrementAndGet();
-                    final Compressor.UpdResultCallBack cb = fr::setResult;
-                    final Compressor.UpdSrcCallBack scb = src -> fr.setFile(src.toPath());
-                    compressor.compress(format, file.toFile(), jArgs.force, cb, scb);
-                });
-            }
-        } catch (final ParameterException e) {
-            Log.err(e.getMessage(), e);
-            cmd.usage();
-            throw e;
-        }
-        return 0;
     }
 
     /**
@@ -934,41 +742,6 @@ public class JRomManagerCLI {
      * 
      * @return An integer status code indicating the result of the operation.
      */
-    private int settings() {
-        for (final var e : ProfileSettingsEnum.values())
-            printKeyValue(e.toString(), session.getCurrProfile().getSettings().getProperty(e));
-        return 0;
-    }
-
-    /**
-     * Displays or modifies a specific profile setting based on the provided name.
-     * 
-     * @param name The name of the profile setting to display or modify.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
-    private int settings(final Enum<?> name) {
-        if (!session.getCurrProfile().getSettings().hasProperty(name))
-            printWarning(String.format(CLIMessages.getString("CLI_MSG_PropIsNotSet"), name));
-        else if (name instanceof final EnumWithDefault n)
-            printKeyValue(name.toString(), session.getCurrProfile().getSettings().getProperty(n));
-        return 0;
-    }
-
-    /**
-     * Modifies a specific profile setting based on the provided name and value.
-     * 
-     * @param name The name of the profile setting to modify.
-     * @param value The new value for the profile setting.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
-    private int settings(final Enum<?> name, final String value) {
-        session.getCurrProfile().getSettings().setProperty(name, value);
-        session.getCurrProfile().saveSettings();
-        return 0;
-    }
-
     /**
      * Exits the application with the specified status code.
      * 
@@ -1013,12 +786,7 @@ public class JRomManagerCLI {
      * @return An integer status code indicating the result of the operation.
      */
     private int load(final String profile) {
-        final Path candidate = cwdir.resolve(profile);
-        if (Files.isRegularFile(candidate))
-            session.setCurrProfile(Profile.load(session, candidate.toFile(), handler));
-        else
-            printError(String.format(CLIMessages.getString("CLI_ERR_ProfileNotExist"), profile)); //$NON-NLS-1$
-        return 0;
+        return profileCLI.load(profile);
     }
 
     /**
@@ -1029,25 +797,7 @@ public class JRomManagerCLI {
      * @return An integer status code indicating the result of the operation.
      */
     private int cd(final String dir) {
-        if (dir.equals(File.separator)) {
-            cwdir = rootdir;
-        } else {
-            final var resolvedDir = dir.startsWith("~") ? dir.replace("~", rootdir.toString()) : dir;
-            final var candidate = cwdir.resolve(resolvedDir).normalize();
-            if (rootdir.startsWith(candidate) && !rootdir.equals(candidate)) {
-                cwdir = rootdir;
-                printError(String.format(CLIMessages.getString("CLI_ERR_CantGoUpDir"), resolvedDir));
-            } else if (Files.isDirectory(candidate)) {
-                if (candidate.startsWith(rootdir)) {
-                    cwdir = candidate;
-                } else {
-                    printError(String.format(CLIMessages.getString("CLI_ERR_CantChangeDir"), resolvedDir));
-                }
-            } else {
-                printError(String.format(CLIMessages.getString("CLI_ERR_UnknownDir"), resolvedDir));
-            }
-        }
-        return 0;
+        return fsCLI.cd(dir);
     }
 
     /**
@@ -1056,8 +806,7 @@ public class JRomManagerCLI {
      * @return An integer status code indicating the result of the operation.
      */
     private int pwd() {
-        printInfo("~/" + rootdir.relativize(cwdir)); //$NON-NLS-1$
-        return 0;
+        return fsCLI.pwd();
     }
 
     /**
@@ -1068,22 +817,7 @@ public class JRomManagerCLI {
      * @throws IOException If there is an error accessing the file system.
      */
     private int list() throws IOException {
-        try (final var stream = Files.walk(cwdir, 1)) {
-            stream.filter(p -> Files.isDirectory(p) && !p.equals(cwdir)).sorted(Path::compareTo).map(cwdir::relativize)
-                    .forEachOrdered(p -> {
-                        final AttributedStringBuilder sb = new AttributedStringBuilder();
-                        sb.style(STYLE_GREEN_BOLD).append("<DIR>").append("\t");
-                        sb.style(AttributedStyle.DEFAULT).append(p.toString());
-                        out.println(sb.toAnsi());
-                    });
-        }
-        for (val row : ProfileNFO.list(session, cwdir.toFile())) {
-            final AttributedStringBuilder sb = new AttributedStringBuilder();
-            sb.style(STYLE_CYAN_BOLD).append("<DAT>").append("\t"); // NOSONAR
-            sb.style(AttributedStyle.DEFAULT).append(row.getName()); // NOSONAR
-            out.println(sb.toAnsi());
-        }
-        return 0;
+        return fsCLI.list();
     }
 
     /**
