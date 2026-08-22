@@ -1,5 +1,6 @@
 package jrm.server.shared.datasources;
 
+import java.io.File;
 import java.io.IOException;
 
 import javax.xml.stream.XMLStreamException;
@@ -166,10 +167,35 @@ public class ReportTreeXMLResponse extends XMLResponse {
             return request.session.getReport();
         final var srcfile = pathAbstractor.getAbsolutePath(operation.getData("src")).toFile();
         final var reportfile = ReportIntf.getReportFile(request.session, srcfile);
-        final var tmp = request.session.getTmpReport();
-        if (tmp == null || !(tmp.getReportFile(request.session).equals(reportfile) && tmp.getFileModified() == reportfile.lastModified()))
-            request.session.setTmpReport(Report.load(request.session, srcfile));
-        return request.session.getTmpReport();
+        final var lastModified = reportfile.lastModified();
+        final var cached = cachedTmpReport(reportfile, lastModified);
+        if (cached != null)
+            return cached;
+        final var loaded = Report.load(request.session, srcfile);
+        return publishTmpReport(reportfile, lastModified, loaded);
+    }
+
+    private Report cachedTmpReport(File reportfile, long lastModified) {
+        synchronized (request.session) {
+            final var tmp = request.session.getTmpReport();
+            if (isCurrentTmpReport(tmp, reportfile, lastModified))
+                return tmp;
+        }
+        return null;
+    }
+
+    private Report publishTmpReport(File reportfile, long lastModified, Report loaded) {
+        synchronized (request.session) {
+            final var tmp = request.session.getTmpReport();
+            if (isCurrentTmpReport(tmp, reportfile, lastModified))
+                return tmp;
+            request.session.setTmpReport(loaded);
+            return loaded;
+        }
+    }
+
+    private boolean isCurrentTmpReport(Report tmp, File reportfile, long lastModified) {
+        return tmp != null && tmp.getReportFile(request.session).equals(reportfile) && tmp.getFileModified() == lastModified;
     }
 
     private void writeCopy(Report report) throws XMLStreamException {

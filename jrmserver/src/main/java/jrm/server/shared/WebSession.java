@@ -142,7 +142,25 @@ public class WebSession extends Session implements Closeable, Serializable {
      * 
      * @return the temporary scan report, or {@code null} if no scan is active
      */
-    private transient @Getter @Setter Report tmpReport = null;
+    private transient Report tmpReport = null;
+
+    /**
+     * Returns the temporary scan report for this session.
+     *
+     * @return the temporary scan report, or {@code null} if no scan is active
+     */
+    public synchronized Report getTmpReport() {
+        return tmpReport;
+    }
+
+    /**
+     * Sets the temporary scan report for this session.
+     *
+     * @param tmpReport the temporary report to set
+     */
+    public synchronized void setTmpReport(Report tmpReport) {
+        this.tmpReport = tmpReport;
+    }
 
     /**
      * Temporary torrent check report being generated for this session.
