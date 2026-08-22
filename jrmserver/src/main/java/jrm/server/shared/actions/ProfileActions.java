@@ -534,11 +534,11 @@ public class ProfileActions extends PathAbstractor {
             session.getWorker().getProgress().addError(ex.getMessage());
         } finally {
             final var automation = ScanAutomation.valueOf(session.getCurrProfile().getSettings().getProperty(ProfileSettingsEnum.automation_scan));
-            if (automation.hasScanAgain())
-                scan(jso, false);
             session.getWorker().getProgress().close();
             session.getWorker().setProgress(null);
             session.setLastAction(Instant.now());
+            if (automation.hasScanAgain())
+                scan(jso, false);
         }
     }
 
