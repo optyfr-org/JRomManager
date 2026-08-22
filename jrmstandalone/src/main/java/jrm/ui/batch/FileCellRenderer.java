@@ -29,14 +29,17 @@ class FileCellRenderer extends DefaultTableCellRenderer {
 
     protected static String trimmedStringCalculator(String inputText, JTable table, JLabel component, int width) {
         String ellipses = "..."; //$NON-NLS-1$
-        final var textToBeDisplayed = new StringBuilder(); // $NON-NLS-1$
         FontMetrics fm = table.getFontMetrics(component.getFont());
-        for (int i = inputText.length() - 1; i >= 0; i--)
-            if (fm.stringWidth(ellipses + textToBeDisplayed) <= width)
-                textToBeDisplayed.insert(0, inputText);
-        if (0 != CharSequence.compare(textToBeDisplayed, inputText))
-            return String.join(ellipses, textToBeDisplayed);
-        return inputText;
+        if (fm.stringWidth(inputText) <= width)
+            return inputText;
+        final var textToBeDisplayed = new StringBuilder();
+        for (int i = inputText.length() - 1; i >= 0; i--) {
+            final char c = inputText.charAt(i);
+            if (fm.stringWidth(ellipses + c + textToBeDisplayed) > width)
+                break;
+            textToBeDisplayed.insert(0, c);
+        }
+        return ellipses + textToBeDisplayed;
     }
 
 }
