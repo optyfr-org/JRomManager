@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
+import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 
@@ -24,7 +25,6 @@ import jrm.aui.basic.ResultColUpdater;
 import jrm.aui.basic.SrcDstResult;
 import jrm.batch.DirUpdater;
 import jrm.misc.ProfileSettings;
-import jrm.profile.Profile;
 import jrm.security.PathAbstractor;
 
 /**
@@ -184,13 +184,7 @@ public class DirUpd8rCLI {
         };
     }
 
-    org.jline.reader.impl.completer.StringsCompleter getSubCompleter() {
-        java.util.List<String> names = new java.util.ArrayList<>();
-        for (final CMD_DIRUPD8R cmd : CMD_DIRUPD8R.values()) {
-            if (cmd != CMD_DIRUPD8R.EMPTY && cmd != CMD_DIRUPD8R.UNKNOWN) {
-                cmd.allStrings().forEach(names::add);
-            }
-        }
-        return new org.jline.reader.impl.completer.StringsCompleter(names);
+    StringsCompleter getSubCompleter() {
+        return JRomManagerCLI.createCommandCompleter(CMD_DIRUPD8R.class, CMD_DIRUPD8R.EMPTY, CMD_DIRUPD8R.UNKNOWN);
     }
 }

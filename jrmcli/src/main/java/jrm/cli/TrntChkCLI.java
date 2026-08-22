@@ -2,6 +2,7 @@ package jrm.cli;
 
 import java.util.EnumSet;
 
+import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStyle;
 
@@ -129,13 +130,7 @@ public class TrntChkCLI {
         return 0;
     }
 
-    org.jline.reader.impl.completer.StringsCompleter getSubCompleter() {
-        java.util.List<String> names = new java.util.ArrayList<>();
-        for (final CMD_TRNTCHK cmd : CMD_TRNTCHK.values()) {
-            if (cmd != CMD_TRNTCHK.EMPTY && cmd != CMD_TRNTCHK.UNKNOWN) {
-                cmd.allStrings().forEach(names::add);
-            }
-        }
-        return new org.jline.reader.impl.completer.StringsCompleter(names);
+    StringsCompleter getSubCompleter() {
+        return JRomManagerCLI.createCommandCompleter(CMD_TRNTCHK.class, CMD_TRNTCHK.EMPTY, CMD_TRNTCHK.UNKNOWN);
     }
 }

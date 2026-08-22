@@ -5,8 +5,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.Reader;
-import java.util.ArrayList;
-import java.util.List;
+
+import jrm.misc.Log;
 
 import org.jline.reader.Completer;
 import org.jline.reader.EndOfFileException;
@@ -17,7 +17,6 @@ import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
 import org.jline.reader.impl.completer.NullCompleter;
 import org.jline.reader.impl.completer.StringsCompleter;
-import org.jline.terminal.Terminal;
 import org.jline.terminal.TerminalBuilder;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -49,7 +48,7 @@ public class CLIRunner {
                 cli.analyze(cli.parser.splitLine(line));
             }
         } catch (final IOException e) {
-            jrm.misc.Log.err(e.getMessage());
+            Log.err(e.getMessage());
         }
     }
 
@@ -75,24 +74,17 @@ public class CLIRunner {
                 break;
             try {
                 if (line != null && !line.trim().isEmpty())
-                cli.analyze(cli.parser.splitLine(line));
+                    cli.analyze(cli.parser.splitLine(line));
             } catch(Exception e) {
                 cli.out.println(e.getMessage());
                 if(cmd.debug)
-                    jrm.misc.Log.err(e.getMessage(), e);
+                    Log.err(e.getMessage(), e);
             }
         } while (true);
     }
 
     private Completer createCompleter() {
-        // Collect all command aliases from CMD enum
-        final List<String> commandNames = new ArrayList<>();
-        for (final CMD cmd : CMD.values()) {
-            if (cmd != CMD.EMPTY && cmd != CMD.UNKNOWN) {
-                cmd.allStrings().forEach(commandNames::add);
-            }
-        }
-        final StringsCompleter cmdCompleter = new StringsCompleter(commandNames);
+        final StringsCompleter cmdCompleter = JRomManagerCLI.createCommandCompleter(CMD.class, CMD.EMPTY, CMD.UNKNOWN);
 
         // Collect DIRUPD8R subcommand aliases from handler
         final StringsCompleter dirupd8rCompleter = cli.dirUpd8rCLI.getSubCompleter();

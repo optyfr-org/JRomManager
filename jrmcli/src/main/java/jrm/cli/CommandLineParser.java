@@ -14,10 +14,7 @@ public class CommandLineParser {
     private final Pattern splitLinePattern = Pattern.compile("\"([^\"]*)\"|(\\S+)"); //$NON-NLS-1$
     private final Pattern envPattern = Pattern.compile("\\$(?:([\\w\\.]+)|\\{([\\w\\.]+)\\})"); //$NON-NLS-1$
 
-    private final JRomManagerCLI cli;
-
-    CommandLineParser(JRomManagerCLI cli) {
-        this.cli = cli;
+    CommandLineParser() {
     }
 
     String[] splitLine(final String line) {
@@ -36,7 +33,7 @@ public class CommandLineParser {
 
     Optional<String> getEnv(final String name) {
         Optional<String> ret = Optional.ofNullable(System.getProperty(name));
-        if (!ret.isPresent())
+        if (ret.isEmpty())
             ret = Optional.ofNullable(System.getenv(name));
         return ret;
     }

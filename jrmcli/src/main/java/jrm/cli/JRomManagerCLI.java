@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.List;
@@ -13,8 +14,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-
-
+import org.jline.reader.impl.completer.StringsCompleter;
 import org.jline.terminal.Terminal;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -22,14 +22,10 @@ import org.jline.utils.AttributedStyle;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.ParameterException;
 
-
-
 import jrm.aui.status.PlainTextRenderer;
 import jrm.aui.status.StatusRendererFactory;
 
-
 import jrm.misc.Log;
-
 
 import jrm.profile.scan.ScanException;
 
@@ -51,48 +47,30 @@ public class JRomManagerCLI {
     static final AttributedStyle STYLE_GREEN_BOLD = CLIPrinter.STYLE_GREEN_BOLD;
     static final AttributedStyle STYLE_CYAN_BOLD = CLIPrinter.STYLE_CYAN_BOLD;
 
-    /**
-     * Session object for managing user sessions and profiles.
-     * 
-     * @param session The session object to be set.
-     */
+    /** Session object for managing user sessions and profiles (global for CLI). */
     @Setter
+    @SuppressWarnings("squid:S1444")
     static Session session;
 
-    /**
-     * Current working directory and root directory for file operations.
-     */
     Path cwdir = null;
-    /**
-     * Root directory for file operations.
-     */
     Path rootdir = null;
 
-    /**
-     * Progress handler for displaying progress of operations.
-     */
     Progress handler = null;
-    /**
-     * Terminal object for interacting with the command line interface.
-     */
     Terminal terminal;
-    /**
-     * PrintWriter for outputting messages to the terminal.
-     */
     PrintWriter out;
 
-    final DirUpd8rCLI dirUpd8rCLI;
-    final TrntChkCLI trntChkCLI;
-    final CompressorCLI compressorCLI;
-    final FileSystemCLI fsCLI;
-    final ProfileCLI profileCLI;
-    final PrefsCLI prefsCLI;
+    DirUpd8rCLI dirUpd8rCLI;
+    TrntChkCLI trntChkCLI;
+    CompressorCLI compressorCLI;
+    FileSystemCLI fsCLI;
+    ProfileCLI profileCLI;
+    PrefsCLI prefsCLI;
 
     CLIPrinter printer;
 
-    private final CLIRunner runner;
+    CLIRunner runner;
 
-    final CommandLineParser parser = new CommandLineParser(this);
+    CommandLineParser parser = new CommandLineParser();
 
     Optional<String> getEnv(final String name) {
         return parser.getEnv(name);
@@ -106,11 +84,12 @@ public class JRomManagerCLI {
      * Functional interface for command handlers to enable registry-based dispatch.
      */
     @FunctionalInterface
-    private interface CommandHandler {
+    private static interface CommandHandler {
+        @SuppressWarnings("java:S112")
         int execute(String... args) throws Exception;
     }
 
-    private final Map<CMD, CommandHandler> commandHandlers = new EnumMap<>(CMD.class);
+    Map<CMD, CommandHandler> commandHandlers = new EnumMap<>(CMD.class);
 
     void initCommandHandlers() {
         // Simple commands that delegate directly
@@ -118,13 +97,13 @@ public class JRomManagerCLI {
         commandHandlers.put(CMD.PWD, args -> fsCLI.pwd());
         commandHandlers.put(CMD.QUIET, args -> setQuietMode(true));
         commandHandlers.put(CMD.VERBOSE, args -> setQuietMode(false));
-        commandHandlers.put(CMD.SET, args -> fsCLI.set(args));
-        commandHandlers.put(CMD.CD, args -> fsCLI.cd(args));
-        commandHandlers.put(CMD.RM, args -> fsCLI.rm(args));
-        commandHandlers.put(CMD.MD, args -> fsCLI.md(args));
-        commandHandlers.put(CMD.PREFS, args -> prefsCLI.prefs(args));
-        commandHandlers.put(CMD.LOAD, args -> profileCLI.load(args));
-        commandHandlers.put(CMD.SETTINGS, args -> profileCLI.settings(args));
+        commandHandlers.put(CMD.SET, fsCLI::set);
+        commandHandlers.put(CMD.CD, fsCLI::cd);
+        commandHandlers.put(CMD.RM, fsCLI::rm);
+        commandHandlers.put(CMD.MD, fsCLI::md);
+        commandHandlers.put(CMD.PREFS, prefsCLI::prefs);
+        commandHandlers.put(CMD.LOAD, profileCLI::load);
+        commandHandlers.put(CMD.SETTINGS, profileCLI::settings);
         commandHandlers.put(CMD.SCAN, args -> profileCLI.scan());
         commandHandlers.put(CMD.SCANRESULT, args -> profileCLI.scanResult());
         commandHandlers.put(CMD.FIX, args -> profileCLI.fix());
@@ -150,6 +129,20 @@ public class JRomManagerCLI {
         commandHandlers.put(CMD.HELP, args -> help());
         commandHandlers.put(CMD.EXIT, args -> exit(0));
         // EMPTY and UNKNOWN handled specially in analyze
+    }
+
+    /**
+     * Creates a StringsCompleter from a command enum's values, excluding EMPTY/UNKNOWN.
+     * Used for main commands and sub-command families (deduplicates completer logic).
+     */
+    static <E extends Enum<E> & CommandNames> StringsCompleter createCommandCompleter(final Class<E> enumClass, final E empty, final E unknown) {
+        final List<String> names = new ArrayList<>();
+        for (final E cmd : enumClass.getEnumConstants()) {
+            if (cmd != empty && cmd != unknown) {
+                cmd.allStrings().forEach(names::add);
+            }
+        }
+        return new StringsCompleter(names);
     }
 
     /**
@@ -238,6 +231,7 @@ public class JRomManagerCLI {
      * 
      * @return An integer status code indicating the result of the command execution.
      */
+    @SuppressWarnings("java:S112") // generic Exception needed for pluggable CommandHandler dispatch
     protected int analyze(final String... args) {
         if (args.length == 0)
             return 0;
@@ -247,10 +241,10 @@ public class JRomManagerCLI {
                 return 0;
             if (cmd == CMD.UNKNOWN)
                 return unknownCmd(args[0], Arrays.copyOfRange(args, 1, args.length));
-            CommandHandler handler = commandHandlers.get(cmd);
-            if (handler == null)
+            CommandHandler cmdHandler = commandHandlers.get(cmd);
+            if (cmdHandler == null)
                 return unknownCmd(args[0], Arrays.copyOfRange(args, 1, args.length));
-            return handler.execute(args);
+            return cmdHandler.execute(args);
         } catch (final IOException e) {
             Log.err(e.getMessage(), e);
         } catch (ScanException | ParameterException e) {

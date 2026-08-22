@@ -6,7 +6,7 @@ import java.util.stream.Stream;
 /**
  * Enum representing various command-line commands for the JRomManagerCLI application.
  */
-public enum CMD_TRNTCHK {
+public enum CMD_TRNTCHK implements CommandNames {
     LSSDR("lssdr"),
     CLEARSDR("clearsdr"),
     ADDSDR("addsdr"),

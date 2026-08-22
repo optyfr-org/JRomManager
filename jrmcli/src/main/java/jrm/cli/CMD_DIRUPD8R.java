@@ -6,7 +6,7 @@ import java.util.stream.Stream;
 /**
  * Enum representing various command-line commands for the JRomManagerCLI application.
  */
-public enum CMD_DIRUPD8R {
+public enum CMD_DIRUPD8R implements CommandNames {
     LSSRC("lssrc"),
     LSSDR("lssdr"),
     CLEARSRC("clearsrc"),

@@ -9,8 +9,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.EnumMap;
 import java.util.Optional;
-import java.util.regex.Pattern;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +30,7 @@ import jrm.security.Session;
  * <p>
  * The heavy constructor of {@link JRomManagerCLI} initialises a JLine terminal, a {@link Session}, and logging — all of which
  * are unsuitable for fast unit tests. Instead, an instance is created via {@code sun.misc.Unsafe.allocateInstance()} (bypassing
- * the constructor) and the required fields are injected via reflection.
+ * the constructor) and the required collaborators are injected (via direct assignment for package-private fields or reflection for private ones).
  */
 @DisplayName("JRomManagerCLI tests")
 class JRomManagerCLITest {
@@ -67,17 +67,16 @@ class JRomManagerCLITest {
         setField(cli, "cwdir", tempDir);
         setField(cli, "rootdir", tempDir);
 
-        setFinalField(cli, "parser", new CommandLineParser(cli));
+        cli.parser = new CommandLineParser();
+        cli.dirUpd8rCLI = new DirUpd8rCLI(cli);
+        cli.trntChkCLI = new TrntChkCLI(cli);
+        cli.compressorCLI = new CompressorCLI(cli);
+        cli.fsCLI = new FileSystemCLI(cli);
+        cli.profileCLI = new ProfileCLI(cli);
+        cli.prefsCLI = new PrefsCLI(cli);
+        cli.runner = new CLIRunner(cli);
 
-        setFinalField(cli, "dirUpd8rCLI", new DirUpd8rCLI(cli));
-        setFinalField(cli, "trntChkCLI", new TrntChkCLI(cli));
-        setFinalField(cli, "compressorCLI", new CompressorCLI(cli));
-        setFinalField(cli, "fsCLI", new FileSystemCLI(cli));
-        setFinalField(cli, "profileCLI", new ProfileCLI(cli));
-        setFinalField(cli, "prefsCLI", new PrefsCLI(cli));
-        setFinalField(cli, "runner", new CLIRunner(cli));
-
-        setFinalField(cli, "commandHandlers", new java.util.EnumMap<>(CMD.class));
+        cli.commandHandlers = new EnumMap<>(CMD.class);
 
         cli.initCommandHandlers();
 
@@ -97,6 +96,7 @@ class JRomManagerCLITest {
      * @return a new un-initialised {@link JRomManagerCLI} instance
      * @throws Exception if the Unsafe lookup or allocation fails
      */
+    @SuppressWarnings("java:S3011")
     private static JRomManagerCLI createInstanceWithoutConstructor() throws Exception {
         Field f = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
         f.setAccessible(true);
@@ -112,30 +112,11 @@ class JRomManagerCLITest {
      * @param value     the value to set
      * @throws Exception if the field does not exist or cannot be set
      */
+    @SuppressWarnings("java:S3011") // reflection required to inject collaborators without full ctor for unit tests
     private static void setField(Object obj, String fieldName, Object value) throws Exception {
         Field field = obj.getClass().getDeclaredField(fieldName);
         field.setAccessible(true);
         field.set(obj, value);
-    }
-
-    /**
-     * Sets a final instance field on {@code obj} via {@link sun.misc.Unsafe}, bypassing the final-field restriction of
-     * regular reflection.
-     *
-     * @param obj       the target object
-     * @param fieldName the final field name
-     * @param value     the value to set
-     * @throws Exception if the field does not exist or cannot be set
-     */
-    @SuppressWarnings("removal")
-    private static void setFinalField(Object obj, String fieldName, Object value) throws Exception {
-        Field field = obj.getClass().getDeclaredField(fieldName);
-        field.setAccessible(true);
-        Field uf = sun.misc.Unsafe.class.getDeclaredField("theUnsafe");
-        uf.setAccessible(true);
-        sun.misc.Unsafe unsafe = (sun.misc.Unsafe) uf.get(null);
-        long offset = unsafe.objectFieldOffset(field);
-        unsafe.putObject(obj, offset, value);
     }
 
     /**
@@ -145,7 +126,7 @@ class JRomManagerCLITest {
      * @return the {@link Optional} returned by {@code getEnv}
      * @throws Exception if the method cannot be found or invoked
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"unchecked", "java:S3011"})
     private Optional<String> invokeGetEnv(String name) throws Exception {
         Method m = JRomManagerCLI.class.getDeclaredMethod("getEnv", String.class);
         m.setAccessible(true);
@@ -159,6 +140,7 @@ class JRomManagerCLITest {
      * @return the array of tokens returned by {@code splitLine}
      * @throws Exception if the method cannot be found or invoked
      */
+    @SuppressWarnings("java:S3011")
     private String[] invokeSplitLine(String line) throws Exception {
         Method m = JRomManagerCLI.class.getDeclaredMethod("splitLine", String.class);
         m.setAccessible(true);

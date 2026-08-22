@@ -1,5 +1,7 @@
 package jrm.cli;
 
+import java.io.PrintWriter;
+
 import org.jline.utils.AttributedString;
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
@@ -14,12 +16,9 @@ public class CLIPrinter {
     static final AttributedStyle STYLE_GREEN_BOLD = AttributedStyle.DEFAULT.foreground(AttributedStyle.GREEN).bold();
     static final AttributedStyle STYLE_CYAN_BOLD = AttributedStyle.DEFAULT.foreground(AttributedStyle.CYAN).bold();
 
-    @SuppressWarnings("unused")
-    static final AttributedStyle STYLE_DIM = AttributedStyle.DEFAULT.foreground(AttributedStyle.BRIGHT).italic();
+    private final PrintWriter out;
 
-    private final java.io.PrintWriter out;
-
-    public CLIPrinter(java.io.PrintWriter out) {
+    public CLIPrinter(PrintWriter out) {
         this.out = out;
     }
 
@@ -45,13 +44,4 @@ public class CLIPrinter {
         out.println(sb.toAnsi());
     }
 
-    @SuppressWarnings("unused")
-    void printLabel(final String label, final String value, final AttributedStyle labelStyle) {
-        final AttributedStringBuilder sb = new AttributedStringBuilder();
-        sb.style(labelStyle);
-        sb.append(label);
-        sb.style(AttributedStyle.DEFAULT);
-        sb.append(value);
-        out.println(sb.toAnsi());
-    }
 }

@@ -6,7 +6,7 @@ import java.util.stream.Stream;
 /**
  * Enum representing various command-line commands for the JRomManagerCLI application.
  */
-public enum CMD {
+public enum CMD implements CommandNames {
     CD("cd"),
     PWD("pwd"),
     SET("set"),
