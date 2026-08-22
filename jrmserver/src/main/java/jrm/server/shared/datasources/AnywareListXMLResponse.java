@@ -390,9 +390,8 @@ public class AnywareListXMLResponse extends XMLResponse {
             if (name != null) {
                 Anyware aw = al.getByName(name);
                 if (aw != null) {
-                    final var selected = Boolean.valueOf(operation.getData(SELECTED));
-                    if (selected != null)
-                        aw.setSelected(selected);
+                    if (operation.hasData(SELECTED))
+                        aw.setSelected(Boolean.parseBoolean(operation.getData(SELECTED)));
                     writeRecord(al, aw);
                 }
             }
