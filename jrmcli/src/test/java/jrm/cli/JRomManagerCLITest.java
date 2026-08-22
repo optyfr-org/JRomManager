@@ -66,6 +66,9 @@ class JRomManagerCLITest {
         setField(cli, "cwdir", tempDir);
         setField(cli, "rootdir", tempDir);
 
+        setFinalField(cli, "dirUpd8rCLI", new DirUpd8rCLI(cli));
+        setFinalField(cli, "trntChkCLI", new TrntChkCLI(cli));
+
         setFinalField(cli, "splitLinePattern", Pattern.compile("\"([^\"]*)\"|(\\S+)"));
         setFinalField(cli, "envPattern", Pattern.compile("\\$(?:([\\w\\.]+)|\\{([\\w\\.]+)\\})"));
 
