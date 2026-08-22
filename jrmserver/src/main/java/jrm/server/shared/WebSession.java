@@ -173,7 +173,25 @@ public class WebSession extends Session implements Closeable, Serializable {
      * 
      * @return the temporary torrent check report, or {@code null} if no check is active
      */
-    private transient @Getter @Setter TrntChkReport tmpTCReport = null;
+    private transient TrntChkReport tmpTCReport = null;
+
+    /**
+     * Returns the temporary torrent check report for this session.
+     *
+     * @return the temporary torrent check report, or {@code null} if no check is active
+     */
+    public synchronized TrntChkReport getTmpTCReport() {
+        return tmpTCReport;
+    }
+
+    /**
+     * Sets the temporary torrent check report for this session.
+     *
+     * @param tmpTCReport the temporary torrent check report to set
+     */
+    public synchronized void setTmpTCReport(TrntChkReport tmpTCReport) {
+        this.tmpTCReport = tmpTCReport;
+    }
 
     /**
      * Cache of profile lists generated for this session, keyed by client- assigned ID.

@@ -1,5 +1,6 @@
 package jrm.server.shared.datasources;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
@@ -51,21 +52,13 @@ public class BatchTrntChkReportTreeXMLResponse extends XMLResponse {
      */
     @Override
     protected void fetch(Operation operation) throws XMLStreamException {
-        TrntChkReport report = null;
-        if (operation.hasData("src")) {
-            final var srcfile = pathAbstractor.getAbsolutePath(operation.getData("src")).toFile();
-            final var reportfile = ReportIntf.getReportFile(request.getSession(), srcfile);
-            if (request.session.getTmpTCReport() == null || !(request.session.getTmpTCReport().getReportFile(request.getSession()).equals(reportfile)
-                    && request.getSession().getTmpTCReport().getFileModified() == reportfile.lastModified()))
-                request.session.setTmpTCReport(TrntChkReport.load(request.getSession(), srcfile));
-            report = request.session.getTmpTCReport();
-        }
+        final var report = resolveReport(operation);
         if (report != null) {
             writer.writeStartElement("response");
             writer.writeElement(STATUS, "0");
             Boolean showok = Optional.ofNullable(operation.getData("showOK")).map(Boolean::valueOf).orElse(true);
             writer.writeElement("showOK", showok.toString());
-            var parentID = Long.valueOf(operation.getData(PARENT_ID));
+            final var parentID = parseParentId(operation.getData(PARENT_ID));
             if (parentID == 0)
                 fetchRoot(operation, report, showok);
             else
@@ -73,6 +66,48 @@ public class BatchTrntChkReportTreeXMLResponse extends XMLResponse {
             writer.writeEndElement();
         } else
             success();
+    }
+
+    private TrntChkReport resolveReport(Operation operation) {
+        if (!operation.hasData("src"))
+            return null;
+        final var srcfile = pathAbstractor.getAbsolutePath(operation.getData("src")).toFile();
+        final var reportfile = ReportIntf.getReportFile(request.getSession(), srcfile);
+        final var lastModified = reportfile.lastModified();
+        final var cached = cachedTmpTCReport(reportfile, lastModified);
+        if (cached != null)
+            return cached;
+        final var loaded = TrntChkReport.load(request.getSession(), srcfile);
+        return publishTmpTCReport(reportfile, lastModified, loaded);
+    }
+
+    private TrntChkReport cachedTmpTCReport(File reportfile, long lastModified) {
+        synchronized (request.session) {
+            final var tmp = request.session.getTmpTCReport();
+            if (isCurrentTmpTCReport(tmp, reportfile, lastModified))
+                return tmp;
+        }
+        return null;
+    }
+
+    private TrntChkReport publishTmpTCReport(File reportfile, long lastModified, TrntChkReport loaded) {
+        synchronized (request.session) {
+            final var tmp = request.session.getTmpTCReport();
+            if (isCurrentTmpTCReport(tmp, reportfile, lastModified))
+                return tmp;
+            request.session.setTmpTCReport(loaded);
+            return loaded;
+        }
+    }
+
+    private boolean isCurrentTmpTCReport(TrntChkReport tmp, File reportfile, long lastModified) {
+        return tmp != null && tmp.getReportFile(request.getSession()).equals(reportfile) && tmp.getFileModified() == lastModified;
+    }
+
+    private static long parseParentId(String raw) {
+        if (raw == null || raw.isBlank())
+            return 0L;
+        return Long.parseLong(raw);
     }
 
     /**
@@ -83,28 +118,27 @@ public class BatchTrntChkReportTreeXMLResponse extends XMLResponse {
      * 
      * @throws XMLStreamException if an error occurs while writing the XML stream
      */
-    private void fetchNode(TrntChkReport report, Long parentID) throws XMLStreamException {
+    private void fetchNode(TrntChkReport report, long parentID) throws XMLStreamException {
         Child parent = report.getAll().get(parentID);
-        if (parent != null) {
-            int nodecount = parent.getChildren() != null ? parent.getChildren().size() : 0;
-            writer.writeElement("startRow", "0");
-            writer.writeElement("endRow", Integer.toString(nodecount == 0 ? 0 : nodecount - 1));
-            writer.writeElement("totalRows", Integer.toString(nodecount));
-            writer.writeStartElement("data");
-            if (parent.getChildren() != null)
-                for (Child n : parent.getChildren()) {
-                    writer.writeStartElement("record");
-                    writer.writeAttribute("ID", Long.toString(n.getUid()));
-                    writer.writeAttribute(PARENT_ID, parentID.toString());
-                    writer.writeAttribute("title", n.getData().getTitle());
-                    if (n.getData().getLength() != null)
-                        writer.writeAttribute("length", n.getData().getLength().toString());
-                    writer.writeAttribute(STATUS, n.getData().getStatus().toString());
-                    writer.writeAttribute("isFolder", Boolean.toString(n.getChildren() != null && !n.getChildren().isEmpty()));
-                    writer.writeEndElement();
-                }
-            writer.writeEndElement();
-        }
+        final var children = parent != null ? parent.getChildren() : null;
+        int nodecount = children != null ? children.size() : 0;
+        writer.writeElement("startRow", "0");
+        writer.writeElement("endRow", Integer.toString(Math.max(nodecount - 1, 0)));
+        writer.writeElement("totalRows", Integer.toString(nodecount));
+        writer.writeStartElement("data");
+        if (children != null)
+            for (Child n : children) {
+                writer.writeStartElement("record");
+                writer.writeAttribute("ID", Long.toString(n.getUid()));
+                writer.writeAttribute(PARENT_ID, Long.toString(parentID));
+                writer.writeAttribute("title", n.getData().getTitle());
+                if (n.getData().getLength() != null)
+                    writer.writeAttribute("length", n.getData().getLength().toString());
+                writer.writeAttribute(STATUS, n.getData().getStatus().toString());
+                writer.writeAttribute("isFolder", Boolean.toString(n.getChildren() != null && !n.getChildren().isEmpty()));
+                writer.writeEndElement();
+            }
+        writer.writeEndElement();
     }
 
     /**
@@ -125,9 +159,10 @@ public class BatchTrntChkReportTreeXMLResponse extends XMLResponse {
         int start;
         int end;
         var nodecount = nodes.size();
-        start = nodecount == 0 ? 0 : Math.max(0, Math.min(nodecount - 1, operation.getStartRow()));
+        final int last = Math.max(nodecount - 1, 0);
+        start = Math.clamp(operation.getStartRow(), 0, last);
+        end = Math.max(start, Math.clamp(operation.getEndRow(), 0, last));
         writer.writeElement("startRow", Integer.toString(start));
-        end = nodecount == 0 ? 0 : Math.max(0, Math.min(nodecount - 1, operation.getEndRow()));
         writer.writeElement("endRow", Integer.toString(end));
         writer.writeElement("totalRows", Integer.toString(nodecount));
 
