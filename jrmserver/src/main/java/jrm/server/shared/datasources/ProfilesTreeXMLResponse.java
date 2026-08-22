@@ -54,19 +54,18 @@ public class ProfilesTreeXMLResponse extends XMLResponse {
     }
 
     /**
-     * Recursively counts the total number of leaf nodes in the directory tree.
+     * Recursively counts the total number of non-root nodes in the directory tree.
      *
      * @param node the current tree node to evaluate
      * 
-     * @return the total count of leaf nodes under the given node
+     * @return the total count of descendant nodes under the given node
      */
     private int countNode(Node<Dir> node) {
         var count = 0;
         for (val child : node) {
+            count++;
             if (child.getChildCount() > 0)
                 count += countNode(child);
-            else
-                count++;
         }
         return count;
     }
