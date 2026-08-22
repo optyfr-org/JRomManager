@@ -5,7 +5,6 @@ import java.io.PrintWriter;
 
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
@@ -21,9 +20,7 @@ import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
 import com.beust.jcommander.JCommander;
-import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
-import com.beust.jcommander.Parameters;
 
 
 
@@ -31,12 +28,9 @@ import jrm.aui.status.PlainTextRenderer;
 import jrm.aui.status.StatusRendererFactory;
 
 
-import jrm.misc.BreakException;
-import jrm.misc.EnumWithDefault;
 import jrm.misc.Log;
 
 
-import jrm.misc.SettingsEnum;
 import jrm.profile.scan.ScanException;
 
 import jrm.security.Session;
@@ -159,43 +153,13 @@ public class JRomManagerCLI {
     }
 
     /**
-     * Command line arguments for the JRomManagerCLI.
-     */
-    @Parameters(separators = " =")
-    static class Args {
-        /**
-         * Flag to indicate if help message should be displayed.
-         */
-        @Parameter(names = { "--help", "-h" }, help = true)
-        boolean help = false;
-
-        /**
-         * Flag to indicate if the interactive shell should be started.
-         */
-        @Parameter(names = { "--interactive", "-i" }, description = "Interactive shell")
-        boolean interactive = false;
-
-        /**
-         * Flag to indicate if the debug mode should be enabled.
-         */
-        @Parameter(names = { "--debug", "-d" }, description = "Debug mode")
-        boolean debug = false;
-
-        /**
-         * Input file for reading commands. If not provided, commands will be read from standard input.
-         */
-        @Parameter(names = { "--file", "-f" }, description = "Input file", arity = 1)
-        String file = null;
-    }
-
-    /**
      * Constructs a new JRomManagerCLI instance with the provided command line arguments.
      *
      * @param cmd The command line arguments.
      * 
      * @throws IOException If an I/O error occurs during initialization.
      */
-    public JRomManagerCLI(final Args cmd) throws IOException {
+    public JRomManagerCLI(final CLIArgs cmd) throws IOException {
 
         /* Set the session object */
         setSession(Sessions.getSession(true, false));
@@ -268,32 +232,6 @@ public class JRomManagerCLI {
     }
 
     /**
-     * Print label:value with colored label
-     * 
-     * @param label The label to be printed
-     * @param value The value to be printed
-     * @param labelStyle The style for the label
-     */
-    @SuppressWarnings("unused")
-    private void printLabel(final String label, final String value, final AttributedStyle labelStyle) {
-        final AttributedStringBuilder sb = new AttributedStringBuilder();
-        sb.style(labelStyle);
-        sb.append(label);
-        sb.style(AttributedStyle.DEFAULT);
-        sb.append(value);
-        out.println(sb.toAnsi());
-    }
-
-    /**
-     * Reads commands from a file or standard input and analyzes them.
-     *
-     * @param cmd The command line arguments containing the input file or standard input.
-     * 
-     * @throws IOException If an I/O error occurs while reading the input file or standard input.
-     */
-
-
-    /**
      * Analyzes the provided command line arguments and executes the corresponding command.
      * 
      * @param args The command line arguments to be analyzed.
@@ -325,8 +263,6 @@ public class JRomManagerCLI {
         return -1;
     }
 
-
-
     /**
      * Sets the quiet mode for the CLI, controlling the verbosity of output.
      * 
@@ -345,80 +281,20 @@ public class JRomManagerCLI {
      * @return An integer status code indicating the result of the operation.
      */
     private int help() {
-        for (val cmd : CMD.values()) {
-            if (cmd != CMD.EMPTY && cmd != CMD.UNKNOWN) {
-                final var sb = new AttributedStringBuilder();
-                sb.style(STYLE_YELLOW_BOLD).append(cmd.allStrings().collect(Collectors.joining(", "))); // NOSONAR
-                sb.style(AttributedStyle.DEFAULT).append(": ").append(CLIMessages.getString("CLI_HELP_" + cmd.name())); // NOSONAR
-                out.println(sb.toAnsi());
-            }
+        for (val cmd : commandHandlers.keySet()) {
+            final var sb = new AttributedStringBuilder();
+            sb.style(STYLE_YELLOW_BOLD).append(cmd.allStrings().collect(Collectors.joining(", "))); // NOSONAR
+            sb.style(AttributedStyle.DEFAULT).append(": ").append(CLIMessages.getString("CLI_HELP_" + cmd.name())); // NOSONAR
+            out.println(sb.toAnsi());
         }
         return 0;
     }
 
-    /**
-     * Changes the current working directory based on the provided arguments.
-     * 
-     * @param args The command line arguments for the "cd" command.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
-
-
-    /**
-     * Deletes files or directories based on the provided arguments.
-     * 
-     * @param args The command line arguments for the "rm" command.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     * 
-     * @throws ParseException If there is an error parsing the command line arguments.
-     * @throws IOException If there is an error accessing the file system.
-     */
-
-
-    /**
-     * Processes the "dirupd8r" command with the provided arguments.
-     * 
-     * @param cmd The subcommand for the "dirupd8r" command.
-     * @param args The command line arguments for the "dirupd8r" command.
-     * 
-     * @return An integer status code indicating the result of the command execution.
-     * 
-     * @throws ParameterException If there is an error parsing the command line arguments.
-     */
-
-
-    /**
-     * Handles unknown commands by displaying an error message.
-     * 
-     * @param cmd The unknown command.
-     * @param args The command line arguments associated with the unknown command.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
     int unknownCmd(final String cmd, final String... args) {
         return error(() -> CLIMessages.getString(CLI_ERR_UNKNOWN_COMMAND) + cmd + " "
                 + Stream.of(args).map(s -> s.contains(" ") ? ('"' + s + '"') : s).collect(Collectors.joining(" ")));
     }
 
-    /**
-     * Processes the "trntchk" command with the provided arguments.
-     * 
-     * @param cmd The subcommand for the "trntchk" command.
-     * @param args The command line arguments for the "trntchk" command.
-     * 
-     * @return An integer status code indicating the result of the command execution.
-     * 
-     * @throws ParameterException If there is an error parsing the command line arguments.
-     */
-
-
-    /**
-     * Displays or modifies the application preferences based on the provided arguments.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
     int prefs(final Enum<?> name) {
         return prefsCLI.prefs(name);
     }
@@ -427,63 +303,23 @@ public class JRomManagerCLI {
         return prefsCLI.prefs(name, value);
     }
 
-    /**
-     * Displays all profile settings.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
-    /**
-     * Exits the application with the specified status code.
-     * 
-     * @param status The exit status code.
-     * 
-     * @return The exit status code.
-     */
     private int exit(final int status) {
         System.exit(status);
         return status;
     }
 
-    /**
-     * Displays an error message and returns a status code indicating an error.
-     * 
-     * @param msg The error message to display.
-     * 
-     * @return An integer status code indicating an error.
-     */
     int error(final String msg) {
         printError(msg);
         return -1;
     }
 
-    /**
-     * Displays an error message generated by the provided supplier and returns a status code indicating an error.
-     * 
-     * @param supplier A supplier that generates the error message to display.
-     * 
-     * @return An integer status code indicating an error.
-     */
     int error(final Supplier<String> supplier) {
         printError(supplier.get());
         return -1;
     }
 
-    /**
-     * Loads a profile from the specified file path.
-     * 
-     * @param profile The file path of the profile to load.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
-
-
-    /**
-     * The main entry point of the JRomManagerCLI application.
-     * 
-     * @param args The command line arguments passed to the application.
-     */
     public static void main(final String[] args) {
-        final var jArgs = new Args();
+        final var jArgs = new CLIArgs();
         final var cmd = JCommander.newBuilder().addObject(jArgs).build();
         try {
             cmd.parse(args);

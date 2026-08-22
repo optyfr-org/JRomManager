@@ -33,7 +33,7 @@ public class CLIRunner {
         this.cli = cli;
     }
 
-    void stream(final JRomManagerCLI.Args cmd) throws IOException {
+    void stream(final CLIArgs cmd) throws IOException {
         /* Start terminal that support non-interactive mode */
         cli.terminal = TerminalBuilder.builder().dumb(true).build();
         /* Create a PrintWriter for outputting messages to the terminal */
@@ -46,14 +46,14 @@ public class CLIRunner {
             while (null != (line = in.readLine())) {
                 if (line.startsWith("#")) //$NON-NLS-1$
                     continue;
-                    cli.analyze(cli.parser.splitLine(line));
+                cli.analyze(cli.parser.splitLine(line));
             }
         } catch (final IOException e) {
             jrm.misc.Log.err(e.getMessage());
         }
     }
 
-    void interactive(JRomManagerCLI.Args cmd) throws IOException {
+    void interactive(CLIArgs cmd) throws IOException {
         cli.terminal = TerminalBuilder.builder().system(true).build();
         final LineReader reader = LineReaderBuilder.builder()
                 .terminal(cli.terminal)
