@@ -69,9 +69,6 @@ class JRomManagerCLITest {
 
         setFinalField(cli, "parser", new CommandLineParser(cli));
 
-        setFinalField(cli.parser, "splitLinePattern", Pattern.compile("\"([^\"]*)\"|(\\S+)"));
-        setFinalField(cli.parser, "envPattern", Pattern.compile("\\$(?:([\\w\\.]+)|\\{([\\w\\.]+)\\})"));
-
         setFinalField(cli, "dirUpd8rCLI", new DirUpd8rCLI(cli));
         setFinalField(cli, "trntChkCLI", new TrntChkCLI(cli));
         setFinalField(cli, "compressorCLI", new CompressorCLI(cli));
@@ -79,6 +76,10 @@ class JRomManagerCLITest {
         setFinalField(cli, "profileCLI", new ProfileCLI(cli));
         setFinalField(cli, "prefsCLI", new PrefsCLI(cli));
         setFinalField(cli, "runner", new CLIRunner(cli));
+
+        setFinalField(cli, "commandHandlers", new java.util.EnumMap<>(CMD.class));
+
+        cli.initCommandHandlers();
 
         JRomManagerCLI.setSession(null);
     }

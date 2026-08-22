@@ -183,4 +183,14 @@ public class DirUpd8rCLI {
             default -> cli.error(CLIMessages.getString(JRomManagerCLI.CLI_ERR_WRONG_ARGS));
         };
     }
+
+    org.jline.reader.impl.completer.StringsCompleter getSubCompleter() {
+        java.util.List<String> names = new java.util.ArrayList<>();
+        for (final CMD_DIRUPD8R cmd : CMD_DIRUPD8R.values()) {
+            if (cmd != CMD_DIRUPD8R.EMPTY && cmd != CMD_DIRUPD8R.UNKNOWN) {
+                cmd.allStrings().forEach(names::add);
+            }
+        }
+        return new org.jline.reader.impl.completer.StringsCompleter(names);
+    }
 }

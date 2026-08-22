@@ -6,7 +6,9 @@ import java.io.PrintWriter;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -85,12 +87,12 @@ public class JRomManagerCLI {
      */
     PrintWriter out;
 
-    private final DirUpd8rCLI dirUpd8rCLI;
-    private final TrntChkCLI trntChkCLI;
-    private final CompressorCLI compressorCLI;
-    private final FileSystemCLI fsCLI;
-    private final ProfileCLI profileCLI;
-    private final PrefsCLI prefsCLI;
+    final DirUpd8rCLI dirUpd8rCLI;
+    final TrntChkCLI trntChkCLI;
+    final CompressorCLI compressorCLI;
+    final FileSystemCLI fsCLI;
+    final ProfileCLI profileCLI;
+    final PrefsCLI prefsCLI;
 
     CLIPrinter printer;
 
@@ -104,6 +106,56 @@ public class JRomManagerCLI {
 
     String[] splitLine(final String line) {
         return parser.splitLine(line);
+    }
+
+    /**
+     * Functional interface for command handlers to enable registry-based dispatch.
+     */
+    @FunctionalInterface
+    private interface CommandHandler {
+        int execute(String... args) throws Exception;
+    }
+
+    private final Map<CMD, CommandHandler> commandHandlers = new EnumMap<>(CMD.class);
+
+    void initCommandHandlers() {
+        // Simple commands that delegate directly
+        commandHandlers.put(CMD.LS, args -> fsCLI.list());
+        commandHandlers.put(CMD.PWD, args -> fsCLI.pwd());
+        commandHandlers.put(CMD.QUIET, args -> setQuietMode(true));
+        commandHandlers.put(CMD.VERBOSE, args -> setQuietMode(false));
+        commandHandlers.put(CMD.SET, args -> fsCLI.set(args));
+        commandHandlers.put(CMD.CD, args -> fsCLI.cd(args));
+        commandHandlers.put(CMD.RM, args -> fsCLI.rm(args));
+        commandHandlers.put(CMD.MD, args -> fsCLI.md(args));
+        commandHandlers.put(CMD.PREFS, args -> prefsCLI.prefs(args));
+        commandHandlers.put(CMD.LOAD, args -> profileCLI.load(args));
+        commandHandlers.put(CMD.SETTINGS, args -> profileCLI.settings(args));
+        commandHandlers.put(CMD.SCAN, args -> profileCLI.scan());
+        commandHandlers.put(CMD.SCANRESULT, args -> profileCLI.scanResult());
+        commandHandlers.put(CMD.FIX, args -> profileCLI.fix());
+
+        // Sub-command processors
+        commandHandlers.put(CMD.DIRUPD8R, args -> {
+            if (args.length == 1)
+                return error(CLIMessages.getString("CLI_ERR_DIRUPD8R_SubCmdMissing"));
+            return dirUpd8rCLI.dirupd8r(args[1], Arrays.copyOfRange(args, 2, args.length));
+        });
+        commandHandlers.put(CMD.TRNTCHK, args -> {
+            if (args.length == 1)
+                return error(CLIMessages.getString("CLI_ERR_TRNTCHK_SubCmdMissing"));
+            return trntChkCLI.trntchk(args[1], Arrays.copyOfRange(args, 2, args.length));
+        });
+        commandHandlers.put(CMD.COMPRESSOR, args -> {
+            if (args.length < 3)
+                return error(CLIMessages.getString(CLI_ERR_WRONG_ARGS));
+            return compressorCLI.compressor(Arrays.copyOfRange(args, 1, args.length));
+        });
+
+        // Built-in
+        commandHandlers.put(CMD.HELP, args -> help());
+        commandHandlers.put(CMD.EXIT, args -> exit(0));
+        // EMPTY and UNKNOWN handled specially in analyze
     }
 
     /**
@@ -167,6 +219,8 @@ public class JRomManagerCLI {
         profileCLI = new ProfileCLI(this);
         prefsCLI = new PrefsCLI(this);
         runner = new CLIRunner(this);
+
+        initCommandHandlers();
 
         if (cmd.interactive) {
             /* Start terminal that support interactive mode */
@@ -250,78 +304,28 @@ public class JRomManagerCLI {
         if (args.length == 0)
             return 0;
         try {
-            return switch (CMD.of(args[0])) {
-                case LS -> list();
-                case PWD -> pwd();
-                case QUIET -> setQuietMode(true);
-                case VERBOSE -> setQuietMode(false);
-                case SET -> set(args);
-                case CD -> cd(args);
-                case RM -> rm(args);
-                case MD -> md(args);
-                case PREFS -> prefs(args);
-                case LOAD -> load(args);
-                case SETTINGS -> settings(args);
-                case SCAN -> scan();
-                case SCANRESULT -> scanResult();
-                case FIX -> fix();
-                case DIRUPD8R -> processDirectoryUpdater(args);
-                case TRNTCHK -> processTorrentCheck(args);
-                case COMPRESSOR -> processCompressor(args);
-                case HELP -> help();
-                case EXIT -> exit(0);
-                case EMPTY -> 0;
-                case UNKNOWN -> unknownCmd(args[0], Arrays.copyOfRange(args, 1, args.length));
-            };
+            CMD cmd = CMD.of(args[0]);
+            if (cmd == CMD.EMPTY)
+                return 0;
+            if (cmd == CMD.UNKNOWN)
+                return unknownCmd(args[0], Arrays.copyOfRange(args, 1, args.length));
+            CommandHandler handler = commandHandlers.get(cmd);
+            if (handler == null)
+                return unknownCmd(args[0], Arrays.copyOfRange(args, 1, args.length));
+            return handler.execute(args);
         } catch (final IOException e) {
             Log.err(e.getMessage(), e);
         } catch (ScanException | ParameterException e) {
             out.println(e.getMessage()); // NOSONAR
             Log.err(e.getMessage(), e);
+        } catch (Exception e) {
+            Log.err(e.getMessage(), e);
+            return -1;
         }
         return -1;
     }
 
-    /**
-     * Processes the "compressor" command with the provided arguments.
-     * 
-     * @param args The command line arguments for the "compressor" command.
-     * 
-     * @return An integer status code indicating the result of the command execution.
-     * 
-     * @throws IOException If an I/O error occurs during processing.
-     */
-    private int processCompressor(final String... args) throws IOException {
-        if (args.length < 3)
-            return error(CLIMessages.getString(CLI_ERR_WRONG_ARGS));
-        return compressorCLI.compressor(Arrays.copyOfRange(args, 1, args.length));
-    }
 
-    /**
-     * Processes the "torrentcheck" command with the provided arguments.
-     * 
-     * @param args The command line arguments for the "torrentcheck" command.
-     * 
-     * @return An integer status code indicating the result of the command execution.
-     */
-    private int processTorrentCheck(final String... args) {
-        if (args.length == 1)
-            return error(CLIMessages.getString("CLI_ERR_TRNTCHK_SubCmdMissing"));
-        return trntchk(args[1], Arrays.copyOfRange(args, 2, args.length));
-    }
-
-    /**
-     * Processes the "dirupd8r" command with the provided arguments.
-     * 
-     * @param args The command line arguments for the "dirupd8r" command.
-     * 
-     * @return An integer status code indicating the result of the command execution.
-     */
-    private int processDirectoryUpdater(final String... args) {
-        if (args.length == 1)
-            return error(CLIMessages.getString("CLI_ERR_DIRUPD8R_SubCmdMissing"));
-        return dirupd8r(args[1], Arrays.copyOfRange(args, 2, args.length));
-    }
 
     /**
      * Sets the quiet mode for the CLI, controlling the verbosity of output.
@@ -359,42 +363,7 @@ public class JRomManagerCLI {
      * 
      * @return An integer status code indicating the result of the operation.
      */
-    private int cd(final String... args) {
-        return fsCLI.cd(args);
-    }
 
-    /**
-     * Displays or modifies the application preferences based on the provided arguments.
-     * 
-     * @param args The command line arguments for the "prefs" command.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
-    private int prefs(final String... args) {
-        return prefsCLI.prefs(args);
-    }
-
-    /**
-     * Loads a profile or configuration based on the provided arguments.
-     * 
-     * @param args The command line arguments for the "load" command.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
-    private int load(final String... args) {
-        return profileCLI.load(args);
-    }
-
-    /**
-     * Displays or modifies the application settings based on the provided arguments.
-     * 
-     * @param args The command line arguments for the "settings" command.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
-    private int settings(final String... args) {
-        return profileCLI.settings(args);
-    }
 
     /**
      * Deletes files or directories based on the provided arguments.
@@ -406,64 +375,7 @@ public class JRomManagerCLI {
      * @throws ParseException If there is an error parsing the command line arguments.
      * @throws IOException If there is an error accessing the file system.
      */
-    private int rm(final String... args) throws ParameterException, IOException {
-        return fsCLI.rm(args);
-    }
 
-    /**
-     * Fixes issues in the current scan based on the loaded profile.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
-    private int fix() {
-        return profileCLI.fix();
-    }
-
-    /**
-     * Displays the results of the current scan.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
-    private int scanResult() {
-        return profileCLI.scanResult();
-    }
-
-    /**
-     * Scans the specified directories and files.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     * 
-     * @throws BreakException If the scan is interrupted.
-     * @throws ScanException If there is an error during the scan.
-     */
-    private int scan() throws BreakException, ScanException {
-        return profileCLI.scan();
-    }
-
-    /**
-     * Creates directories based on the provided arguments.
-     * 
-     * @param args The command line arguments for the "md" command.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     * 
-     * @throws ParseException If there is an error parsing the command line arguments.
-     * @throws IOException If there is an error accessing the file system.
-     */
-    private int md(final String... args) throws ParameterException, IOException {
-        return fsCLI.md(args);
-    }
-
-    /**
-     * Sets system properties or environment variables based on the provided arguments.
-     * 
-     * @param args The command line arguments for the "set" command.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
-    private int set(final String... args) {
-        return fsCLI.set(args);
-    }
 
     /**
      * Processes the "dirupd8r" command with the provided arguments.
@@ -475,9 +387,7 @@ public class JRomManagerCLI {
      * 
      * @throws ParameterException If there is an error parsing the command line arguments.
      */
-    private int dirupd8r(final String cmd, final String... args) throws ParameterException {
-        return dirUpd8rCLI.dirupd8r(cmd, args);
-    }
+
 
     /**
      * Handles unknown commands by displaying an error message.
@@ -502,9 +412,7 @@ public class JRomManagerCLI {
      * 
      * @throws ParameterException If there is an error parsing the command line arguments.
      */
-    private int trntchk(final String cmd, final String... args) throws ParameterException {
-        return trntChkCLI.trntchk(cmd, args);
-    }
+
 
     /**
      * Displays or modifies the application preferences based on the provided arguments.
@@ -567,40 +475,7 @@ public class JRomManagerCLI {
      * 
      * @return An integer status code indicating the result of the operation.
      */
-    private int load(final String profile) {
-        return profileCLI.load(profile);
-    }
 
-    /**
-     * Changes the current working directory to the specified directory.
-     * 
-     * @param dir The directory to change to.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
-    private int cd(final String dir) {
-        return fsCLI.cd(dir);
-    }
-
-    /**
-     * Displays the current working directory relative to the root directory.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     */
-    private int pwd() {
-        return fsCLI.pwd();
-    }
-
-    /**
-     * Lists the directories and data files in the current working directory.
-     * 
-     * @return An integer status code indicating the result of the operation.
-     * 
-     * @throws IOException If there is an error accessing the file system.
-     */
-    private int list() throws IOException {
-        return fsCLI.list();
-    }
 
     /**
      * The main entry point of the JRomManagerCLI application.

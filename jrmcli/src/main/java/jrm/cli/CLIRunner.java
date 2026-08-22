@@ -94,23 +94,11 @@ public class CLIRunner {
         }
         final StringsCompleter cmdCompleter = new StringsCompleter(commandNames);
 
-        // Collect DIRUPD8R subcommand aliases
-        final List<String> dirupd8rNames = new ArrayList<>();
-        for (final CMD_DIRUPD8R cmd : CMD_DIRUPD8R.values()) {
-            if (cmd != CMD_DIRUPD8R.EMPTY && cmd != CMD_DIRUPD8R.UNKNOWN) {
-                cmd.allStrings().forEach(dirupd8rNames::add);
-            }
-        }
-        final StringsCompleter dirupd8rCompleter = new StringsCompleter(dirupd8rNames);
+        // Collect DIRUPD8R subcommand aliases from handler
+        final StringsCompleter dirupd8rCompleter = cli.dirUpd8rCLI.getSubCompleter();
 
-        // Collect TRNTCHK subcommand aliases
-        final List<String> trntchkNames = new ArrayList<>();
-        for (final CMD_TRNTCHK cmd : CMD_TRNTCHK.values()) {
-            if (cmd != CMD_TRNTCHK.EMPTY && cmd != CMD_TRNTCHK.UNKNOWN) {
-                cmd.allStrings().forEach(trntchkNames::add);
-            }
-        }
-        final StringsCompleter trntchkCompleter = new StringsCompleter(trntchkNames);
+        // Collect TRNTCHK subcommand aliases from handler
+        final StringsCompleter trntchkCompleter = cli.trntChkCLI.getSubCompleter();
 
         // Build completers: main commands, dirupd8r subcommands, trntchk subcommands
         return new AggregateCompleter(
