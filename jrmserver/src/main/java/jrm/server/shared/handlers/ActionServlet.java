@@ -225,7 +225,7 @@ public class ActionServlet extends HttpServlet {
             else {
                 final var msgs = new ArrayList<String>();
                 msgs.add(msg);
-                while (msgs.size() <= 100) {
+                while (msgs.size() < 100) {
                     if (null == (msg = sess.getLprMsg().poll()))
                         break;
                     msgs.add(msg);
