@@ -236,8 +236,10 @@ public class MainFrame extends JFrame implements Popup {
                     }
                 });
                 icon = iconsCache.get(res);
-                if (icon == null)
-                    iconsCache.put(res, new ImageIcon());
+                if (icon == null) {
+                    icon = new ImageIcon();
+                    iconsCache.put(res, icon);
+                }
             }
             return icon;
         }
