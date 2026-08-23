@@ -214,7 +214,8 @@ public class Import implements UnitRenderer {
                 if (!xml) {
                     continue;
                 }
-                out.write(line + "\n"); //$NON-NLS-1$
+                out.write(line);
+                out.write('\n');
                 appendHeader(header, line);
                 size += line.getBytes(StandardCharsets.UTF_8).length;
                 progress.setProgress(null, null, null,
