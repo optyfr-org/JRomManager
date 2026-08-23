@@ -210,13 +210,13 @@ public class Profile implements Serializable, StatusRendererFactory {
      * 
      * @return standard and custom systems filters
      */
-    private transient @Getter Systms systems = null;
+    transient @Getter Systms systems = null;
     /**
      * Dynamic years list collected from scanned elements.
      * 
      * @return sorted collection of years
      */
-    private transient @Getter Collection<String> years = null;
+    transient @Getter Collection<String> years = null;
     /**
      * JRomManager database profile information stats summary.
      * 
@@ -230,7 +230,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * 
      * @return categories config mapping
      */
-    private transient @Getter @Setter CatVer catver = null;
+    transient @Getter @Setter CatVer catver = null;
     /**
      * Parsed multiplayer specifications configuration mapping.
      * 
@@ -238,7 +238,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * 
      * @return multiplayer config mapping
      */
-    private transient @Getter @Setter NPlayers nplayers = null;
+    transient @Getter @Setter NPlayers nplayers = null;
     /**
      * Active execution context workspace session.
      * 
@@ -250,7 +250,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * 
      * @return standard dat definitions tracking metrics
      */
-    private transient @Getter Sources sources = null;
+    transient @Getter Sources sources = null;
 
     /**
      * Protected zero-argument constructor initializing an empty profile.
@@ -519,39 +519,14 @@ public class Profile implements Serializable, StatusRendererFactory {
      * Populates standard, mechanical, bios, or software lists categories inside System filter sets.
      */
     public void loadSystems() {
-        systems = new Systms();
-        systems.add(SystmStandard.STANDARD);
-        systems.add(SystmMechanical.MECHANICAL);
-        systems.add(SystmDevice.DEVICE);
-        final ArrayList<Machine> machines = new ArrayList<>();
-        this.sources = new Sources();
-        final var srces = new TreeMap<String, Source>();
-        machineListList.get(0).forEach(m -> {
-            if (m.isIsbios())
-                machines.add(m);
-            Optional.ofNullable(m.getSourcefile()).ifPresent(s -> srces.compute(s, (k, v) -> v == null ? new Source(k) : v.inc()));
-        });
-        machines.sort((a, b) -> a.getName().compareTo(b.getName()));
-        machines.forEach(systems::add);
-        srces.forEach((_, src) -> sources.add(src));
-        machineListList.get(0).stream().filter(m -> m.getSourcefile() != null).forEach(m -> m.setSource(srces.get(m.getSourcefile())));
-
-        final ArrayList<SoftwareList> softwarelists = new ArrayList<>();
-        machineListList.getSoftwareListList().forEach(softwarelists::add);
-        softwarelists.sort((a, b) -> a.getName().compareTo(b.getName()));
-        softwarelists.forEach(systems::add);
+        ProfileFilters.loadSystems(this);
     }
 
     /**
      * Compiles distinct release years across parsed machines or software catalogs.
      */
     public void loadYears() {
-        final var y = new HashSet<String>();
-        y.add(""); //$NON-NLS-1$
-        machineListList.get(0).forEach(m -> y.add(m.year.toString()));
-        machineListList.getSoftwareListList().forEach(sl -> sl.forEach(s -> y.add(s.year.toString())));
-        y.add("????"); //$NON-NLS-1$
-        this.years = y;
+        ProfileFilters.loadYears(this);
     }
 
     /**
@@ -560,27 +535,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * @param handler progress reporting monitor
      */
     public void loadCatVer(ProgressHandler handler) {
-        try {
-            final var file = PathAbstractor.getAbsolutePath(session, getProperty(ProfileSettingsEnum.filter_catver_ini, String.class)).toFile();
-            if (!file.exists()) {
-                catver = null;
-                return;
-            }
-            if (handler != null)
-                handler.setProgress("Loading catver.ini ...", -1); //$NON-NLS-1$
-            catver = CatVer.read(this, file); // $NON-NLS-1$
-            for (final Category cat : catver) {
-                for (final SubCategory subcat : cat) {
-                    for (final String game : subcat) {
-                        final Machine m = machineListList.get(0).getByName(game);
-                        if (m != null)
-                            m.setSubcat(subcat);
-                    }
-                }
-            }
-        } catch (final Exception _) {
-            catver = null;
-        }
+        ProfileFilters.loadCatVer(this, handler);
     }
 
     /**
@@ -589,24 +544,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * @param handler progress reporting monitor
      */
     public void loadNPlayers(ProgressHandler handler) {
-        try {
-            final var file = PathAbstractor.getAbsolutePath(session, getProperty(ProfileSettingsEnum.filter_nplayers_ini, String.class)).toFile();
-            if (file.exists()) {
-                if (handler != null)
-                    handler.setProgress("Loading nplayers.ini ...", -1); //$NON-NLS-1$
-                nplayers = NPlayers.read(file); // $NON-NLS-1$
-                for (final NPlayer nplayer : nplayers) {
-                    for (final String game : nplayer) {
-                        final Machine m = machineListList.get(0).getByName(game);
-                        if (m != null)
-                            m.setNplayer(nplayer);
-                    }
-                }
-            } else
-                nplayers = null;
-        } catch (final Exception _) {
-            nplayers = null;
-        }
+        ProfileFilters.loadNPlayers(this, handler);
     }
 
     /**

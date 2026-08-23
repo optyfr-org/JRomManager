@@ -63,51 +63,51 @@ class ProfileParseContext {
 	 * manufacturer) and references to the current machine, software, ROM, disk, etc., being parsed. The romsByCRC map is used
 	 * to track ROMs by their CRC values for identifying suspicious cases.
 	 */
-	private boolean inDescription = false;
+	boolean inDescription = false;
 
 	/**
 	 * Flag indicating whether the parser is currently within a "year" XML element. This flag is used to track the context of
 	 * parsing and to determine when to capture year information for machines or software entries.
 	 */
-	private boolean inYear = false;
+	boolean inYear = false;
 
 	/**
 	 * Flag indicating whether the parser is currently within a "manufacturer" XML element. This flag is used to track the
 	 * context of parsing and to determine when to capture manufacturer information for machines or software entries.
 	 */
-	private boolean inManufacturer = false;
+	boolean inManufacturer = false;
 
 	/**
 	 * Flag indicating whether the parser is currently within a "publisher" XML element. This flag is used to track the context
 	 * of parsing and to determine when to capture publisher information for software entries.
 	 */
-	private boolean inPublisher = false;
+	boolean inPublisher = false;
 
 	/**
 	 * Flag indicating whether the parser is currently within a "header" XML element. This flag is used to track the context of
 	 * parsing header information.
 	 */
-	private boolean inHeader = false;
+	boolean inHeader = false;
 
 	/**
 	 * Flag indicating whether the parser is currently within a "cabinet" dipswitch element. This flag is used to track the
 	 * context of parsing cabinet-related dipswitches.
 	 */
-	private boolean inCabinetDipSW = false;
+	boolean inCabinetDipSW = false;
 
 	/**
 	 * Set of cabinet types currently being parsed within a "cabinet" dipswitch element. This set is used to track the specific
 	 * cabinet types associated with the dipswitches being parsed, allowing for proper association of dipswitch settings with
 	 * the relevant machine configurations.
 	 */
-	private final EnumSet<CabinetType> cabTypeSet = EnumSet.noneOf(CabinetType.class);
+	final EnumSet<CabinetType> cabTypeSet = EnumSet.noneOf(CabinetType.class);
 
 	/**
 	 * Reference to the currently parsed software list. This variable is used to keep track of the active software list being
 	 * parsed in the XML, allowing for proper association of software entries and their related data with the correct software
 	 * list context.
 	 */
-	private SoftwareList currSoftwareList = null;
+	SoftwareList currSoftwareList = null;
 
 	/**
 	 * Reference to the currently parsed software entry. This variable is used to keep track of the active software entry being
@@ -121,7 +121,7 @@ class ProfileParseContext {
 	 * parsed in the XML, allowing for proper association of data areas, disk areas, and other related information with the
 	 * correct software part context.
 	 */
-	private Software.Part currPart = null;
+	Software.Part currPart = null;
 
 	/**
 	 * Reference to the currently parsed software part data area. This variable is used to keep track of the active data area
@@ -149,13 +149,13 @@ class ProfileParseContext {
 	 * machine, allowing for proper association of device-related elements (such as ROMs or disks) with the correct device
 	 * context.
 	 */
-	private Device currDevice = null;
+	Device currDevice = null;
 
 	/**
 	 * Reference to the currently parsed sample set. This variable is used to keep track of the active sample set being parsed
 	 * in the XML, allowing for proper association of sample files and related data with the correct sample set context.
 	 */
-	private Samples currSampleSet = null;
+	Samples currSampleSet = null;
 
 	/**
 	 * Reference to the currently parsed ROM. This variable is used to keep track of the active ROM being parsed in the XML,
@@ -173,7 +173,7 @@ class ProfileParseContext {
 	 * Reference to the currently parsed slot. This variable is used to keep track of the active slot being parsed within a
 	 * machine, allowing for proper association of slot options and related data with the correct slot context.
 	 */
-	private Slot currSlot = null;
+	Slot currSlot = null;
 
 
 
@@ -181,7 +181,7 @@ class ProfileParseContext {
 	 * Current XML tag name being processed. This variable is used to keep track of the active XML tag being parsed, allowing
 	 * for context-aware processing of attributes and content based on the specific tag being handled.
 	 */
-	private String currTag;
+	String currTag;
 
 	/**
 	 * Owning profile instance for accessing parse accumulators and collections.
@@ -193,7 +193,9 @@ class ProfileParseContext {
 	 */
 	private final ProgressHandler handler;
 
-	private final RomDiskParseHelper romDiskHelper = new RomDiskParseHelper(this);
+	final RomDiskParseHelper romDiskHelper = new RomDiskParseHelper(this);
+	private final MachineParseHelper machineHelper = new MachineParseHelper(this);
+	private final SoftwareParseHelper softwareHelper = new SoftwareParseHelper(this);
 
 	ProfileParseContext(Profile profile, ProgressHandler handler) {
 		this.profile = profile;
@@ -412,21 +414,7 @@ class ProfileParseContext {
 	}
 
 	private void startDevice(final Attributes attributes) {
-		if (currMachine == null)
-			return;
-		currDevice = new Device();
-		currMachine.getDevices().add(currDevice);
-		for (var i = 0; i < attributes.getLength(); i++) {
-			final String value = attributes.getValue(i);
-			switch (attributes.getQName(i)) {
-				case "type" -> currDevice.setType(value.trim());
-				case "tag" -> currDevice.setTag(value.trim());
-				case "interface" -> currDevice.setIntrface(value.trim());
-				case "fixed_image" -> currDevice.setFixedImage(value.trim());
-				case "mandatory" -> currDevice.setMandatory(value.trim());
-				default -> { /* skip unknown */ }
-			}
-		}
+		machineHelper.startDevice(attributes);
 	}
 
 	private void startInput(final Attributes attributes) {
@@ -474,205 +462,35 @@ class ProfileParseContext {
 	}
 
 	private void startSoftwareList(final Attributes attributes) {
-		if (currMachine != null)
-			startSoftwareListDesc(attributes);
-		else {
-			currSoftwareList = new SoftwareList(profile);
-			for (var i = 0; i < attributes.getLength(); i++) {
-				switch (attributes.getQName(i)) {
-					case "name" -> {
-						currSoftwareList.setName(attributes.getValue(i).trim());
-						profile.machineListList.getSoftwareListList().putByName(currSoftwareList);
-					}
-					case Profile.DESCRIPTION -> currSoftwareList.getDescription().append(attributes.getValue(i).trim());
-					default -> { /* skip unknown */ }
-				}
-			}
-		}
+		softwareHelper.startSoftwareList(attributes);
 	}
 
 	private void startSoftwareListDesc(final Attributes attributes) {
-		final var swlist = currMachine.new SWList();
-		for (var i = 0; i < attributes.getLength(); i++) {
-			switch (attributes.getQName(i)) {
-				case "name" -> swlist.setName(attributes.getValue(i));
-				case STATUS -> swlist.setStatus(SWStatus.valueOf(attributes.getValue(i)));
-				case "filter" -> swlist.setFilter(attributes.getValue(i));
-				default -> { /* skip unknown */ }
-			}
-		}
-		currMachine.getSwlists().put(swlist.getName(), swlist);
-		profile.machineListList.getSoftwareListDefs().computeIfAbsent(swlist.getName(), _ -> new ArrayList<>()).add(currMachine);
+		softwareHelper.startSoftwareListDesc(attributes);
 	}
 
 	private void startSoftware(final Attributes attributes) {
-		currSoftware = new Software(profile);
-		for (var i = 0; i < attributes.getLength(); i++) {
-			switch (attributes.getQName(i)) {
-				case "name" -> currSoftware.setName(attributes.getValue(i).trim());
-				case "cloneof" -> currSoftware.setCloneof(attributes.getValue(i).trim());
-				case "supported" -> currSoftware.setSupported(Software.Supported.valueOf(attributes.getValue(i)));
-				default -> { /* skip unknown */ }
-			}
-		}
+		softwareHelper.startSoftware(attributes);
 	}
 
-	private void startSoftwareFeature(Attributes attributes) {
-		if (currSoftware == null)
-			return;
-		if (attributes.getValue("name").equalsIgnoreCase("compatibility"))
-			currSoftware.setCompatibility(attributes.getValue("value"));
-	}
-
-	private void startSoftwarePart(Attributes attributes) {
-		if (currSoftware == null)
-			return;
-		currPart = new Part();
-		currSoftware.getParts().add(currPart);
-		for (var i = 0; i < attributes.getLength(); i++) {
-			if ("name".equals(attributes.getQName(i)))
-				currPart.setName(attributes.getValue(i).trim());
-			else if ("interface".equals(attributes.getQName(i)))
-				currPart.setIntrface(attributes.getValue(i).trim());
-		}
-	}
-
-	private void startSoftwarePartDataarea(Attributes attributes) {
-		if (currSoftware == null || currPart == null)
-			return;
-		currDataArea = new DataArea();
-		currPart.getDataareas().add(currDataArea);
-		for (var i = 0; i < attributes.getLength(); i++) {
-			switch (attributes.getQName(i)) {
-				case "name" -> currDataArea.setName(attributes.getValue(i).trim());
-				case "size" -> {
-					final var value = attributes.getValue(i).trim();
-					ExceptionUtils.unthrowF(currDataArea::setSize, Integer::decode, value, t -> ExceptionUtils.test(t, "0x" + value, 0));
-				}
-				case "width", "databits" -> currDataArea.setDatabits(Integer.valueOf(attributes.getValue(i)));
-				case "endianness", "endian" -> currDataArea.setEndianness(Endianness.valueOf(attributes.getValue(i)));
-				default -> { /* skip unknown */ }
-			}
-		}
-	}
-
-	private void startSoftwarePartDiskarea(Attributes attributes) {
-		if (currSoftware == null || currPart == null)
-			return;
-		currDiskArea = new DiskArea();
-		currPart.getDiskareas().add(currDiskArea);
-		for (var i = 0; i < attributes.getLength(); i++) {
-			if ("name".equals(attributes.getQName(i)))
-				currDiskArea.setName(attributes.getValue(i).trim());
-		}
-	}
+	private void startSoftwareFeature(Attributes attributes) { softwareHelper.startSoftwareFeature(attributes); }
+	private void startSoftwarePart(Attributes attributes) { softwareHelper.startSoftwarePart(attributes); }
+	private void startSoftwarePartDataarea(Attributes attributes) { softwareHelper.startSoftwarePartDataarea(attributes); }
+	private void startSoftwarePartDiskarea(Attributes attributes) { softwareHelper.startSoftwarePartDiskarea(attributes); }
 
 	private void startMachine(Attributes attributes) {
-		currMachine = new Machine(profile);
-		for (var i = 0; i < attributes.getLength(); i++) {
-			final String value = attributes.getValue(i);
-			switch (attributes.getQName(i)) {
-				case "name" -> {
-					currMachine.setName(value.trim());
-					profile.machineListList.get(0).putByName(currMachine);
-				}
-				case "romof" -> currMachine.setRomof(value.trim());
-				case "cloneof" -> currMachine.setCloneof(value.trim());
-				case "sampleof" -> {
-					currMachine.setSampleof(value.trim());
-					if (!profile.machineListList.get(0).samplesets.containsName(currMachine.getSampleof())) {
-						currSampleSet = new Samples(currMachine.getSampleof());
-						profile.machineListList.get(0).samplesets.putByName(currSampleSet);
-					} else
-						currSampleSet = profile.machineListList.get(0).samplesets.getByName(currMachine.getSampleof());
-				}
-				case "isbios" -> currMachine.setIsbios(BooleanUtils.toBoolean(value));
-				case "ismechanical" -> currMachine.setIsmechanical(BooleanUtils.toBoolean(value));
-				case "isdevice" -> currMachine.setIsdevice(BooleanUtils.toBoolean(value));
-				case "sourcefile" -> currMachine.setSourcefile(value);
-				default -> { /* skip unknown */ }
-			}
-		}
-		if (currMachine.getRomof() != null && currMachine.getRomof().equals(currMachine.getBaseName()))
-			currMachine.setRomof(null);
-		if (currMachine.getCloneof() != null && currMachine.getCloneof().equals(currMachine.getBaseName()))
-			currMachine.setCloneof(null);
+		machineHelper.startMachine(attributes);
 	}
 
-	private void startDescription() {
-		if (currMachine == null && currSoftware == null && currSoftwareList == null)
-			return;
-		inDescription = true;
-	}
+	private void startDescription() { if (currMachine == null && currSoftware == null && currSoftwareList == null) return; inDescription = true; }
+	private void startDriver(Attributes attributes) { machineHelper.startDriver(attributes); }
+	private void startDisplay(final Attributes attributes) { machineHelper.startDisplay(attributes); }
 
-	private void startDriver(Attributes attributes) {
-		if (currMachine == null)
-			return;
-		for (var i = 0; i < attributes.getLength(); i++) {
-			final String value = attributes.getValue(i);
-			switch (attributes.getQName(i)) {
-				case STATUS -> currMachine.driver.setStatus(value);
-				case "emulation" -> currMachine.driver.setEmulation(value);
-				case "cocktail" -> currMachine.driver.setCocktail(value);
-				case "savestate" -> currMachine.driver.setSaveState(value);
-				default -> { /* skip unknown */ }
-			}
-		}
-	}
-
-	private void startDisplay(final Attributes attributes) {
-		if (currMachine == null)
-			return;
-		for (var i = 0; i < attributes.getLength(); i++) {
-			if ("rotate".equals(attributes.getQName(i))) {
-				ExceptionUtils.unthrow(orientation -> {
-					switch (orientation) {
-						case 0, 180 -> currMachine.setOrientation(Machine.DisplayOrientation.horizontal);
-						case 90, 270 -> currMachine.setOrientation(Machine.DisplayOrientation.vertical);
-						default -> { /* ignore unknown orientation values */ }
-					}
-				}, Integer::parseInt, attributes.getValue(i));
-			}
-		}
-	}
-
-	private void endPublisher() {
-		if (currSoftware == null)
-			return;
-		inPublisher = false;
-	}
-
-	private void endManufacturer() {
-		if (currMachine == null)
-			return;
-		inManufacturer = false;
-	}
-
-	private void endYear() {
-		if (currMachine == null && currSoftware == null)
-			return;
-		inYear = false;
-	}
-
-	private void endDescription() {
-		if (currMachine == null && currSoftware == null && currSoftwareList == null)
-			return;
-		inDescription = false;
-	}
-
-	private void endDipSwitch() {
-		if (!inCabinetDipSW || currMachine == null)
-			return;
-		if (cabTypeSet.contains(CabinetType.cocktail)) {
-			if (cabTypeSet.contains(CabinetType.upright))
-				currMachine.setCabinetType(CabinetType.any);
-			else
-				currMachine.setCabinetType(CabinetType.cocktail);
-		} else
-			currMachine.setCabinetType(CabinetType.upright);
-		cabTypeSet.clear();
-		inCabinetDipSW = false;
-	}
+	private void endPublisher() { if (currSoftware == null) return; inPublisher = false; }
+	private void endManufacturer() { if (currMachine == null) return; inManufacturer = false; }
+	private void endYear() { if (currMachine == null && currSoftware == null) return; inYear = false; }
+	private void endDescription() { if (currMachine == null && currSoftware == null && currSoftwareList == null) return; inDescription = false; }
+	private void endDipSwitch() { machineHelper.endDipSwitch(); }
 
 	private void endDisk() {
 		romDiskHelper.endDisk();
@@ -683,14 +501,11 @@ class ProfileParseContext {
 	}
 
 	private void endSoftwareList() {
-		if (currSoftwareList == null)
-			return;
-		profile.machineListList.getSoftwareListList().add(currSoftwareList);
-		profile.softwaresListCnt++;
-		currSoftwareList = null;
+		softwareHelper.endSoftwareList();
 	}
 
 	private void endMachine() throws BreakException {
+		machineHelper.endMachine();
 		romDiskHelper.endMachineOrSoftware();
 		profile.machineListList.get(0).add(currMachine);
 		profile.machinesCnt++;
@@ -704,6 +519,7 @@ class ProfileParseContext {
 	private void endSoftware() throws BreakException {
 		if (currSoftwareList == null || currSoftware == null)
 			return;
+		softwareHelper.endSoftware();
 		romDiskHelper.endMachineOrSoftware();
 		currSoftwareList.add(currSoftware);
 		profile.softwaresCnt++;
