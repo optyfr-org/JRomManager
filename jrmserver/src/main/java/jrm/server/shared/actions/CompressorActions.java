@@ -4,7 +4,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.io.FilenameUtils;
@@ -90,10 +92,13 @@ public class CompressorActions {
      */
     private void startParallelCompression(final WebSession session, final CompressorFormat format, final Boolean force, final int nThreads) {
         List<FileResult> values = new ArrayList<>(session.getCachedCompressorList().values());
+        final Map<FileResult, Integer> rowMap = new HashMap<>();
+        for (int i = 0; i < values.size(); i++)
+            rowMap.put(values.get(i), i);
         final var cnt = new AtomicInteger();
         final var compressor = new Compressor(session, cnt, session.getCachedCompressorList().size(), session.getWorker().getProgress());
         try (final var mt = new MultiThreadingVirtual<Compressor.FileResult>("compressor", session.getWorker().getProgress(), nThreads,
-                fr -> doCompress(session, format, force, cnt, compressor, values, fr))) {
+                fr -> doCompress(session, format, force, cnt, compressor, rowMap, fr))) {
             mt.start(session.getCachedCompressorList().values().stream());
         }
     }
@@ -108,15 +113,15 @@ public class CompressorActions {
      * @param force Whether to force the compression even if the target format already matches.
      * @param cnt An {@link AtomicInteger} to track the number of processed files.
      * @param compressor The {@link Compressor} instance performing the operations.
-     * @param values The list of all {@link FileResult}s to determine the index.
+     * @param rowMap Map from FileResult to its index in the list.
      * @param fr The specific {@link FileResult} representing the file to compress.
      */
     private void doCompress(final WebSession session, final CompressorFormat format, final boolean force, final AtomicInteger cnt, final Compressor compressor,
-            List<FileResult> values, FileResult fr) {
+            Map<FileResult, Integer> rowMap, FileResult fr) {
         if (session.getWorker().getProgress().isCancel())
             return;
         try {
-            final int i = values.indexOf(fr);
+            final int i = rowMap.get(fr);
             var file = PathAbstractor.getAbsolutePath(session, fr.getFile().toString()).toFile();
             Compressor.UpdResultCallBack cb = txt -> updateResult(i, fr.applyResult(txt));
             Compressor.UpdSrcCallBack scb = src -> updateFile(i, fr.applyFile(PathAbstractor.getRelativePath(session, src.toPath())));
