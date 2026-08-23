@@ -11,8 +11,6 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
-import lombok.val;
-
 import org.jline.utils.AttributedStringBuilder;
 import org.jline.utils.AttributedStyle;
 
@@ -82,7 +80,7 @@ public class FileSystemCLI {
                         cli.out.println(sb.toAnsi());
                     });
         }
-        for (val row : ProfileNFO.list(JRomManagerCLI.session, cli.cwdir.toFile())) {
+        for (final var row : ProfileNFO.list(JRomManagerCLI.session, cli.cwdir.toFile())) {
             final AttributedStringBuilder sb = new AttributedStringBuilder();
             sb.style(JRomManagerCLI.STYLE_CYAN_BOLD).append("<DAT>").append("\t");
             sb.style(AttributedStyle.DEFAULT).append(row.getName());
