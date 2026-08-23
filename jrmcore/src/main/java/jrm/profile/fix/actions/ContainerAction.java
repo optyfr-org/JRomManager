@@ -249,13 +249,13 @@ public abstract class ContainerAction implements StatusRendererFactory, Comparab
      */
     protected boolean zosAction(final Session session, final ProgressHandler handler, final ZipFile zipf) {
         var i = 0;
+        final var level = ZipLevel.valueOf(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.zip_compression_level));
         for (final EntryAction action : entryActions) {
             i++;
             final var zipp = new ZipParameters();
             if (format == FormatOptions.TZIP)
                 zipp.setCompressionLevel(CompressionLevel.FASTEST);
             else {
-                final var level = ZipLevel.valueOf(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.zip_compression_level));
                 switch (level) {
                     case STORE -> zipp.setCompressionMethod(CompressionMethod.STORE);
                     case FASTEST -> zipp.setCompressionLevel(CompressionLevel.FASTEST);
