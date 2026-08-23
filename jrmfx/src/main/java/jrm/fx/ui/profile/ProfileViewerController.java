@@ -1,13 +1,10 @@
 package jrm.fx.ui.profile;
 
-import java.awt.HeadlessException;
-import java.io.File;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.io.IOException;
 import java.net.URLEncoder;
-import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,10 +13,11 @@ import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.function.Predicate;
 
+import javafx.beans.property.ReadOnlyObjectWrapper;
+import javafx.beans.property.ReadOnlyStringWrapper;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.beans.value.ObservableValue;
-import javafx.beans.value.ObservableValueBase;
 import javafx.collections.FXCollections;
 import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
@@ -28,8 +26,6 @@ import javafx.fxml.Initializable;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.control.CheckBox;
-import javafx.scene.control.ChoiceDialog;
-import javafx.scene.control.ContentDisplay;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableCell;
@@ -45,10 +41,23 @@ import javafx.scene.input.Clipboard;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
-import javafx.scene.text.TextAlignment;
 import jrm.fx.ui.JRMScene;
 import jrm.fx.ui.MainFrame;
 import jrm.fx.ui.controls.Dialogs;
+import jrm.fx.ui.controls.HashCellFactory;
+import jrm.fx.ui.controls.SizeCellFactory;
+import jrm.fx.ui.controls.TooltipStringCellFactory;
+import jrm.fx.ui.profile.EntityDumpStatusCellFactory;
+import jrm.fx.ui.profile.EntityNameCellFactory;
+import jrm.fx.ui.profile.EntityStatusCellFactory;
+import jrm.fx.ui.profile.AnywareCloneCellFactory;
+import jrm.fx.ui.profile.AnywareStatusCellFactory;
+import jrm.fx.ui.profile.MachineNameCellFactory;
+import jrm.fx.ui.profile.MameLauncher;
+import jrm.fx.ui.profile.SampleOfCellFactory;
+import jrm.fx.ui.profile.WareListDescCellFactory;
+import jrm.fx.ui.profile.WareListHaveCellFactory;
+import jrm.fx.ui.profile.WareListNameCellFactory;
 import jrm.fx.ui.profile.filter.Keywords;
 import jrm.locale.Messages;
 import jrm.misc.Log;
@@ -70,10 +79,6 @@ import jrm.profile.data.Samples;
 import jrm.profile.data.Software;
 import jrm.profile.data.SoftwareList;
 import jrm.profile.manager.Export.ExportType;
-import jrm.profile.manager.MameExecutable;
-import jrm.profile.manager.MameLaunch;
-import jrm.profile.manager.ProfileNFOMame;
-import jrm.profile.manager.ProfileNFOMame.MameStatus;
 import jrm.security.Session;
 import jrm.security.Sessions;
 
@@ -291,6 +296,7 @@ public class ProfileViewerController implements Initializable {
     @Override
     public void initialize(final URL location, final ResourceBundle resources) {
         initTableWL();
+        wareRelations = new ProfileViewerWareRelations(tableWL);
         initTableW();
         initTableE();
     }
@@ -315,95 +321,16 @@ public class ProfileViewerController implements Initializable {
      * Configures the entity status column with a graphical cell factory and value factory.
      */
     private void initTableEStatus() {
-        tableEntityStatus.setCellFactory(_ -> createEntityStatusCell());
-        tableEntityStatus.setCellValueFactory(this::createEntityStatusValue);
-    }
-
-    /**
-     * Creates an observable value that returns the entity for the status column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the entity
-     */
-    private ObservableValueBase<EntityBase> createEntityStatusValue(final CellDataFeatures<EntityBase, EntityBase> p) {
-        return new ObservableValueBase<EntityBase>() {
-            @Override
-            public EntityBase getValue() {
-                return p.getValue();
-            }
-        };
-    }
-
-    /**
-     * Creates a table cell that renders an entity's status as a colored bullet icon.
-     *
-     * @return the status table cell
-     */
-    private TableCell<EntityBase, EntityBase> createEntityStatusCell() {
-        return new TableCell<EntityBase, EntityBase>() {
-            @Override
-            protected void updateItem(final EntityBase item, final boolean empty) {
-                if (item == null || empty) {
-                    setText("");
-                    setGraphic(null);
-                } else {
-                    final var i = new ImageView(switch (item.getStatus()) {
-                        case KO -> bulletRed;
-                        case OK -> bulletGreen;
-                        case UNKNOWN -> bulletBlack;
-                        default -> bulletBlack;
-                    });
-                    i.setPreserveRatio(true);
-                    i.getStyleClass().add("icon");
-                    setGraphic(i);
-                }
-                setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
-                setAlignment(Pos.CENTER);
-            }
-        };
+        tableEntityStatus.setCellFactory(_ -> new EntityStatusCellFactory());
+        tableEntityStatus.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue()));
     }
 
     /**
      * Configures the entity name column with cell factory and value factory.
      */
     private void initTableEName() {
-        tableEntityName.setCellFactory(_ -> entityNameCellFactory());
+        tableEntityName.setCellFactory(_ -> new EntityNameCellFactory());
         tableEntityName.setCellValueFactory(tableEntityStatus.getCellValueFactory());
-    }
-
-    /**
-     * Creates a table cell that renders the entity name with a type icon.
-     *
-     * @return the entity name table cell
-     */
-    private TableCell<EntityBase, EntityBase> entityNameCellFactory() {
-        return new TableCell<EntityBase, EntityBase>() {
-            final Image romSmall = MainFrame.getIcon("/jrm/resicons/rom_small.png"); //$NON-NLS-1$
-            final Image drive = MainFrame.getIcon("/jrm/resicons/icons/drive.png"); //$NON-NLS-1$
-            final Image sound = MainFrame.getIcon("/jrm/resicons/icons/sound.png"); //$NON-NLS-1$
-
-            @Override
-            protected void updateItem(final EntityBase item, final boolean empty) {
-                if (item == null || empty) {
-                    setText("");
-                    setGraphic(null);
-                } else {
-                    setText(item.getBaseName());
-                    final var i = switch (item) {
-                        case final Rom _ -> new ImageView(romSmall);
-                        case final Disk _ -> new ImageView(drive);
-                        case final Sample _ -> new ImageView(sound);
-                        default -> null;
-                    };
-                    if (i != null) {
-                        i.setPreserveRatio(true);
-                        i.getStyleClass().add("icon");
-                        setGraphic(i);
-                    }
-                }
-                setAlignment(Pos.CENTER_LEFT);
-            }
-        };
     }
 
     /**
@@ -413,45 +340,8 @@ public class ProfileViewerController implements Initializable {
         tableEntitySize.setMinWidth(getWidth(12));
         tableEntitySize.setPrefWidth(tableEntitySize.getMinWidth());
         tableEntitySize.setMaxWidth(tableEntitySize.getMinWidth() * 2);
-        tableEntitySize.setCellFactory(_ -> createEntitySizeCell());
-        tableEntitySize.setCellValueFactory(this::createEntitySizeValue);
-    }
-
-    /**
-     * Creates an observable value that returns the ROM size for the entity size column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the ROM size, or {@code null} if not a ROM
-     */
-    private ObservableValueBase<Long> createEntitySizeValue(final CellDataFeatures<EntityBase, Long> p) {
-        return new ObservableValueBase<Long>() {
-            @Override
-            public Long getValue() {
-                if (p.getValue() instanceof final Rom r)
-                    return r.getSize();
-                return null;
-            }
-        };
-    }
-
-    /**
-     * Creates a table cell that renders an entity's size.
-     *
-     * @return the size table cell
-     */
-    private TableCell<EntityBase, Long> createEntitySizeCell() {
-        return new TableCell<EntityBase, Long>() {
-            @Override
-            protected void updateItem(final Long item, final boolean empty) {
-                if (item == null || empty)
-                    setText("");
-                else
-                    setText(item.toString());
-                setTextAlignment(TextAlignment.RIGHT);
-                setAlignment(Pos.CENTER_RIGHT);
-                setGraphic(null);
-            }
-        };
+        tableEntitySize.setCellFactory(_ -> new SizeCellFactory<>());
+        tableEntitySize.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue() instanceof final Rom r ? r.getSize() : null));
     }
 
     /**
@@ -461,47 +351,8 @@ public class ProfileViewerController implements Initializable {
         tableEntityCRC.setMinWidth(getWidth(10, MONOSPACED));
         tableEntityCRC.setPrefWidth(tableEntityCRC.getMinWidth());
         tableEntityCRC.setMaxWidth(tableEntityCRC.getMinWidth() * 2);
-        tableEntityCRC.setCellFactory(_ -> createEntityCRCCell());
-        tableEntityCRC.setCellValueFactory(this::createEntityCRCValue);
-    }
-
-    /**
-     * Creates an observable value that returns the CRC for the entity CRC column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the CRC, or {@code null} if not a ROM or disk
-     */
-    private ObservableValueBase<String> createEntityCRCValue(final CellDataFeatures<EntityBase, String> p) {
-        return new ObservableValueBase<String>() {
-            @Override
-            public String getValue() {
-                if (p.getValue() instanceof final Rom r)
-                    return r.getCrc();
-                else if (p.getValue() instanceof final Disk d)
-                    return d.getCrc();
-                return null;
-            }
-        };
-    }
-
-    /**
-     * Creates a table cell that renders an entity's CRC with monospaced font.
-     *
-     * @return the CRC table cell
-     */
-    private TableCell<EntityBase, String> createEntityCRCCell() {
-        return new TableCell<EntityBase, String>() {
-            @Override
-            protected void updateItem(final String item, final boolean empty) {
-                if (item == null || empty)
-                    setText("");
-                else
-                    setText(item);
-                styleProperty().bind(new SimpleStringProperty(FX_FONT_FAMILY_MONOSPACED));
-                setAlignment(Pos.CENTER_LEFT);
-                setGraphic(null);
-            }
-        };
+        tableEntityCRC.setCellFactory(_ -> new HashCellFactory<>());
+        tableEntityCRC.setCellValueFactory(p -> new ReadOnlyStringWrapper( p.getValue() instanceof final Rom r ? r.getCrc() : (p.getValue() instanceof final Disk d ? d.getCrc() : null) ));
     }
 
     /**
@@ -511,47 +362,8 @@ public class ProfileViewerController implements Initializable {
         tableEntityMD5.setMinWidth(getWidth(34, MONOSPACED));
         tableEntityMD5.setPrefWidth(tableEntityMD5.getMinWidth());
         tableEntityMD5.setMaxWidth(tableEntityMD5.getMinWidth() * 2);
-        tableEntityMD5.setCellFactory(_ -> createEntityMD5Cell());
-        tableEntityMD5.setCellValueFactory(this::createEntityMD5Value);
-    }
-
-    /**
-     * Creates an observable value that returns the MD5 for the entity MD5 column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the MD5, or {@code null} if not a ROM or disk
-     */
-    private ObservableValueBase<String> createEntityMD5Value(final CellDataFeatures<EntityBase, String> p) {
-        return new ObservableValueBase<String>() {
-            @Override
-            public String getValue() {
-                if (p.getValue() instanceof final Rom r)
-                    return r.getMd5();
-                else if (p.getValue() instanceof final Disk d)
-                    return d.getMd5();
-                return null;
-            }
-        };
-    }
-
-    /**
-     * Creates a table cell that renders an entity's MD5 with monospaced font.
-     *
-     * @return the MD5 table cell
-     */
-    private TableCell<EntityBase, String> createEntityMD5Cell() {
-        return new TableCell<EntityBase, String>() {
-            @Override
-            protected void updateItem(final String item, final boolean empty) {
-                if (item == null || empty)
-                    setText("");
-                else
-                    setText(item);
-                styleProperty().bind(new SimpleStringProperty(FX_FONT_FAMILY_MONOSPACED));
-                setAlignment(Pos.CENTER_LEFT);
-                setGraphic(null);
-            }
-        };
+        tableEntityMD5.setCellFactory(_ -> new HashCellFactory<>());
+        tableEntityMD5.setCellValueFactory(p -> new ReadOnlyStringWrapper( p.getValue() instanceof final Rom r ? r.getMd5() : null ));
     }
 
     /**
@@ -561,135 +373,23 @@ public class ProfileViewerController implements Initializable {
         tableEntitySHA1.setMinWidth(getWidth(42, MONOSPACED));
         tableEntitySHA1.setPrefWidth(tableEntitySHA1.getMinWidth());
         tableEntitySHA1.setMaxWidth(tableEntitySHA1.getMinWidth() * 2);
-        tableEntitySHA1.setCellFactory(_ -> createEntitySHA1Cell());
-        tableEntitySHA1.setCellValueFactory(this::createEntitySHA1Value);
-    }
-
-    /**
-     * Creates an observable value that returns the SHA-1 for the entity SHA-1 column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the SHA-1, or {@code null} if not a ROM or disk
-     */
-    private ObservableValueBase<String> createEntitySHA1Value(final CellDataFeatures<EntityBase, String> p) {
-        return new ObservableValueBase<String>() {
-            @Override
-            public String getValue() {
-                if (p.getValue() instanceof final Rom r)
-                    return r.getSha1();
-                else if (p.getValue() instanceof final Disk d)
-                    return d.getSha1();
-                return null;
-            }
-        };
-    }
-
-    /**
-     * Creates a table cell that renders an entity's SHA-1 with monospaced font.
-     *
-     * @return the SHA-1 table cell
-     */
-    private TableCell<EntityBase, String> createEntitySHA1Cell() {
-        return new TableCell<EntityBase, String>() {
-            @Override
-            protected void updateItem(final String item, final boolean empty) {
-                if (item == null || empty)
-                    setText("");
-                else
-                    setText(item);
-                styleProperty().bind(new SimpleStringProperty(FX_FONT_FAMILY_MONOSPACED));
-                setAlignment(Pos.CENTER_LEFT);
-                setGraphic(null);
-            }
-        };
+        tableEntitySHA1.setCellFactory(_ -> new HashCellFactory<>());
+        tableEntitySHA1.setCellValueFactory(p -> new ReadOnlyStringWrapper( p.getValue() instanceof final Disk d ? d.getSha1() : null ));
     }
 
     /**
      * Configures the entity merge name column with value factory.
      */
     private void initTableEMergeName() {
-        tableEntityMergeName.setCellValueFactory(this::getEntityMergeName);
-    }
-
-    /**
-     * Creates an observable value that returns the merge name for the entity merge name column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the merge name, or {@code null} if not a ROM or disk
-     */
-    private ObservableValueBase<String> getEntityMergeName(final CellDataFeatures<EntityBase, String> p) {
-        return new ObservableValueBase<String>() {
-            @Override
-            public String getValue() {
-                if (p.getValue() instanceof final Rom r)
-                    return r.getMerge();
-                else if (p.getValue() instanceof final Disk d)
-                    return d.getMerge();
-                return null;
-            }
-        };
+        tableEntityMergeName.setCellValueFactory(p -> new ReadOnlyStringWrapper( p.getValue() instanceof final Rom r ? r.getMerge() : (p.getValue() instanceof final Disk d ? d.getMerge() : null) ));
     }
 
     /**
      * Configures the entity dump status column with cell factory and value factory.
      */
     private void initTableEDumpStatus() {
-        tableEntityDumpStatus.setCellFactory(_ -> createEntityDumpStatusCell());
-        tableEntityDumpStatus.setCellValueFactory(this::getEntityDumpStatusValue);
-    }
-
-    /**
-     * Creates an observable value that returns the dump status for the entity dump status column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the dump status, or {@code null} if not a ROM or disk
-     */
-    private ObservableValueBase<Status> getEntityDumpStatusValue(final CellDataFeatures<EntityBase, Status> p) {
-        return new ObservableValueBase<Entity.Status>() {
-            @Override
-            public Entity.Status getValue() {
-                if (p.getValue() instanceof final Rom r)
-                    return r.getDumpStatus();
-                else if (p.getValue() instanceof final Disk d)
-                    return d.getDumpStatus();
-                return null;
-            }
-        };
-    }
-
-    /**
-     * Creates a table cell that renders an entity's dump status as an icon.
-     *
-     * @return the dump status table cell
-     */
-    private TableCell<EntityBase, Status> createEntityDumpStatusCell() {
-        return new TableCell<EntityBase, Entity.Status>() {
-            private static final Image verified = MainFrame.getIcon("/jrm/resicons/icons/star.png"); //$NON-NLS-1$
-            private static final Image good = MainFrame.getIcon("/jrm/resicons/icons/tick.png"); //$NON-NLS-1$
-            private static final Image baddump = MainFrame.getIcon("/jrm/resicons/icons/delete.png"); //$NON-NLS-1$
-            private static final Image nodump = MainFrame.getIcon("/jrm/resicons/icons/error.png"); //$NON-NLS-1$
-
-            @Override
-            protected void updateItem(final Entity.Status item, final boolean empty) {
-                if (item == null || empty) {
-                    setText("");
-                    setGraphic(null);
-                } else {
-                    final ImageView i = new ImageView(switch (item) {
-                        case baddump -> baddump;
-                        case good -> good;
-                        case nodump -> nodump;
-                        case verified -> verified;
-                        default -> null;
-                    });
-                    i.setPreserveRatio(true);
-                    i.getStyleClass().add("icon");
-                    setGraphic(i);
-                }
-                setContentDisplay(ContentDisplay.GRAPHIC_ONLY);
-                setAlignment(Pos.CENTER);
-            }
-        };
+        tableEntityDumpStatus.setCellFactory(_ -> new EntityDumpStatusCellFactory());
+        tableEntityDumpStatus.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>( p.getValue() instanceof final Rom r ? r.getDumpStatus() : (p.getValue() instanceof final Disk d ? d.getDumpStatus() : null) ));
     }
 
     /**
@@ -729,84 +429,6 @@ public class ProfileViewerController implements Initializable {
     }
 
     /**
-     * Builds MAME command-line arguments for a machine entry.
-     *
-     * @param ware    the machine to build arguments for
-     * @param profile the current profile
-     * @param mame    the MAME configuration
-     * @param args    the argument list to populate
-     */
-    private void getMameArgsMachine(final Anyware ware, final Profile profile, final ProfileNFOMame mame, final ArrayList<String> args) {
-        args.addAll(MameLaunch.machine(mame.getFile(), ware.getBaseName(), mame.getFile().getParent(), MameLaunch.romPaths(profile, false)));
-    }
-
-    /**
-     * Builds MAME command-line arguments for a software entry, prompting the user
-     * to select a compatible machine if needed.
-     *
-     * @param ware    the software to build arguments for
-     * @param profile the current profile
-     * @param mame    the MAME configuration
-     * @param args    the argument list to populate
-     * @throws HeadlessException if running in a headless environment
-     */
-    private void getMameArgsSofware(final Anyware ware, final Profile profile, final ProfileNFOMame mame, final ArrayList<String> args) throws HeadlessException {
-        Log.debug(() -> ((Software) ware).getSl().getBaseName() + ", " + ((Software) ware).getCompatibility()); //$NON-NLS-1$
-        final var machines = new ChoiceDialog<Machine>(null,
-                profile.getMachineListList().getSortedMachines(((Software) ware).getSl().getBaseName(), ((Software) ware).getCompatibility()));
-        final var machine = machines.showAndWait();
-        machine.ifPresent(m -> {
-            final var device = MameLaunch.deviceInstance(ware, m);
-            Log.debug(() -> "-> " + m.getBaseName() + " " + device + " " + ware.getBaseName()); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-            args.addAll(MameLaunch.software(mame.getFile(), m.getBaseName(), device, ware.getBaseName(), mame.getFile().getParent(),
-                    MameLaunch.romPaths(profile, true)));
-        });
-    }
-
-    /**
-     * Launches MAME for the given entry, building arguments and starting the process.
-     *
-     * @param ware    the machine or software to launch
-     * @param profile the current profile
-     * @throws HeadlessException if running in a headless environment
-     */
-    private void launchMame(final Anyware ware, final Profile profile) throws HeadlessException {
-        final ProfileNFOMame mame = profile.getNfo().getMame();
-        
-        // Validate MAME executable before launching to prevent arbitrary program execution
-        if (mame.getFile() == null) {
-            Dialogs.showAlert("MAME executable is not configured for this profile.");
-            return;
-        }
-        
-        if (!MameExecutable.isLaunchable(mame.getFile())) {
-            Dialogs.showAlert("MAME executable does not exist or is not a native executable: " + mame.getFile().getAbsolutePath());
-            return;
-        }
-        
-        final var args = new ArrayList<String>();
-        try {
-            if (ware instanceof Software) {
-                getMameArgsSofware(ware, profile, mame, args);
-            } else {
-                getMameArgsMachine(ware, profile, mame, args);
-            }
-            if (!args.isEmpty()) {
-                final ProcessBuilder pb = new ProcessBuilder(args).directory(mame.getFile().getParentFile()).redirectErrorStream(true)
-                        .redirectOutput(new File(mame.getFile().getParentFile(), "JRomManager.log")); //$NON-NLS-1$
-                pb.start().waitFor();
-            }
-        } catch (final IllegalArgumentException e1) {
-            Dialogs.showAlert(e1.getMessage());
-        } catch (final IOException e1) {
-            Dialogs.showError(e1);
-        } catch (final InterruptedException e1) {
-            Dialogs.showError(e1);
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    /**
      * Initializes the entries table with its columns, toggle buttons, and selection listeners.
      */
     private void initTableW() {
@@ -832,46 +454,8 @@ public class ProfileViewerController implements Initializable {
         tableWMStatus.setResizable(false);
         tableWMStatus.setSortable(false);
         tableWMStatus.setPrefWidth(24);
-        tableWMStatus.setCellFactory(_ -> createWMStatusCell());
-        tableWMStatus.setCellValueFactory(this::getWMStatusValue);
-    }
-
-    /**
-     * Creates an observable value that returns the {@link Anyware} for the status column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the entry
-     */
-    private ObservableValueBase<Anyware> getWMStatusValue(final CellDataFeatures<Anyware, Anyware> p) {
-        return new ObservableValueBase<Anyware>() {
-            @Override
-            public Anyware getValue() {
-                return p.getValue();
-            }
-        };
-    }
-
-    /**
-     * Creates a table cell that renders an entry's status as a colored icon.
-     *
-     * @return the status table cell
-     */
-    private TableCell<Anyware, Anyware> createWMStatusCell() {
-        return new TableCell<Anyware, Anyware>() {
-            @Override
-            protected void updateItem(final Anyware item, final boolean empty) {
-                if (item == null || empty)
-                    setGraphic(null);
-                else {
-                    final ImageView i = new ImageView(getStatusIcon(item.getStatus()));
-                    setGraphic(i);
-                    i.setPreserveRatio(true);
-                    i.getStyleClass().add("icon");
-                }
-                setAlignment(Pos.CENTER);
-                setText("");
-            }
-        };
+        tableWMStatus.setCellFactory(_ -> new AnywareStatusCellFactory());
+        tableWMStatus.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue()));
     }
 
     /**
@@ -881,69 +465,16 @@ public class ProfileViewerController implements Initializable {
         tableWMName.setMinWidth(50);
         tableWMName.setPrefWidth(100);
         tableWMName.setMaxWidth(200);
-        tableWMName.setCellFactory(_ -> createWMNameCell());
-        tableWMName.setCellValueFactory(this::getWMNameValue);
+        tableWMName.setCellFactory(_ -> {
+            final var c = new MachineNameCellFactory();
+            c.addEventFilter(MouseEvent.MOUSE_CLICKED, this::handleMachineDoubleClick);
+            return c;
+        });
+        tableWMName.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>((Machine) p.getValue()));
         tableWMName.setSortable(true);
     }
 
-    /**
-     * Creates an observable value that returns the {@link Machine} for the name column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the machine, or {@code null} if not a machine
-     */
-    private ObservableValueBase<Machine> getWMNameValue(final CellDataFeatures<Anyware, Machine> p) {
-        return new ObservableValueBase<Machine>() {
-            @Override
-            public Machine getValue() {
-                if (p.getValue() instanceof final Machine m)
-                    return m;
-                return null;
-            }
-        };
-    }
-
-    /**
-     * Creates a table cell that renders a machine name with a type icon and double-click handling.
-     *
-     * @return the machine name table cell
-     */
-    private TableCell<Anyware, Machine> createWMNameCell() {
-        final var cell = new TableCell<Anyware, Machine>() {
-            private static final Image applicationOSXTerminal = MainFrame.getIcon("/jrm/resicons/icons/application_osx_terminal.png"); //$NON-NLS-1$
-            private static final Image computer = MainFrame.getIcon("/jrm/resicons/icons/computer.png"); //$NON-NLS-1$
-            private static final Image wrench = MainFrame.getIcon("/jrm/resicons/icons/wrench.png"); //$NON-NLS-1$
-            private static final Image joystick = MainFrame.getIcon("/jrm/resicons/icons/joystick.png"); //$NON-NLS-1$
-
-            @Override
-            protected void updateItem(final Machine item, final boolean empty) {
-                if (empty) {
-                    setText("");
-                    setGraphic(null);
-                } else {
-                    setText(item.getBaseName());
-                    setUserData(item);
-                    setTooltip(new Tooltip(item.getName()));
-                    final ImageView i;
-                    if (item.isIsbios())
-                        i = new ImageView(applicationOSXTerminal);
-                    else if (item.isIsdevice())
-                        i = new ImageView(computer);
-                    else if (item.isIsmechanical())
-                        i = new ImageView(wrench);
-                    else
-                        i = new ImageView(joystick);
-                    i.setPreserveRatio(true);
-                    i.getStyleClass().add("icon");
-                    setGraphic(i);
-                }
-                setAlignment(Pos.CENTER_LEFT);
-            }
-        };
-        cell.addEventFilter(MouseEvent.MOUSE_CLICKED, this::handleMachineDoubleClick);
-        return cell;
-    }
-
+    
     /**
      * Handles double-click on a machine cell to launch MAME if the machine is complete.
      *
@@ -955,12 +486,7 @@ public class ProfileViewerController implements Initializable {
             if (ware.getStatus() == AnywareStatus.COMPLETE) {
                 if (session.getCurrProfile() != null) {
                     final var profile = session.getCurrProfile();
-                    if (profile.getNfo().getMame().getStatus() == MameStatus.UPTODATE)
-                        launchMame(ware, profile);
-                    else
-                        Dialogs.showAlert(
-                                String.format(Messages.getString("ProfileViewer.MameNotAvailableOrObsolete"),
-                                        profile.getNfo().getMame().getStatus()));
+                    MameLauncher.launch(ware, profile);
                 } else
                     Dialogs.showAlert(Messages.getString("ProfileViewer.NoProfile"));
             } else
@@ -975,45 +501,9 @@ public class ProfileViewerController implements Initializable {
         tableWMDescription.setMinWidth(100);
         tableWMDescription.setPrefWidth(200);
         tableWMDescription.setMaxWidth(600);
-        tableWMDescription.setCellFactory(_ -> createWMDescriptionCell());
-        tableWMDescription.setCellValueFactory(this::getWMDescriptionValue);
+        tableWMDescription.setCellFactory(_ -> new TooltipStringCellFactory<>());
+        tableWMDescription.setCellValueFactory(p -> new ReadOnlyStringWrapper(p.getValue().getDescription().toString()));
         tableWMDescription.setSortable(true);
-    }
-
-    /**
-     * Creates an observable value that returns the description for the machine description column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the description text
-     */
-    private ObservableValueBase<String> getWMDescriptionValue(final CellDataFeatures<Anyware, String> p) {
-        return new ObservableValueBase<String>() {
-            @Override
-            public String getValue() {
-                return p.getValue().getDescription().toString();
-            }
-        };
-    }
-
-    /**
-     * Creates a table cell that renders a description with tooltip.
-     *
-     * @return the description table cell
-     */
-    private TableCell<Anyware, String> createWMDescriptionCell() {
-        return new TableCell<Anyware, String>() {
-            @Override
-            protected void updateItem(final String item, final boolean empty) {
-                if (empty)
-                    setText("");
-                else {
-                    setText(item);
-                    setTooltip(new Tooltip(item));
-                }
-                setAlignment(Pos.CENTER_LEFT);
-                setGraphic(null);
-            }
-        };
     }
 
     /**
@@ -1024,47 +514,14 @@ public class ProfileViewerController implements Initializable {
         tableWMHave.setSortable(false);
         tableWMHave.setPrefWidth(45);
         tableWMHave.setMaxWidth(90);
-        tableWMHave.setCellFactory(_ -> createWMHaveCell());
-        tableWMHave.setCellValueFactory(this::getWMHaveValue);
+        tableWMHave.setCellFactory(_ -> new TooltipStringCellFactory<>());
+        tableWMHave.setCellValueFactory(p -> {
+            if (p.getValue() instanceof final Machine m) return new ReadOnlyStringWrapper(String.format(D_OF_D_FMT, m.countHave(), m.countAll()));
+            return new ReadOnlyStringWrapper(null);
+        });
     }
 
-    /**
-     * Creates an observable value that returns the have-count string for the machine have column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the have-count formatted string
-     */
-    private ObservableValueBase<String> getWMHaveValue(final CellDataFeatures<Anyware, String> p) {
-        return new ObservableValueBase<String>() {
-            @Override
-            public String getValue() {
-                if (p.getValue() instanceof final Machine machine)
-                    return String.format(D_OF_D_FMT, machine.countHave(), machine.countAll());
-                return null;
-            }
-        };
-    }
-
-    /**
-     * Creates a table cell that renders the have-count centered.
-     *
-     * @return the have table cell
-     */
-    private TableCell<Anyware, String> createWMHaveCell() {
-        return new TableCell<Anyware, String>() {
-            @Override
-            protected void updateItem(final String item, final boolean empty) {
-                if (empty)
-                    setText("");
-                else
-                    setText(item);
-                setTextAlignment(TextAlignment.CENTER);
-                setAlignment(Pos.CENTER);
-                setGraphic(null);
-            }
-        };
-    }
-
+    
     /**
      * Configures the clone-of column with cell factory and value factory.
      */
@@ -1073,67 +530,12 @@ public class ProfileViewerController implements Initializable {
         tableWMCloneOf.setMinWidth(50);
         tableWMCloneOf.setPrefWidth(100);
         tableWMCloneOf.setMaxWidth(200);
-        tableWMCloneOf.setCellFactory(_ -> createWMCloneOfCell());
-        tableWMCloneOf.setCellValueFactory(this::getWMCloneOfValue);
-    }
-
-    /**
-     * Creates an observable value that returns the clone-of relationship for the column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the clone-of entry or name
-     */
-    private ObservableValueBase<Object> getWMCloneOfValue(final CellDataFeatures<Anyware, Object> p) {
-        return new ObservableValueBase<Object>() {
-            @Override
-            public Object getValue() {
-                return getCloneOfValue(p);
-            }
-        };
-    }
-
-    /**
-     * Creates a table cell for the clone-of column with double-click navigation.
-     *
-     * @return the clone-of table cell
-     */
-    private TableCell<Anyware, Object> createWMCloneOfCell() {
-        final var cell = new TableCell<Anyware, Object>() {
-            @Override
-            protected void updateItem(final Object item, final boolean empty) {
-                updateCloneOfCell(this, item, empty);
-            }
-        };
-        cell.addEventFilter(MouseEvent.MOUSE_CLICKED, this::handleCloneOfDoubleClick);
-        return cell;
-    }
-
-    /**
-     * Updates the clone-of cell content with an icon and name.
-     *
-     * @param cell  the cell to update
-     * @param item  the cell value
-     * @param empty whether the cell is empty
-     */
-    private void updateCloneOfCell(final TableCell<Anyware, Object> cell, final Object item, final boolean empty) {
-        if (item == null || empty) {
-            cell.setText("");
-            cell.setGraphic(null);
-        } else if (item instanceof final Anyware aw) {
-            final ImageView i = new ImageView(getStatusIcon(aw.getStatus()));
-            i.setPreserveRatio(true);
-            i.getStyleClass().add("icon");
-            cell.setGraphic(i);
-            cell.setUserData(aw);
-            cell.setText(aw.getBaseName());
-        } else {
-            final ImageView i = new ImageView(folderClosedGray);
-            i.setPreserveRatio(true);
-            i.getStyleClass().add("icon");
-            cell.setGraphic(i);
-            cell.setText(item.toString());
-        }
-        cell.setAlignment(Pos.CENTER_LEFT);
+        tableWMCloneOf.setCellFactory(_ -> {
+            final var c = new AnywareCloneCellFactory();
+            c.addEventFilter(MouseEvent.MOUSE_CLICKED, this::handleCloneOfDoubleClick);
+            return c;
+        });
+        tableWMCloneOf.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(wareRelations.getCloneOfValue(p.getValue())));
     }
 
     /**
@@ -1151,17 +553,6 @@ public class ProfileViewerController implements Initializable {
     }
 
     /**
-     * Resolves the clone-of value for a cell data row.
-     *
-     * @param p the cell data features
-     * @return the resolved clone-of entry, name, or {@code null}
-     */
-    private Object getCloneOfValue(final CellDataFeatures<Anyware, Object> p) {
-        final AnywareList<? extends Anyware> machineList = tableWL.getSelectionModel().getSelectedItem();
-        return Optional.ofNullable(p.getValue().getCloneof()).map(cloneof -> machineList.containsName(cloneof) ? machineList.getByName(cloneof) : cloneof).orElse(null);
-    }
-
-    /**
      * Configures the ROM-of column reusing the clone-of cell factory.
      */
     private void initTableWMRomOf() {
@@ -1170,27 +561,13 @@ public class ProfileViewerController implements Initializable {
         tableWMRomOf.setPrefWidth(100);
         tableWMRomOf.setMaxWidth(200);
         tableWMRomOf.setCellFactory(tableWMCloneOf.getCellFactory());
-        tableWMRomOf.setCellValueFactory(this::getWMRomOfValue);
-    }
-
-    /**
-     * Creates an observable value that returns the ROM-of relationship for the column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the ROM-of entry or name
-     */
-    private ObservableValueBase<Object> getWMRomOfValue(final CellDataFeatures<Anyware, Object> p) {
-        return new ObservableValueBase<Object>() {
-            @Override
-            public Object getValue() {
-                if (p.getValue() instanceof final Machine m) {
-                    final AnywareList<? extends Anyware> machineList = tableWL.getSelectionModel().getSelectedItem();
-                    return Optional.ofNullable(m.getRomof()).filter(romof -> !romof.equals(m.getCloneof()))
-                            .map(romof -> machineList.containsName(romof) ? machineList.getByName(romof) : romof).orElse(null);
-                }
-                return null;
+        tableWMRomOf.setCellValueFactory(p -> {
+            if (p.getValue() instanceof final Machine m) {
+                final AnywareList<? extends Anyware> ml = tableWL.getSelectionModel().getSelectedItem();
+                return new ReadOnlyObjectWrapper<>(Optional.ofNullable(m.getRomof()).filter(romof -> !romof.equals(m.getCloneof())).map(romof -> ml.containsName(romof) ? ml.getByName(romof) : romof).orElse(null));
             }
-        };
+            return new ReadOnlyObjectWrapper<>(null);
+        });
     }
 
     /**
@@ -1201,83 +578,8 @@ public class ProfileViewerController implements Initializable {
         tableWMSampleOf.setMinWidth(50);
         tableWMSampleOf.setPrefWidth(100);
         tableWMSampleOf.setMaxWidth(200);
-        tableWMSampleOf.setCellFactory(_ -> createWMSampleOfCell());
-        tableWMSampleOf.setCellValueFactory(this::getWMSampleOfValue);
-    }
-
-    /**
-     * Creates an observable value that returns the sample-of relationship for the column.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the sample-of entry or name
-     */
-    private ObservableValueBase<Object> getWMSampleOfValue(final CellDataFeatures<Anyware, Object> p) {
-        return new ObservableValueBase<Object>() {
-            @Override
-            public Object getValue() {
-                return getSampleOfValue(p.getValue());
-            }
-        };
-    }
-
-    /**
-     * Creates a table cell for the sample-of column.
-     *
-     * @return the sample-of table cell
-     */
-    private TableCell<Anyware, Object> createWMSampleOfCell() {
-        return new TableCell<Anyware, Object>() {
-            @Override
-            protected void updateItem(final Object item, final boolean empty) {
-                updateSampleOfCell(this, item, empty);
-            }
-        };
-    }
-
-    /**
-     * Updates the sample-of cell content with an icon and name.
-     *
-     * @param cell  the cell to update
-     * @param item  the cell value
-     * @param empty whether the cell is empty
-     */
-    private void updateSampleOfCell(final TableCell<Anyware, Object> cell, final Object item, final boolean empty) {
-        if (item == null || empty) {
-            cell.setText("");
-            cell.setGraphic(null);
-        } else if (item instanceof final Samples s) {
-            final ImageView i = new ImageView(getStatusIcon(s.getStatus()));
-            i.setPreserveRatio(true);
-            i.getStyleClass().add("icon");
-            cell.setGraphic(i);
-            cell.setText(s.getBaseName());
-        } else {
-            final ImageView i = new ImageView(folderClosedGray);
-            i.setPreserveRatio(true);
-            i.getStyleClass().add("icon");
-            cell.setGraphic(i);
-            cell.setText(item.toString());
-        }
-        cell.setAlignment(Pos.CENTER_LEFT);
-    }
-
-    /**
-     * Resolves the sample-of value for a given entry.
-     *
-     * @param value the entry to check
-     * @return the resolved sample-of entry, name, or {@code null}
-     */
-    private Object getSampleOfValue(final Object value) {
-        if (!(value instanceof final Machine m)) {
-            return null;
-        }
-        final AnywareList<? extends Anyware> awList = tableWL.getSelectionModel().getSelectedItem();
-        if (!(awList instanceof final MachineList machineList)) {
-            return null;
-        }
-        return Optional.ofNullable(m.getSampleof())
-                .map(sampleof -> machineList.samplesets.containsName(sampleof) ? machineList.samplesets.getByName(sampleof) : sampleof)
-                .orElse(null);
+        tableWMSampleOf.setCellFactory(_ -> new SampleOfCellFactory());
+        tableWMSampleOf.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(wareRelations.getSampleOfValue(p.getValue())));
     }
 
     /**
@@ -1318,7 +620,7 @@ public class ProfileViewerController implements Initializable {
         tableWSName.setMinWidth(50);
         tableWSName.setPrefWidth(100);
         tableWSName.setCellFactory(tableWMDescription.getCellFactory());
-        tableWSName.setCellValueFactory(this::getWSNameValue);
+        tableWSName.setCellValueFactory(p -> new ReadOnlyStringWrapper(p.getValue().getBaseName()));
         tableWSDescription.setSortable(true);
         tableWSDescription.setMinWidth(200);
         tableWSDescription.setPrefWidth(400);
@@ -1328,66 +630,22 @@ public class ProfileViewerController implements Initializable {
         tableWSHave.setSortable(false);
         tableWSHave.setPrefWidth(45);
         tableWSHave.setCellFactory(tableWMHave.getCellFactory());
-        tableWSHave.setCellValueFactory(this::getWSHaveValue);
+        tableWSHave.setCellValueFactory(p -> new ReadOnlyStringWrapper( p.getValue() instanceof final Software s ? String.format(D_OF_D_FMT, s.countHave(), s.countAll()) : null ));
         tableWSCloneOf.setSortable(false);
         tableWSCloneOf.setMinWidth(50);
         tableWSCloneOf.setPrefWidth(100);
         tableWSCloneOf.setCellFactory(tableWMCloneOf.getCellFactory());
-        tableWSCloneOf.setCellValueFactory(this::getWSCloneOfValue);
+        tableWSCloneOf.setCellValueFactory(p -> {
+            final AnywareList<? extends Anyware> sl = tableWL.getSelectionModel().getSelectedItem();
+            return new ReadOnlyObjectWrapper<>(p.getValue().getCloneof() != null ? sl.getByName(p.getValue().getCloneof()) : null);
+        });
         tableWSSelected.setResizable(false);
         tableWSSelected.setSortable(false);
         tableWSSelected.setPrefWidth(30);
         tableWSSelected.setCellValueFactory(tableWMSelected.getCellValueFactory());
     }
 
-    /**
-     * Creates an observable value that returns the clone-of value for a software entry.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the clone-of entry or {@code null}
-     */
-    private ObservableValueBase<Object> getWSCloneOfValue(final CellDataFeatures<Anyware, Object> p) {
-        return new ObservableValueBase<Object>() {
-            @Override
-            public Object getValue() {
-                final AnywareList<? extends Anyware> softwareList = tableWL.getSelectionModel().getSelectedItem();
-                return p.getValue().getCloneof() != null ? softwareList.getByName(p.getValue().getCloneof()) : null;
-            }
-        };
-    }
-
-    /**
-     * Creates an observable value that returns the have-count string for a software entry.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the have-count formatted string
-     */
-    private ObservableValueBase<String> getWSHaveValue(final CellDataFeatures<Anyware, String> p) {
-        return new ObservableValueBase<String>() {
-            @Override
-            public String getValue() {
-                if (p.getValue() instanceof final Software software)
-                    return String.format(D_OF_D_FMT, software.countHave(), software.countAll());
-                return null;
-            }
-        };
-    }
-
-    /**
-     * Creates an observable value that returns the base name for a software entry.
-     *
-     * @param p the cell data features
-     * @return an observable value returning the base name
-     */
-    private ObservableValueBase<String> getWSNameValue(final CellDataFeatures<Anyware, String> p) {
-        return new ObservableValueBase<String>() {
-            @Override
-            public String getValue() {
-                return p.getValue().getBaseName();
-            }
-        };
-    }
-
+    
     /**
      * Initializes the entry toggle buttons with folder icons.
      */
@@ -1430,13 +688,13 @@ public class ProfileViewerController implements Initializable {
      */
     private void initTableWL() {
         tableWL.setFixedCellSize(-1);
-        tableWLName.setCellFactory(_ -> new TableCellWLName());
-        tableWLName.setCellValueFactory(ValueWLName::new);
+        tableWLName.setCellFactory(_ -> new WareListNameCellFactory());
+        tableWLName.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue()));
         tableWLName.setSortable(true);
-        tableWLDesc.setCellFactory(_ -> new TableCellWLDesc());
-        tableWLDesc.setCellValueFactory(ValueWLDesc::new);
-        tableWLHave.setCellFactory(_ -> new TableCellWLHave());
-        tableWLHave.setCellValueFactory(ValueWLHave::new);
+        tableWLDesc.setCellFactory(_ -> new WareListDescCellFactory());
+        tableWLDesc.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(getWLDescription(p.getValue())));
+        tableWLHave.setCellFactory(_ -> new WareListHaveCellFactory());
+        tableWLHave.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(getWLHave(p.getValue())));
         tableWL.getSelectionModel().selectedItemProperty().addListener((_, _, newValue) -> reloadW(newValue));
         final ImageView idmgray = new ImageView(diskMultipleGray);
         idmgray.setPreserveRatio(true);
@@ -1491,6 +749,8 @@ public class ProfileViewerController implements Initializable {
 
     /** The filtered list backing the entries table. */
     private FilteredList<Anyware> filteredData;
+
+    private ProfileViewerWareRelations wareRelations;
 
     /**
      * Reloads the entries table with data from the selected software/machine list,
@@ -1631,7 +891,7 @@ public class ProfileViewerController implements Initializable {
      * @param status the entry status
      * @return the matching icon
      */
-    private static Image getStatusIcon(final AnywareStatus status) {
+    static Image getStatusIcon(final AnywareStatus status) {
         return switch (status) {
             case COMPLETE -> folderClosedGreen;
             case PARTIAL -> folderClosedOrange;
@@ -1639,6 +899,30 @@ public class ProfileViewerController implements Initializable {
             case UNKNOWN -> folderClosedGray;
             default -> folderClosedGray;
         };
+    }
+
+    /**
+     * Computes or returns cached have-count string for a ware list (e.g. "12/34").
+     */
+    private String getWLHave(final AnywareList<? extends Anyware> list) {
+        return haveCache.computeIfAbsent(list.getName(), _ -> {
+            final long[] ht = { 0, 0 };
+            list.getFilteredStream().forEach(t -> {
+                if (t.getStatus() == AnywareStatus.COMPLETE)
+                    ht[0]++;
+                ht[1]++;
+            });
+            return String.format(D_OF_D_FMT, ht[0], ht[1]);
+        });
+    }
+
+    /**
+     * Returns the description for a ware list (software list desc or "All Machines").
+     */
+    private static String getWLDescription(final AnywareList<? extends Anyware> list) {
+        if (list instanceof final SoftwareList sl)
+            return sl.getDescription().toString();
+        return Messages.getString("MachineListList.AllMachines");
     }
 
     /**
@@ -1924,128 +1208,6 @@ public class ProfileViewerController implements Initializable {
     public void exportSelectedAsSoftwareLists(final ActionEvent e) {
         if (tableWL.getSelectionModel().getSelectedItem() instanceof final SoftwareList sl)
             export(ExportType.SOFTWARELIST, EnumSet.of(ExportMode.ALL), sl);
-    }
-
-    /**
-     * Observable value that computes the have-count string for a software/machine list,
-     * caching the result for performance.
-     */
-    private final class ValueWLHave extends ObservableValueBase<String> {
-        private final CellDataFeatures<AnywareList<? extends Anyware>, String> p;
-
-        private ValueWLHave(final CellDataFeatures<AnywareList<? extends Anyware>, String> p) {
-            this.p = p;
-        }
-
-        @Override
-        public String getValue() {
-            return haveCache.computeIfAbsent(p.getValue().getName(), _ -> {
-                final long[] ht = { 0, 0 };
-                p.getValue().getFilteredStream().forEach(t -> {
-                    if (t.getStatus() == AnywareStatus.COMPLETE)
-                        ht[0]++;
-                    ht[1]++;
-                });
-                return String.format(D_OF_D_FMT, ht[0], ht[1]);
-            });
-        }
-    }
-
-    /**
-     * Table cell that renders the have-count string centered.
-     */
-    private static final class TableCellWLHave extends TableCell<AnywareList<? extends Anyware>, String> {
-        @Override
-        protected void updateItem(final String item, final boolean empty) {
-            if (empty)
-                setText("");
-            else
-                setText(item);
-            setTextAlignment(TextAlignment.CENTER);
-            setAlignment(Pos.CENTER);
-            setGraphic(null);
-        }
-    }
-
-    /**
-     * Observable value that returns the description for a software/machine list.
-     */
-    private static final class ValueWLDesc extends ObservableValueBase<String> {
-        private final CellDataFeatures<AnywareList<? extends Anyware>, String> p;
-
-        private ValueWLDesc(final CellDataFeatures<AnywareList<? extends Anyware>, String> p) {
-            this.p = p;
-        }
-
-        @Override
-        public String getValue() {
-            if (p.getValue() instanceof final SoftwareList sl)
-                return sl.getDescription().toString();
-            return Messages.getString("MachineListList.AllMachines");
-        }
-    }
-
-    /**
-     * Table cell that renders the description with a tooltip.
-     */
-    private static final class TableCellWLDesc extends TableCell<AnywareList<? extends Anyware>, String> {
-        @Override
-        protected void updateItem(final String item, final boolean empty) {
-            if (empty)
-                setText("");
-            else
-                setText(item);
-            setTooltip(new Tooltip(getText()));
-            setAlignment(Pos.CENTER_LEFT);
-            setGraphic(null);
-        }
-    }
-
-    /**
-     * Observable value that returns the name for the software/machine list column.
-     */
-    private static final class ValueWLName extends ObservableValueBase<AnywareList<? extends Anyware>> {
-        private final CellDataFeatures<AnywareList<? extends Anyware>, AnywareList<? extends Anyware>> p;
-
-        private ValueWLName(final CellDataFeatures<AnywareList<? extends Anyware>, AnywareList<? extends Anyware>> p) {
-            this.p = p;
-        }
-
-        @Override
-        public AnywareList<? extends Anyware> getValue() {
-            return p.getValue();
-        }
-    }
-
-    /**
-     * Table cell that renders the software/machine list name with a status icon.
-     */
-    private static final class TableCellWLName extends TableCell<AnywareList<? extends Anyware>, AnywareList<? extends Anyware>> {
-        @Override
-        protected void updateItem(final AnywareList<? extends Anyware> item, final boolean empty) {
-            if (empty) {
-                setText("");
-                setGraphic(null);
-            } else {
-                final var i = new ImageView(switch (item.getStatus()) {
-                    case COMPLETE -> diskMultipleGreen;
-                    case PARTIAL -> diskMultipleOrange;
-                    case MISSING -> diskMultipleRed;
-                    case UNKNOWN -> diskMultipleGray;
-                    default -> diskMultipleGray;
-
-                });
-                i.setPreserveRatio(true);
-                i.getStyleClass().add("icon");
-                setGraphic(i);
-                if (item instanceof final SoftwareList sl)
-                    setText(sl.getName());
-                else if (item instanceof MachineList)
-                    setText(Messages.getString("MachineListListRenderer.*"));
-            }
-            setTooltip(new Tooltip(getText()));
-            setAlignment(Pos.CENTER_LEFT);
-        }
     }
 
     /**
