@@ -8,10 +8,7 @@
  */
 package jrm.profile;
 
-import java.util.Optional;
-
 import jrm.aui.status.StatusRendererFactory;
-import jrm.security.PathAbstractor;
 
 /**
  * Formats the display name (with HTML) for a Profile.

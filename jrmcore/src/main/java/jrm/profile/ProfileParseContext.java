@@ -8,37 +8,16 @@
  */
 package jrm.profile;
 
-import org.apache.commons.lang3.BooleanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.xml.sax.Attributes;
-import org.xml.sax.SAXException;
-
 import jrm.aui.progress.ProgressHandler;
 import jrm.locale.Messages;
 import jrm.misc.BreakException;
-import jrm.misc.ExceptionUtils;
-import jrm.profile.data.Device;
-import jrm.profile.data.Disk;
-import jrm.profile.data.Entity;
-import jrm.profile.data.Machine;
-import jrm.profile.data.Machine.CabinetType;
-import jrm.profile.data.Machine.SWStatus;
-import jrm.profile.data.Rom;
-import jrm.profile.data.Rom.LoadFlag;
-import jrm.profile.data.Sample;
-import jrm.profile.data.Samples;
-import jrm.profile.data.Slot;
-import jrm.profile.data.SlotOption;
-import jrm.profile.data.Software;
-import jrm.profile.data.Software.Part;
-import jrm.profile.data.Software.Part.DataArea;
-import jrm.profile.data.Software.Part.DataArea.Endianness;
-import jrm.profile.data.Software.Part.DiskArea;
-import jrm.profile.data.SoftwareList;
 
 /**
- * Holds transient state and element handling logic during SAX parsing of a DAT profile.
- * This separates the large amount of current-context fields and per-element start/end methods
+ * Holds transient state and element handling logic during SAX parsing of a DAT
+ * profile.
+ * This separates the large amount of current-context fields and per-element
+ * start/end methods
  * from the top-level SAX handler dispatcher.
  */
 class ProfileParseContext {
@@ -154,8 +133,6 @@ class ProfileParseContext {
 		romDiskHelper.startRom(attributes);
 	}
 
-
-
 	private void startSlotOption(final Attributes attributes) {
 		machineHelper.startSlotOption(attributes);
 	}
@@ -164,23 +141,66 @@ class ProfileParseContext {
 		machineHelper.startSlot(attributes);
 	}
 
-	private void startDeviceRef(final Attributes attributes) { machineHelper.startDeviceRef(attributes); }
-	private void startSample(final Attributes attributes) { machineHelper.startSample(attributes); }
-	private void startDipValue(final Attributes attributes) { machineHelper.startDipValue(attributes); }
-	private void startDipSwitch(final Attributes attributes) { machineHelper.startDipSwitch(attributes); }
-	private void startExtension(final Attributes attributes) { machineHelper.startExtension(attributes); }
-	private void startInstance(final Attributes attributes) { machineHelper.startInstance(attributes); }
+	private void startDeviceRef(final Attributes attributes) {
+		machineHelper.startDeviceRef(attributes);
+	}
+
+	private void startSample(final Attributes attributes) {
+		machineHelper.startSample(attributes);
+	}
+
+	private void startDipValue(final Attributes attributes) {
+		machineHelper.startDipValue(attributes);
+	}
+
+	private void startDipSwitch(final Attributes attributes) {
+		machineHelper.startDipSwitch(attributes);
+	}
+
+	private void startExtension(final Attributes attributes) {
+		machineHelper.startExtension(attributes);
+	}
+
+	private void startInstance(final Attributes attributes) {
+		machineHelper.startInstance(attributes);
+	}
 
 	private void startDevice(final Attributes attributes) {
 		machineHelper.startDevice(attributes);
 	}
 
-	private void startInput(final Attributes attributes) { machineHelper.startInput(attributes); }
-	private void startPublisher() { if (state.currSoftware == null) return; state.inPublisher = true; }
-	private void startManufacturer() { if (state.currMachine == null) return; state.inManufacturer = true; }
-	private void startYear() { if (state.currMachine == null && state.currSoftware == null) return; state.inYear = true; }
-	private void startDatfile(final Attributes attributes) { for (var i = 0; i < attributes.getLength(); i++) { if ("build".equals(attributes.getQName(i))) state.profile.build = attributes.getValue(i); } }
-	private void startHeader() { state.inHeader = true; }
+	private void startInput(final Attributes attributes) {
+		machineHelper.startInput(attributes);
+	}
+
+	private void startPublisher() {
+		if (state.currSoftware == null)
+			return;
+		state.inPublisher = true;
+	}
+
+	private void startManufacturer() {
+		if (state.currMachine == null)
+			return;
+		state.inManufacturer = true;
+	}
+
+	private void startYear() {
+		if (state.currMachine == null && state.currSoftware == null)
+			return;
+		state.inYear = true;
+	}
+
+	private void startDatfile(final Attributes attributes) {
+		for (var i = 0; i < attributes.getLength(); i++) {
+			if ("build".equals(attributes.getQName(i)))
+				state.profile.build = attributes.getValue(i);
+		}
+	}
+
+	private void startHeader() {
+		state.inHeader = true;
+	}
 
 	private void startSoftwareList(final Attributes attributes) {
 		softwareHelper.startSoftwareList(attributes);
@@ -194,24 +214,67 @@ class ProfileParseContext {
 		softwareHelper.startSoftware(attributes);
 	}
 
-	private void startSoftwareFeature(Attributes attributes) { softwareHelper.startSoftwareFeature(attributes); }
-	private void startSoftwarePart(Attributes attributes) { softwareHelper.startSoftwarePart(attributes); }
-	private void startSoftwarePartDataarea(Attributes attributes) { softwareHelper.startSoftwarePartDataarea(attributes); }
-	private void startSoftwarePartDiskarea(Attributes attributes) { softwareHelper.startSoftwarePartDiskarea(attributes); }
+	private void startSoftwareFeature(Attributes attributes) {
+		softwareHelper.startSoftwareFeature(attributes);
+	}
+
+	private void startSoftwarePart(Attributes attributes) {
+		softwareHelper.startSoftwarePart(attributes);
+	}
+
+	private void startSoftwarePartDataarea(Attributes attributes) {
+		softwareHelper.startSoftwarePartDataarea(attributes);
+	}
+
+	private void startSoftwarePartDiskarea(Attributes attributes) {
+		softwareHelper.startSoftwarePartDiskarea(attributes);
+	}
 
 	private void startMachine(Attributes attributes) {
 		machineHelper.startMachine(attributes);
 	}
 
-	private void startDescription() { if (state.currMachine == null && state.currSoftware == null && state.currSoftwareList == null) return; state.inDescription = true; }
-	private void startDriver(Attributes attributes) { machineHelper.startDriver(attributes); }
-	private void startDisplay(final Attributes attributes) { machineHelper.startDisplay(attributes); }
+	private void startDescription() {
+		if (state.currMachine == null && state.currSoftware == null && state.currSoftwareList == null)
+			return;
+		state.inDescription = true;
+	}
 
-	private void endPublisher() { if (state.currSoftware == null) return; state.inPublisher = false; }
-	private void endManufacturer() { if (state.currMachine == null) return; state.inManufacturer = false; }
-	private void endYear() { if (state.currMachine == null && state.currSoftware == null) return; state.inYear = false; }
-	private void endDescription() { if (state.currMachine == null && state.currSoftware == null && state.currSoftwareList == null) return; state.inDescription = false; }
-	private void endDipSwitch() { machineHelper.endDipSwitch(); }
+	private void startDriver(Attributes attributes) {
+		machineHelper.startDriver(attributes);
+	}
+
+	private void startDisplay(final Attributes attributes) {
+		machineHelper.startDisplay(attributes);
+	}
+
+	private void endPublisher() {
+		if (state.currSoftware == null)
+			return;
+		state.inPublisher = false;
+	}
+
+	private void endManufacturer() {
+		if (state.currMachine == null)
+			return;
+		state.inManufacturer = false;
+	}
+
+	private void endYear() {
+		if (state.currMachine == null && state.currSoftware == null)
+			return;
+		state.inYear = false;
+	}
+
+	private void endDescription() {
+		if (state.currMachine == null && state.currSoftware == null && state.currSoftwareList == null)
+			return;
+		state.inDescription = false;
+	}
+
+	private void endDipSwitch() {
+		machineHelper.endDipSwitch();
+	}
 
 	private void endDisk() {
 		romDiskHelper.endDisk();
@@ -228,7 +291,8 @@ class ProfileParseContext {
 	private void endMachine() throws BreakException {
 		machineHelper.endMachine();
 		romDiskHelper.endMachineOrSoftware();
-		handler.setProgress(null, null, null, String.format(Messages.getString("Profile.Loaded"), profile.machinesCnt, profile.romsCnt, profile.disksCnt, profile.samplesCnt));
+		handler.setProgress(null, null, null, String.format(Messages.getString("Profile.Loaded"), profile.machinesCnt,
+				profile.romsCnt, profile.disksCnt, profile.samplesCnt));
 		if (handler.isCancel())
 			throw new BreakException();
 	}
@@ -238,7 +302,8 @@ class ProfileParseContext {
 			return;
 		softwareHelper.endSoftware();
 		romDiskHelper.endMachineOrSoftware();
-		handler.setProgress(null, null, null, String.format(Messages.getString("Profile.SWLoaded"), profile.softwaresCnt, profile.swromsCnt, profile.swdisksCnt));
+		handler.setProgress(null, null, null, String.format(Messages.getString("Profile.SWLoaded"),
+				profile.softwaresCnt, profile.swromsCnt, profile.swdisksCnt));
 		if (handler.isCancel())
 			throw new BreakException();
 	}

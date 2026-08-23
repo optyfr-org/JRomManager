@@ -10,30 +10,16 @@ package jrm.profile;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.EnumSet;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.TreeMap;
-
-import javax.xml.parsers.ParserConfigurationException;
-import org.xml.sax.SAXException;
-
 import jrm.aui.progress.ProgressHandler;
 import jrm.locale.Messages;
-import jrm.misc.BreakException;
 import jrm.misc.Log;
 import jrm.misc.SettingsEnum;
 import jrm.profile.data.AnywareStatus;
 import jrm.profile.data.EntityStatus;
-import jrm.profile.data.Machine;
-import jrm.profile.data.SoftwareList;
 import jrm.profile.manager.ProfileNFO;
-import jrm.security.PathAbstractor;
 import jrm.security.Session;
 import jrm.security.SignedObjectStore;
-import jrm.xml.XMLTools;
 
 /**
  * Handles loading, caching, and persistence for Profile instances.

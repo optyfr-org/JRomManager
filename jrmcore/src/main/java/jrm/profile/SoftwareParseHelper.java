@@ -8,7 +8,6 @@
  */
 package jrm.profile;
 
-import org.apache.commons.lang3.BooleanUtils;
 import org.xml.sax.Attributes;
 
 import jrm.misc.ExceptionUtils;

@@ -19,7 +19,6 @@ import jrm.profile.data.Disk;
 import jrm.profile.data.Entity;
 import jrm.profile.data.Rom;
 import jrm.profile.data.Rom.LoadFlag;
-import jrm.profile.data.Software;
 
 /**
  * Helper for ROM and Disk element parsing, including duplicate detection and suspicious CRC tracking.

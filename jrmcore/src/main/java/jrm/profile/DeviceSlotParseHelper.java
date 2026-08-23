@@ -12,7 +12,6 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.xml.sax.Attributes;
 
 import jrm.profile.data.Device;
-import jrm.profile.data.Samples;
 import jrm.profile.data.Slot;
 import jrm.profile.data.SlotOption;
 

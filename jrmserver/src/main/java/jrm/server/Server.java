@@ -8,9 +8,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.logging.Level;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.apache.commons.daemon.DaemonContext;
 import org.eclipse.jetty.ee9.servlet.FilterHolder;
 import org.eclipse.jetty.ee9.servlet.ServletContextHandler;

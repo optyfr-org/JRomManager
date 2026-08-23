@@ -15,7 +15,6 @@ import jrm.profile.data.Disk;
 import jrm.profile.data.Machine;
 import jrm.profile.data.Machine.CabinetType;
 import jrm.profile.data.Rom;
-import jrm.profile.data.Sample;
 import jrm.profile.data.Samples;
 import jrm.profile.data.Slot;
 import jrm.profile.data.Software;

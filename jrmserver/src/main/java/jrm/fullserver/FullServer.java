@@ -10,9 +10,6 @@ import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-
 import org.apache.commons.daemon.DaemonContext;
 import org.eclipse.jetty.alpn.server.ALPNServerConnectionFactory;
 import org.eclipse.jetty.ee9.nested.ServletConstraint;

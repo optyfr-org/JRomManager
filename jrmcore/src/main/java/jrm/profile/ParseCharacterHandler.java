@@ -12,10 +12,6 @@ import java.util.Optional;
 
 import org.xml.sax.Attributes;
 
-import jrm.profile.data.Machine;
-import jrm.profile.data.Software;
-import jrm.profile.data.SoftwareList;
-
 /**
  * Handles character data accumulation for description/year/manufacturer etc during profile XML parsing.
  * Extracted to reduce ProfileParseContext size.
