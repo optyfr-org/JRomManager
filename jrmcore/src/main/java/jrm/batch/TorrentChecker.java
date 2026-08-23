@@ -16,8 +16,10 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -116,14 +118,17 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
                 }
             }
         };
-        sdrl.stream().filter(AbstractSrcDstResult::isSelected).forEach(sdr -> safeUpdater.updateResult(sdrl.indexOf(sdr), ""));
+        final Map<T, Integer> rowMap = new HashMap<>();
+        for (int i = 0; i < sdrl.size(); i++)
+            rowMap.put(sdrl.get(i), i);
+        sdrl.stream().filter(AbstractSrcDstResult::isSelected).forEach(sdr -> safeUpdater.updateResult(rowMap.get(sdr), ""));
         final var use_parallelism = session.getUser().getSettings().getProperty(SettingsEnum.use_parallelism, Boolean.class);
         final var nThreads = Boolean.TRUE.equals(use_parallelism) ? session.getUser().getSettings().getProperty(SettingsEnum.thread_count, Integer.class) : 1;
         try (final var mt = new MultiThreadingVirtual<T>("torrent-checker", progress, nThreads, sdr -> {
             if (progress.isCancel())
                 return;
             try {
-                final int row = sdrl.indexOf(sdr);
+                final int row = rowMap.get(sdr);
                 safeUpdater.updateResult(row, "In progress...");
                 final String result = check(progress, sdr);
                 safeUpdater.updateResult(row, result);
