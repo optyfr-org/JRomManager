@@ -5,6 +5,8 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Map.Entry;
 import java.util.stream.IntStream;
 
@@ -197,15 +199,19 @@ public abstract class CloseCreateCallback implements IOutCreateCallback<IOutItem
         if (this.nArchive.getIInArchive() == null)
             return;
         oldTot = this.nArchive.getIInArchive().getNumberOfItems();
+        final Map<String, List<String>> copiesToKeys = new HashMap<>();
+        for (final Entry<String, String> e : this.nArchive.getToCopy().entrySet())
+            copiesToKeys.computeIfAbsent(e.getValue(), k -> new ArrayList<>()).add(e.getKey());
         for (int i = 0; i < oldTot; i++) {
             final String path = this.nArchive.getIInArchive().getProperty(i, PropID.PATH).toString();
             if (this.nArchive.getToDelete().contains(path))
                 idxToDelete.put(i, path);
             if (this.nArchive.getToRename().containsKey(path))
                 idxToRename.put(i, this.nArchive.getToRename().get(path));
-            for (final Entry<String, String> to_p : this.nArchive.getToCopy().entrySet())
-                if (path.equals(to_p.getValue()))
-                    idxToDuplicate.add(new Object[] { i, to_p.getKey(), null });
+            final List<String> keys = copiesToKeys.get(path);
+            if (keys != null)
+                for (final String key : keys)
+                    idxToDuplicate.add(new Object[] { i, key, null });
         }
         if (this.nArchive.getToDelete().size() != idxToDelete.size())
             Log.err(() -> "to_delete:" + this.nArchive.getToDelete().size() + "!=" + idxToDelete.size()); //$NON-NLS-1$ //$NON-NLS-2$
