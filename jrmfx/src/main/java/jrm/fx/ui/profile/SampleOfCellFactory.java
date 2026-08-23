@@ -19,7 +19,7 @@ public class SampleOfCellFactory extends TableCell<Anyware, Object> {
 			setText("");
 			setGraphic(null);
 		} else if (item instanceof final Samples s) {
-			final ImageView i = new ImageView(ProfileViewerController.getStatusIcon(s.getStatus()));
+			final ImageView i = new ImageView(ProfileViewerIcons.getStatusIcon(s.getStatus()));
 			i.setPreserveRatio(true);
 			i.getStyleClass().add("icon");
 			setGraphic(i);

@@ -18,7 +18,7 @@ public class AnywareStatusCellFactory extends TableCell<Anyware, Anyware> {
 		if (item == null || empty)
 			setGraphic(null);
 		else {
-			final ImageView i = new ImageView(ProfileViewerController.getStatusIcon(item.getStatus()));
+			final ImageView i = new ImageView(ProfileViewerIcons.getStatusIcon(item.getStatus()));
 			setGraphic(i);
 			i.setPreserveRatio(true);
 			i.getStyleClass().add("icon");

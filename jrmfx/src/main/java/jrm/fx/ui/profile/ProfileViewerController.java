@@ -1,13 +1,7 @@
 package jrm.fx.ui.profile;
 
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.net.URL;
-import java.io.IOException;
-import java.net.URLEncoder;
 import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
@@ -37,8 +31,6 @@ import javafx.scene.control.ToggleButton;
 import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-import javafx.scene.input.Clipboard;
-import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
 import jrm.fx.ui.JRMScene;
@@ -58,19 +50,15 @@ import jrm.fx.ui.profile.SampleOfCellFactory;
 import jrm.fx.ui.profile.WareListDescCellFactory;
 import jrm.fx.ui.profile.WareListHaveCellFactory;
 import jrm.fx.ui.profile.WareListNameCellFactory;
-import jrm.fx.ui.profile.filter.Keywords;
 import jrm.locale.Messages;
-import jrm.misc.Log;
 import jrm.profile.Profile;
 import jrm.profile.data.Anyware;
 import jrm.profile.data.AnywareList;
 import jrm.profile.data.AnywareStatus;
 import jrm.profile.data.Disk;
 import jrm.profile.data.Entity;
-import jrm.profile.data.Entity.Status;
 import jrm.profile.data.EntityBase;
 import jrm.profile.data.EntityStatus;
-import jrm.profile.data.ExportMode;
 import jrm.profile.data.Machine;
 import jrm.profile.data.MachineList;
 import jrm.profile.data.Rom;
@@ -78,7 +66,6 @@ import jrm.profile.data.Sample;
 import jrm.profile.data.Samples;
 import jrm.profile.data.Software;
 import jrm.profile.data.SoftwareList;
-import jrm.profile.manager.Export.ExportType;
 import jrm.security.Session;
 import jrm.security.Sessions;
 
@@ -264,39 +251,18 @@ public class ProfileViewerController implements Initializable {
     @FXML
     private MenuItem mntmSearchWeb;
 
-    /** Icon for complete software/machine list. */
-    private static final Image diskMultipleGreen = MainFrame.getIcon("/jrm/resicons/disk_multiple_green.png"); //$NON-NLS-1$
-    /** Icon for partial software/machine list. */
-    private static final Image diskMultipleOrange = MainFrame.getIcon("/jrm/resicons/disk_multiple_orange.png"); //$NON-NLS-1$
-    /** Icon for missing software/machine list. */
-    private static final Image diskMultipleRed = MainFrame.getIcon("/jrm/resicons/disk_multiple_red.png"); //$NON-NLS-1$
-    /** Icon for unknown software/machine list. */
-    private static final Image diskMultipleGray = MainFrame.getIcon("/jrm/resicons/disk_multiple_gray.png"); //$NON-NLS-1$
-    /** Icon for complete status. */
-    private static final Image folderClosedGreen = MainFrame.getIcon("/jrm/resicons/folder_closed_green.png"); //$NON-NLS-1$
-    /** Icon for partial status. */
-    private static final Image folderClosedOrange = MainFrame.getIcon("/jrm/resicons/folder_closed_orange.png"); //$NON-NLS-1$
-    /** Icon for missing status. */
-    private static final Image folderClosedRed = MainFrame.getIcon("/jrm/resicons/folder_closed_red.png"); //$NON-NLS-1$
-    /** Icon for unknown status. */
-    private static final Image folderClosedGray = MainFrame.getIcon("/jrm/resicons/folder_closed_gray.png"); //$NON-NLS-1$
-    /** Green bullet icon for OK entity status. */
-    private static final Image bulletGreen = MainFrame.getIcon("/jrm/resicons/icons/bullet_green.png"); //$NON-NLS-1$
-    /** Red bullet icon for KO entity status. */
-    private static final Image bulletRed = MainFrame.getIcon("/jrm/resicons/icons/bullet_red.png"); //$NON-NLS-1$
-    /** Black bullet icon for unknown entity status. */
-    private static final Image bulletBlack = MainFrame.getIcon("/jrm/resicons/icons/bullet_black.png"); //$NON-NLS-1$
-
-    /** Cache of have-count strings keyed by software/machine list name. */
-    private final Map<String, String> haveCache = new HashMap<>();
-
     /** The current user session. */
     private final Session session = Sessions.getSingleSession();
 
     @Override
     public void initialize(final URL location, final ResourceBundle resources) {
-        initTableWL();
+        actions = new ProfileViewerActions(tableWL, tableW, tableEntity, session,
+            mntmAllAsMameDat, mntmAllAsLogiqxDat, mntmAllAsSoftwareLists,
+            mntmFilteredAsMameDat, mntmFilteredAsLogiqxDat, mntmFilteredAsSoftwareLists,
+            mntmSelectedAsSoftwareLists, mntmSelectedFilteredAsSoftwareLists,
+            mntmCopyCrc, mntmCopySha1, mntmCopyName, mntmSearchWeb);
         wareRelations = new ProfileViewerWareRelations(tableWL);
+        initTableWL();
         initTableW();
         initTableE();
     }
@@ -396,15 +362,15 @@ public class ProfileViewerController implements Initializable {
      * Initializes the entity table toggle buttons with bullet icons.
      */
     private void initTableEToggles() {
-        final ImageView ibb = new ImageView(bulletBlack);
+        final ImageView ibb = new ImageView(ProfileViewerIcons.bulletBlack);
         ibb.setPreserveRatio(true);
         ibb.getStyleClass().add("icon");
         toggleEntityUnknown.setGraphic(ibb);
-        final ImageView ibr = new ImageView(bulletRed);
+        final ImageView ibr = new ImageView(ProfileViewerIcons.bulletRed);
         ibr.setPreserveRatio(true);
         ibr.getStyleClass().add("icon");
         toggleEntityKO.setGraphic(ibr);
-        final ImageView ibg = new ImageView(bulletGreen);
+        final ImageView ibg = new ImageView(ProfileViewerIcons.bulletGreen);
         ibg.setPreserveRatio(true);
         ibg.getStyleClass().add("icon");
         toggleEntityOK.setGraphic(ibg);
@@ -414,20 +380,12 @@ public class ProfileViewerController implements Initializable {
      * Initializes the entity table context menu to update item states when shown.
      */
     private void initTableEMenu() {
-        menuEntity.setOnShowing(_ -> updateEMenuItemStates());
+        menuEntity.setOnShowing(_ -> actions.updateEMenuItemStates());
     }
 
     /**
      * Enables or disables context menu items based on whether an entity is selected.
      */
-    private void updateEMenuItemStates() {
-        final boolean has_selected_entity = tableEntity.getSelectionModel().getSelectedItem() != null;
-        mntmCopyCrc.setDisable(!has_selected_entity);
-        mntmCopySha1.setDisable(!has_selected_entity);
-        mntmCopyName.setDisable(!has_selected_entity);
-        mntmSearchWeb.setDisable(!has_selected_entity);
-    }
-
     /**
      * Initializes the entries table with its columns, toggle buttons, and selection listeners.
      */
@@ -650,19 +608,19 @@ public class ProfileViewerController implements Initializable {
      * Initializes the entry toggle buttons with folder icons.
      */
     private void initToggleButtons() {
-        final ImageView ifcgray = new ImageView(folderClosedGray);
+        final ImageView ifcgray = new ImageView(ProfileViewerIcons.folderClosedGray);
         ifcgray.setPreserveRatio(true);
         ifcgray.getStyleClass().add("icon");
         toggleWUnknown.setGraphic(ifcgray);
-        final ImageView ifcred = new ImageView(folderClosedRed);
+        final ImageView ifcred = new ImageView(ProfileViewerIcons.folderClosedRed);
         ifcred.setPreserveRatio(true);
         ifcred.getStyleClass().add("icon");
         toggleWMissing.setGraphic(ifcred);
-        final ImageView ifcorange = new ImageView(folderClosedOrange);
+        final ImageView ifcorange = new ImageView(ProfileViewerIcons.folderClosedOrange);
         ifcorange.setPreserveRatio(true);
         ifcorange.getStyleClass().add("icon");
         toggleWPartial.setGraphic(ifcorange);
-        final ImageView ifcgreen = new ImageView(folderClosedGreen);
+        final ImageView ifcgreen = new ImageView(ProfileViewerIcons.folderClosedGreen);
         ifcgreen.setPreserveRatio(true);
         ifcgreen.getStyleClass().add("icon");
         toggleWComplete.setGraphic(ifcgreen);
@@ -692,44 +650,31 @@ public class ProfileViewerController implements Initializable {
         tableWLName.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue()));
         tableWLName.setSortable(true);
         tableWLDesc.setCellFactory(_ -> new WareListDescCellFactory());
-        tableWLDesc.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(getWLDescription(p.getValue())));
+        tableWLDesc.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(wareRelations.getWLDescription(p.getValue())));
         tableWLHave.setCellFactory(_ -> new WareListHaveCellFactory());
-        tableWLHave.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(getWLHave(p.getValue())));
+        tableWLHave.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(wareRelations.getWLHave(p.getValue())));
         tableWL.getSelectionModel().selectedItemProperty().addListener((_, _, newValue) -> reloadW(newValue));
-        final ImageView idmgray = new ImageView(diskMultipleGray);
+        final ImageView idmgray = new ImageView(ProfileViewerIcons.diskMultipleGray);
         idmgray.setPreserveRatio(true);
         idmgray.getStyleClass().add("icon");
         toggleWLUnknown.setGraphic(idmgray);
-        final ImageView idmred = new ImageView(diskMultipleRed);
+        final ImageView idmred = new ImageView(ProfileViewerIcons.diskMultipleRed);
         idmred.setPreserveRatio(true);
         idmred.getStyleClass().add("icon");
         toggleWLMissing.setGraphic(idmred);
-        final ImageView idmorange = new ImageView(diskMultipleOrange);
+        final ImageView idmorange = new ImageView(ProfileViewerIcons.diskMultipleOrange);
         idmorange.setPreserveRatio(true);
         idmorange.getStyleClass().add("icon");
         toggleWLPartial.setGraphic(idmorange);
-        final ImageView idmgreen = new ImageView(diskMultipleGreen);
+        final ImageView idmgreen = new ImageView(ProfileViewerIcons.diskMultipleGreen);
         idmgreen.setPreserveRatio(true);
         idmgreen.getStyleClass().add("icon");
         toggleWLComplete.setGraphic(idmgreen);
-        menuWL.setOnShowing(_ -> refreshMenuItemAvailability());
+        menuWL.setOnShowing(_ -> actions.refreshMenuItemAvailability());
     }
 
-    /**
-     * Refreshes the availability state of export menu items.
-     */
     private void refreshMenuItemAvailability() {
-        final boolean has_machines = session.getCurrProfile().getMachineListList().getList().stream().mapToInt(ml -> ml.getList().size()).sum() > 0;
-        final boolean has_filtered_machines = session.getCurrProfile().getMachineListList().getFilteredStream().mapToInt(m -> (int) m.countAll()).sum() > 0;
-        final boolean has_selected_swlist = tableWL.getSelectionModel().getSelectedItems().size() == 1 && tableWL.getSelectionModel().getSelectedItem() instanceof SoftwareList;
-        mntmAllAsMameDat.setDisable(!has_machines);
-        mntmAllAsLogiqxDat.setDisable(!has_machines);
-        mntmAllAsSoftwareLists.setDisable(session.getCurrProfile().getMachineListList().getSoftwareListList().isEmpty());
-        mntmFilteredAsMameDat.setDisable(!has_filtered_machines);
-        mntmFilteredAsLogiqxDat.setDisable(!has_filtered_machines);
-        mntmFilteredAsSoftwareLists.setDisable(session.getCurrProfile().getMachineListList().getSoftwareListList().getFilteredStream().count() == 0);
-        mntmSelectedAsSoftwareLists.setDisable(!has_selected_swlist);
-        mntmSelectedFilteredAsSoftwareLists.setDisable(!has_selected_swlist);
+        actions.refreshMenuItemAvailability();
     }
 
     /**
@@ -751,6 +696,8 @@ public class ProfileViewerController implements Initializable {
     private FilteredList<Anyware> filteredData;
 
     private ProfileViewerWareRelations wareRelations;
+
+    private ProfileViewerActions actions;
 
     /**
      * Reloads the entries table with data from the selected software/machine list,
@@ -818,71 +765,38 @@ public class ProfileViewerController implements Initializable {
         setFilterE(toggleEntityUnknown.isSelected(), toggleEntityKO.isSelected(), toggleEntityOK.isSelected());
     }
 
-    /**
-     * Sets the filter for software/machine lists based on toggle states.
-     *
-     * @param unknown  whether to include unknown status
-     * @param missing  whether to include missing status
-     * @param partial  whether to include partial status
-     * @param complete whether to include complete status
-     */
-    private void setFilterWL(final boolean unknown, final boolean missing, final boolean partial, final boolean complete) {
+    private EnumSet<AnywareStatus> buildAnywareFilter(final boolean unknown, final boolean missing, final boolean partial, final boolean complete) {
         final EnumSet<AnywareStatus> filter = EnumSet.noneOf(AnywareStatus.class);
-        if (unknown)
-            filter.add(AnywareStatus.UNKNOWN);
-        if (missing)
-            filter.add(AnywareStatus.MISSING);
-        if (partial)
-            filter.add(AnywareStatus.PARTIAL);
-        if (complete)
-            filter.add(AnywareStatus.COMPLETE);
-        session.getCurrProfile().setFilterListLists(filter);
+        if (unknown) filter.add(AnywareStatus.UNKNOWN);
+        if (missing) filter.add(AnywareStatus.MISSING);
+        if (partial) filter.add(AnywareStatus.PARTIAL);
+        if (complete) filter.add(AnywareStatus.COMPLETE);
+        return filter;
+    }
+
+    private EnumSet<EntityStatus> buildEntityFilter(final boolean unknown, final boolean missing, final boolean complete) {
+        final EnumSet<EntityStatus> filter = EnumSet.noneOf(EntityStatus.class);
+        if (unknown) filter.add(EntityStatus.UNKNOWN);
+        if (missing) filter.add(EntityStatus.KO);
+        if (complete) filter.add(EntityStatus.OK);
+        return filter;
+    }
+
+    private void setFilterWL(final boolean unknown, final boolean missing, final boolean partial, final boolean complete) {
+        session.getCurrProfile().setFilterListLists(buildAnywareFilter(unknown, missing, partial, complete));
         reset(session.getCurrProfile());
     }
 
-    /**
-     * Sets the filter for entries based on toggle states.
-     *
-     * @param unknown  whether to include unknown status
-     * @param missing  whether to include missing status
-     * @param partial  whether to include partial status
-     * @param complete whether to include complete status
-     */
     private void setFilterW(final boolean unknown, final boolean missing, final boolean partial, final boolean complete) {
-        final EnumSet<AnywareStatus> filter = EnumSet.noneOf(AnywareStatus.class);
-        if (unknown)
-            filter.add(AnywareStatus.UNKNOWN);
-        if (missing)
-            filter.add(AnywareStatus.MISSING);
-        if (partial)
-            filter.add(AnywareStatus.PARTIAL);
-        if (complete)
-            filter.add(AnywareStatus.COMPLETE);
-        session.getCurrProfile().setFilterList(filter);
+        session.getCurrProfile().setFilterList(buildAnywareFilter(unknown, missing, partial, complete));
         final var item = tableWL.getSelectionModel().getSelectedItem();
-        if (item != null)
-            reloadW(item);
+        if (item != null) reloadW(item);
     }
 
-    /**
-     * Sets the filter for entity statuses based on toggle states.
-     *
-     * @param unknown  whether to include entities with unknown status
-     * @param missing  whether to include entities with KO status
-     * @param complete whether to include entities with OK status
-     */
     private void setFilterE(final boolean unknown, final boolean missing, final boolean complete) {
-        final EnumSet<EntityStatus> filter = EnumSet.noneOf(EntityStatus.class);
-        if (unknown)
-            filter.add(EntityStatus.UNKNOWN);
-        if (missing)
-            filter.add(EntityStatus.KO);
-        if (complete)
-            filter.add(EntityStatus.OK);
-        session.getCurrProfile().setFilterEntities(filter);
+        session.getCurrProfile().setFilterEntities(buildEntityFilter(unknown, missing, complete));
         final var item = tableW.getSelectionModel().getSelectedItem();
-        if (item != null)
-            reloadE(item);
+        if (item != null) reloadE(item);
     }
 
     /**
@@ -892,37 +806,7 @@ public class ProfileViewerController implements Initializable {
      * @return the matching icon
      */
     static Image getStatusIcon(final AnywareStatus status) {
-        return switch (status) {
-            case COMPLETE -> folderClosedGreen;
-            case PARTIAL -> folderClosedOrange;
-            case MISSING -> folderClosedRed;
-            case UNKNOWN -> folderClosedGray;
-            default -> folderClosedGray;
-        };
-    }
-
-    /**
-     * Computes or returns cached have-count string for a ware list (e.g. "12/34").
-     */
-    private String getWLHave(final AnywareList<? extends Anyware> list) {
-        return haveCache.computeIfAbsent(list.getName(), _ -> {
-            final long[] ht = { 0, 0 };
-            list.getFilteredStream().forEach(t -> {
-                if (t.getStatus() == AnywareStatus.COMPLETE)
-                    ht[0]++;
-                ht[1]++;
-            });
-            return String.format(D_OF_D_FMT, ht[0], ht[1]);
-        });
-    }
-
-    /**
-     * Returns the description for a ware list (software list desc or "All Machines").
-     */
-    private static String getWLDescription(final AnywareList<? extends Anyware> list) {
-        if (list instanceof final SoftwareList sl)
-            return sl.getDescription().toString();
-        return Messages.getString("MachineListList.AllMachines");
+        return ProfileViewerIcons.getStatusIcon(status);
     }
 
     /**
@@ -960,7 +844,7 @@ public class ProfileViewerController implements Initializable {
         tableEntity.setItems(FXCollections.observableArrayList());
         tableW.setItems(FXCollections.observableArrayList());
         tableWL.setItems(FXCollections.observableArrayList());
-        haveCache.clear();
+        wareRelations.clearHaveCache();
     }
 
     /**
@@ -968,7 +852,7 @@ public class ProfileViewerController implements Initializable {
      */
     public void reload() {
         tableWL.refresh();
-        haveCache.clear();
+        wareRelations.clearHaveCache();
         tableW.refresh();
         tableEntity.refresh();
     }
@@ -999,36 +883,13 @@ public class ProfileViewerController implements Initializable {
     }
 
     /**
-     * Extends {@link jrm.profile.filter.Keywords} to show the keyword filter dialog
-     * and refresh the entries table when filters change.
-     */
-    private class KW extends jrm.profile.filter.Keywords {
-
-        @Override
-        protected void showFilter(final String[] keywords, final KFCallBack callback) {
-            try {
-                new Keywords((ProfileViewer) tableWL.getScene().getWindow(), keywords, tableWL.getSelectionModel().getSelectedItem(), callback);
-            } catch (URISyntaxException | IOException e1) {
-                Log.err(e1.getMessage(), e1);
-            }
-        }
-
-        @Override
-        protected void updateList() {
-            tableW.refresh();
-        }
-
-    }
-
-    /**
      * Opens the keyword filter dialog for the selected software/machine list.
      *
      * @param e the action event
      */
     @FXML
     private void selectByKeywords(final ActionEvent e) {
-        final var lst = tableWL.getSelectionModel().getSelectedItem();
-        new KW().filter(lst);
+        actions.selectByKeywords();
     }
 
     /**
@@ -1038,9 +899,7 @@ public class ProfileViewerController implements Initializable {
      */
     @FXML
     public void selectNone(final ActionEvent e) {
-        tableW.getItems().forEach(ware -> ware.setSelected(false));
-        tableW.refresh();
-
+        actions.selectNone();
     }
 
     /**
@@ -1050,8 +909,7 @@ public class ProfileViewerController implements Initializable {
      */
     @FXML
     public void selectAll(final ActionEvent e) {
-        tableW.getItems().forEach(ware -> ware.setSelected(true));
-        tableW.refresh();
+        actions.selectAll();
     }
 
     /**
@@ -1061,8 +919,7 @@ public class ProfileViewerController implements Initializable {
      */
     @FXML
     public void selectInvert(final ActionEvent e) {
-        tableW.getItems().forEach(ware -> ware.setSelected(!ware.isSelected()));
-        tableW.refresh();
+        actions.selectInvert();
     }
 
     /**
@@ -1072,11 +929,7 @@ public class ProfileViewerController implements Initializable {
      */
     @FXML
     public void copyCrc(final javafx.event.ActionEvent e) {
-        if (tableEntity.getSelectionModel().getSelectedItem() != null && tableEntity.getSelectionModel().getSelectedItem() instanceof final Entity entity) {
-            final var content = new ClipboardContent();
-            content.putString(entity.getCrc());
-            Clipboard.getSystemClipboard().setContent(content);
-        }
+        actions.copyCrc();
     }
 
     /**
@@ -1086,11 +939,7 @@ public class ProfileViewerController implements Initializable {
      */
     @FXML
     public void copySha1(final javafx.event.ActionEvent e) {
-        if (tableEntity.getSelectionModel().getSelectedItem() != null && tableEntity.getSelectionModel().getSelectedItem() instanceof final Entity entity) {
-            final var content = new ClipboardContent();
-            content.putString(entity.getSha1());
-            Clipboard.getSystemClipboard().setContent(content);
-        }
+        actions.copySha1();
     }
 
     /**
@@ -1100,11 +949,7 @@ public class ProfileViewerController implements Initializable {
      */
     @FXML
     public void copyName(final javafx.event.ActionEvent e) {
-        if (tableEntity.getSelectionModel().getSelectedItem() != null && tableEntity.getSelectionModel().getSelectedItem() instanceof final Entity entity) {
-            final var content = new ClipboardContent();
-            content.putString(entity.getName());
-            Clipboard.getSystemClipboard().setContent(content);
-        }
+        actions.copyName();
     }
 
     /**
@@ -1114,18 +959,7 @@ public class ProfileViewerController implements Initializable {
      */
     @FXML
     public void searchWeb(final javafx.event.ActionEvent e) {
-        if (tableEntity.getSelectionModel().getSelectedItem() != null && tableEntity.getSelectionModel().getSelectedItem() instanceof final Entity entity) {
-            try {
-                final var name = entity.getName();
-                final var crc = entity.getCrc();
-                final var sha1 = entity.getSha1();
-                final var hash = Optional.ofNullable(Optional.ofNullable(crc).orElse(sha1)).map(h -> '+' + h).orElse("");
-                MainFrame.getApplication().getHostServices()
-                        .showDocument(new URI("https://www.google.com/search?q=" + URLEncoder.encode('"' + name + '"', "UTF-8") + hash).toString());
-            } catch (IOException | URISyntaxException e1) {
-                Log.err(e1.getMessage(), e1);
-            }
-        }
+        actions.searchWeb();
     }
 
     /**
@@ -1135,90 +969,42 @@ public class ProfileViewerController implements Initializable {
      */
     @FXML
     public void exportFilteredAsLogiqxDat(final ActionEvent e) {
-        export(ExportType.DATAFILE, EnumSet.of(ExportMode.FILTERED), null);
+        actions.exportFilteredAsLogiqxDat();
     }
 
-    /**
-     * Exports filtered entries as MAME DAT.
-     *
-     * @param e the action event
-     */
     @FXML
     public void exportFilteredAsMameDat(final ActionEvent e) {
-        export(ExportType.MAME, EnumSet.of(ExportMode.FILTERED), null);
+        actions.exportFilteredAsMameDat();
     }
 
-    /**
-     * Exports filtered entries as software lists.
-     *
-     * @param e the action event
-     */
     @FXML
     public void exportFilteredAsSoftwareLists(final ActionEvent e) {
-        export(ExportType.SOFTWARELIST, EnumSet.of(ExportMode.FILTERED), null);
+        actions.exportFilteredAsSoftwareLists();
     }
 
-    /**
-     * Exports all entries as Logiqx DAT.
-     *
-     * @param e the action event
-     */
     @FXML
     public void exportAllAsLogiqxDat(final ActionEvent e) {
-        export(ExportType.DATAFILE, EnumSet.of(ExportMode.ALL), null);
+        actions.exportAllAsLogiqxDat();
     }
 
-    /**
-     * Exports all entries as MAME DAT.
-     *
-     * @param e the action event
-     */
     @FXML
     public void exportAllAsMameDat(final ActionEvent e) {
-        export(ExportType.MAME, EnumSet.of(ExportMode.ALL), null);
+        actions.exportAllAsMameDat();
     }
 
-    /**
-     * Exports all entries as software lists.
-     *
-     * @param e the action event
-     */
     @FXML
     public void exportAllAsSoftwareLists(final ActionEvent e) {
-        export(ExportType.SOFTWARELIST, EnumSet.of(ExportMode.ALL), null);
+        actions.exportAllAsSoftwareLists();
     }
 
-    /**
-     * Exports the selected software list as filtered software lists.
-     *
-     * @param e the action event
-     */
     @FXML
     public void exportSelectedFilteredAsSoftwareLists(final ActionEvent e) {
-        if (tableWL.getSelectionModel().getSelectedItem() instanceof final SoftwareList sl)
-            export(ExportType.SOFTWARELIST, EnumSet.of(ExportMode.FILTERED), sl);
+        actions.exportSelectedFilteredAsSoftwareLists();
     }
 
-    /**
-     * Exports the selected software list entirely.
-     *
-     * @param e the action event
-     */
     @FXML
     public void exportSelectedAsSoftwareLists(final ActionEvent e) {
-        if (tableWL.getSelectionModel().getSelectedItem() instanceof final SoftwareList sl)
-            export(ExportType.SOFTWARELIST, EnumSet.of(ExportMode.ALL), sl);
-    }
-
-    /**
-     * Delegates export to the main frame export method.
-     *
-     * @param type      the export format type
-     * @param modes     the export modes
-     * @param selection the selected software list, or {@code null}
-     */
-    private void export(final ExportType type, final Set<ExportMode> modes, final SoftwareList selection) {
-        MainFrame.export(tableWL.getScene().getWindow(), session, type, modes, selection);
+        actions.exportSelectedAsSoftwareLists();
     }
 
 }

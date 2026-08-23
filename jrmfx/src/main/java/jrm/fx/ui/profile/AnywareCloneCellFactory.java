@@ -27,7 +27,7 @@ public class AnywareCloneCellFactory extends TableCell<Anyware, Object> {
 			setText("");
 			setGraphic(null);
 		} else if (item instanceof final Anyware aw) {
-			final ImageView i = new ImageView(ProfileViewerController.getStatusIcon(aw.getStatus()));
+			final ImageView i = new ImageView(ProfileViewerIcons.getStatusIcon(aw.getStatus()));
 			i.setPreserveRatio(true);
 			i.getStyleClass().add("icon");
 			setGraphic(i);
