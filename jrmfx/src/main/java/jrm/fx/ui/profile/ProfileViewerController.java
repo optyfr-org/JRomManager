@@ -389,6 +389,10 @@ public class ProfileViewerController implements Initializable {
         menuEntity.setOnShowing(_ -> actions.updateEMenuItemStates());
     }
 
+    private void refreshMenuItemAvailability() {
+        actions.refreshMenuItemAvailability();
+    }
+
     /**
      * Initializes the entries table with its columns, toggle buttons, and selection
      * listeners.
@@ -692,7 +696,7 @@ public class ProfileViewerController implements Initializable {
         idmgreen.setPreserveRatio(true);
         idmgreen.getStyleClass().add("icon");
         toggleWLComplete.setGraphic(idmgreen);
-        menuWL.setOnShowing(_ -> actions.refreshMenuItemAvailability());
+        menuWL.setOnShowing(_ -> refreshMenuItemAvailability());
     }
 
     /**
