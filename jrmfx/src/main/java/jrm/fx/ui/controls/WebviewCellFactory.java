@@ -30,6 +30,15 @@ public class WebviewCellFactory<S, T> implements Callback<TableColumn<S, T>, Tab
              * @param item  the HTML content to render, or {@code null}
              * @param empty whether this cell represents an empty row
              */
+            private final WebView webview = new WebView();
+            private final WebEngine engine = webview.getEngine();
+
+            {
+                webview.setPrefHeight(-1); // <- Absolute must at this position (before calling the Javascript)
+                webview.setBlendMode(BlendMode.DARKEN);
+                webview.setFontScale(0.75);
+            }
+
             @Override
             protected void updateItem(T item, boolean empty) {
                 super.updateItem(item, empty);
@@ -38,11 +47,6 @@ public class WebviewCellFactory<S, T> implements Callback<TableColumn<S, T>, Tab
                     setGraphic(null);
                     setStyle("");
                 } else {
-                    WebView webview = new WebView();
-                    WebEngine engine = webview.getEngine();
-                    webview.setPrefHeight(-1); // <- Absolute must at this position (before calling the Javascript)
-                    webview.setBlendMode(BlendMode.DARKEN);
-                    webview.setFontScale(0.75);
                     setGraphic(webview);
                     engine.loadContent(
                             "<body topmargin=0 leftmargin=0 style=\"background-color: transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis\">" + item + "</body>");
