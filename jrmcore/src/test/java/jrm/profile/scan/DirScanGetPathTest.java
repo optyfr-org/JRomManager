@@ -17,7 +17,7 @@ import jrm.profile.data.Archive;
 import jrm.profile.data.Entry;
 
 /**
- * Regression: {@code DirScan.OwnedPath} must keep the zip filesystem open until closed.
+ * Regression: {@code OwnedPath} must keep the zip filesystem open until closed.
  */
 @DisplayName("DirScan OwnedPath filesystem lifetime")
 class DirScanGetPathTest {
@@ -40,7 +40,7 @@ class DirScanGetPathTest {
         final var archive = new Archive(zipPath.toFile(), zipPath.toFile(), attrs);
         final var entry = archive.add(new Entry("rom.bin", "rom.bin"));
 
-        final Class<?> ownedPathClass = Class.forName("jrm.profile.scan.DirScan$OwnedPath");
+        final Class<?> ownedPathClass = Class.forName("jrm.profile.scan.OwnedPath");
         final Method of = ownedPathClass.getDeclaredMethod("of", Entry.class, Path.class);
         of.setAccessible(true);
         final Method pathMethod = ownedPathClass.getDeclaredMethod("path");

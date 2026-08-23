@@ -38,8 +38,6 @@ import jrm.security.Session;
 public class DirUpdater {
     /** the active user session */
     private final Session session;
-    /** the list of source-destination results to process */
-    private final List<? extends AbstractSrcDstResult> sdrl;
     /** the handler for reporting progress during the update process */
     private final ProgressHandler progress;
     /** the list of source directories containing new ROM files to be processed */
@@ -66,7 +64,6 @@ public class DirUpdater {
     public DirUpdater(final Session session, final List<? extends AbstractSrcDstResult> sdrl, final ProgressHandler progress, final List<File> srcdirs,
             final ResultColUpdater result, final boolean dryrun) {
         this.session = session;
-        this.sdrl = sdrl;
         this.progress = progress;
         this.srcdirs = srcdirs;
         this.result = result;
