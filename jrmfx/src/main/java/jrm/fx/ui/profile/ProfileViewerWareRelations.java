@@ -11,7 +11,6 @@ import jrm.profile.data.AnywareList;
 import jrm.profile.data.AnywareStatus;
 import jrm.profile.data.Machine;
 import jrm.profile.data.MachineList;
-import jrm.profile.data.Samples;
 import jrm.profile.data.SoftwareList;
 
 /**

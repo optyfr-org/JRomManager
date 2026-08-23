@@ -4,7 +4,6 @@ import javafx.geometry.Pos;
 import javafx.scene.control.TableCell;
 import javafx.scene.image.ImageView;
 import jrm.profile.data.Anyware;
-import jrm.profile.data.AnywareStatus;
 
 /**
  * Table cell that renders ware (machine/software) status using folder icon graphic.

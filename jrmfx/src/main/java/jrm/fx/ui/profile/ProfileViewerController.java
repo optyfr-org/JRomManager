@@ -4,7 +4,6 @@ import java.net.URL;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.Set;
 import java.util.function.Predicate;
 
 import javafx.beans.property.ReadOnlyObjectWrapper;
@@ -17,7 +16,6 @@ import javafx.collections.transformation.FilteredList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ContextMenu;
@@ -28,28 +26,15 @@ import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
-import javafx.scene.control.Tooltip;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.text.Text;
 import jrm.fx.ui.JRMScene;
-import jrm.fx.ui.MainFrame;
 import jrm.fx.ui.controls.Dialogs;
 import jrm.fx.ui.controls.HashCellFactory;
 import jrm.fx.ui.controls.SizeCellFactory;
 import jrm.fx.ui.controls.TooltipStringCellFactory;
-import jrm.fx.ui.profile.EntityDumpStatusCellFactory;
-import jrm.fx.ui.profile.EntityNameCellFactory;
-import jrm.fx.ui.profile.EntityStatusCellFactory;
-import jrm.fx.ui.profile.AnywareCloneCellFactory;
-import jrm.fx.ui.profile.AnywareStatusCellFactory;
-import jrm.fx.ui.profile.MachineNameCellFactory;
-import jrm.fx.ui.profile.MameLauncher;
-import jrm.fx.ui.profile.SampleOfCellFactory;
-import jrm.fx.ui.profile.WareListDescCellFactory;
-import jrm.fx.ui.profile.WareListHaveCellFactory;
-import jrm.fx.ui.profile.WareListNameCellFactory;
 import jrm.locale.Messages;
 import jrm.profile.Profile;
 import jrm.profile.data.Anyware;
@@ -62,8 +47,6 @@ import jrm.profile.data.EntityStatus;
 import jrm.profile.data.Machine;
 import jrm.profile.data.MachineList;
 import jrm.profile.data.Rom;
-import jrm.profile.data.Sample;
-import jrm.profile.data.Samples;
 import jrm.profile.data.Software;
 import jrm.profile.data.SoftwareList;
 import jrm.security.Session;
@@ -73,14 +56,16 @@ import jrm.security.Sessions;
  * FXML controller for the profile viewer window.
  * <p>
  * Displays profile contents in three linked tables: software/machine lists,
- * individual entries within a selected list, and entity details (ROMs, disks, samples).
- * Supports filtering by status (unknown, missing, partial, complete), keyword search,
- * and context menu actions for copying hashes, searching the web, and exporting.
+ * individual entries within a selected list, and entity details (ROMs, disks,
+ * samples).
+ * Supports filtering by status (unknown, missing, partial, complete), keyword
+ * search,
+ * and context menu actions for copying hashes, searching the web, and
+ * exporting.
  *
  * @since 2.5
  */
 public class ProfileViewerController implements Initializable {
-    private static final String FX_FONT_FAMILY_MONOSPACED = "-fx-font-family: monospaced;";
 
     private static final String MONOSPACED = "monospaced";
 
@@ -114,33 +99,47 @@ public class ProfileViewerController implements Initializable {
     @FXML
     private TableView<Anyware> tableW;
     /** The machine status column. */
-    private final TableColumn<Anyware, Anyware> tableWMStatus = new TableColumn<>(Messages.getString("MachineListRenderer.Status"));
+    private final TableColumn<Anyware, Anyware> tableWMStatus = new TableColumn<>(
+            Messages.getString("MachineListRenderer.Status"));
     /** The machine name column. */
-    private final TableColumn<Anyware, Machine> tableWMName = new TableColumn<>(Messages.getString("MachineListRenderer.Name"));
+    private final TableColumn<Anyware, Machine> tableWMName = new TableColumn<>(
+            Messages.getString("MachineListRenderer.Name"));
     /** The machine description column. */
-    private final TableColumn<Anyware, String> tableWMDescription = new TableColumn<>(Messages.getString("MachineListRenderer.Description"));
+    private final TableColumn<Anyware, String> tableWMDescription = new TableColumn<>(
+            Messages.getString("MachineListRenderer.Description"));
     /** The machine have-count column. */
-    private final TableColumn<Anyware, String> tableWMHave = new TableColumn<>(Messages.getString("MachineListRenderer.Have"));
+    private final TableColumn<Anyware, String> tableWMHave = new TableColumn<>(
+            Messages.getString("MachineListRenderer.Have"));
     /** The machine clone-of column. */
-    private final TableColumn<Anyware, Object> tableWMCloneOf = new TableColumn<>(Messages.getString("MachineListRenderer.CloneOf"));
+    private final TableColumn<Anyware, Object> tableWMCloneOf = new TableColumn<>(
+            Messages.getString("MachineListRenderer.CloneOf"));
     /** The machine ROM-of column. */
-    private final TableColumn<Anyware, Object> tableWMRomOf = new TableColumn<>(Messages.getString("MachineListRenderer.RomOf"));
+    private final TableColumn<Anyware, Object> tableWMRomOf = new TableColumn<>(
+            Messages.getString("MachineListRenderer.RomOf"));
     /** The machine sample-of column. */
-    private final TableColumn<Anyware, Object> tableWMSampleOf = new TableColumn<>(Messages.getString("MachineListRenderer.SampleOf"));
+    private final TableColumn<Anyware, Object> tableWMSampleOf = new TableColumn<>(
+            Messages.getString("MachineListRenderer.SampleOf"));
     /** The machine selected checkbox column. */
-    private final TableColumn<Anyware, CheckBox> tableWMSelected = new TableColumn<>(Messages.getString("MachineListRenderer.Selected"));
+    private final TableColumn<Anyware, CheckBox> tableWMSelected = new TableColumn<>(
+            Messages.getString("MachineListRenderer.Selected"));
     /** The software status column. */
-    private final TableColumn<Anyware, Anyware> tableWSStatus = new TableColumn<>(Messages.getString("SoftwareListRenderer.Status"));
+    private final TableColumn<Anyware, Anyware> tableWSStatus = new TableColumn<>(
+            Messages.getString("SoftwareListRenderer.Status"));
     /** The software name column. */
-    private final TableColumn<Anyware, String> tableWSName = new TableColumn<>(Messages.getString("SoftwareListRenderer.Name"));
+    private final TableColumn<Anyware, String> tableWSName = new TableColumn<>(
+            Messages.getString("SoftwareListRenderer.Name"));
     /** The software description column. */
-    private final TableColumn<Anyware, String> tableWSDescription = new TableColumn<>(Messages.getString("SoftwareListRenderer.Description"));
+    private final TableColumn<Anyware, String> tableWSDescription = new TableColumn<>(
+            Messages.getString("SoftwareListRenderer.Description"));
     /** The software have-count column. */
-    private final TableColumn<Anyware, String> tableWSHave = new TableColumn<>(Messages.getString("SoftwareListRenderer.Have"));
+    private final TableColumn<Anyware, String> tableWSHave = new TableColumn<>(
+            Messages.getString("SoftwareListRenderer.Have"));
     /** The software clone-of column. */
-    private final TableColumn<Anyware, Object> tableWSCloneOf = new TableColumn<>(Messages.getString("SoftwareListRenderer.CloneOf"));
+    private final TableColumn<Anyware, Object> tableWSCloneOf = new TableColumn<>(
+            Messages.getString("SoftwareListRenderer.CloneOf"));
     /** The software selected checkbox column. */
-    private final TableColumn<Anyware, CheckBox> tableWSSelected = new TableColumn<>(Messages.getString("SoftwareListRenderer.Selected"));
+    private final TableColumn<Anyware, CheckBox> tableWSSelected = new TableColumn<>(
+            Messages.getString("SoftwareListRenderer.Selected"));
     /** Toggle to show unknown entries. */
     @FXML
     private ToggleButton toggleWUnknown;
@@ -257,10 +256,10 @@ public class ProfileViewerController implements Initializable {
     @Override
     public void initialize(final URL location, final ResourceBundle resources) {
         actions = new ProfileViewerActions(tableWL, tableW, tableEntity, session,
-            mntmAllAsMameDat, mntmAllAsLogiqxDat, mntmAllAsSoftwareLists,
-            mntmFilteredAsMameDat, mntmFilteredAsLogiqxDat, mntmFilteredAsSoftwareLists,
-            mntmSelectedAsSoftwareLists, mntmSelectedFilteredAsSoftwareLists,
-            mntmCopyCrc, mntmCopySha1, mntmCopyName, mntmSearchWeb);
+                mntmAllAsMameDat, mntmAllAsLogiqxDat, mntmAllAsSoftwareLists,
+                mntmFilteredAsMameDat, mntmFilteredAsLogiqxDat, mntmFilteredAsSoftwareLists,
+                mntmSelectedAsSoftwareLists, mntmSelectedFilteredAsSoftwareLists,
+                mntmCopyCrc, mntmCopySha1, mntmCopyName, mntmSearchWeb);
         wareRelations = new ProfileViewerWareRelations(tableWL);
         initTableWL();
         initTableW();
@@ -268,7 +267,8 @@ public class ProfileViewerController implements Initializable {
     }
 
     /**
-     * Initializes the entity details table with its columns, toggle buttons, and context menu.
+     * Initializes the entity details table with its columns, toggle buttons, and
+     * context menu.
      */
     private void initTableE() {
         initTableEStatus();
@@ -284,7 +284,8 @@ public class ProfileViewerController implements Initializable {
     }
 
     /**
-     * Configures the entity status column with a graphical cell factory and value factory.
+     * Configures the entity status column with a graphical cell factory and value
+     * factory.
      */
     private void initTableEStatus() {
         tableEntityStatus.setCellFactory(_ -> new EntityStatusCellFactory());
@@ -300,14 +301,16 @@ public class ProfileViewerController implements Initializable {
     }
 
     /**
-     * Configures the entity size column with width, cell factory, and value factory.
+     * Configures the entity size column with width, cell factory, and value
+     * factory.
      */
     private void initTableESize() {
         tableEntitySize.setMinWidth(getWidth(12));
         tableEntitySize.setPrefWidth(tableEntitySize.getMinWidth());
         tableEntitySize.setMaxWidth(tableEntitySize.getMinWidth() * 2);
         tableEntitySize.setCellFactory(_ -> new SizeCellFactory<>());
-        tableEntitySize.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue() instanceof final Rom r ? r.getSize() : null));
+        tableEntitySize.setCellValueFactory(
+                p -> new ReadOnlyObjectWrapper<>(p.getValue() instanceof final Rom r ? r.getSize() : null));
     }
 
     /**
@@ -318,7 +321,7 @@ public class ProfileViewerController implements Initializable {
         tableEntityCRC.setPrefWidth(tableEntityCRC.getMinWidth());
         tableEntityCRC.setMaxWidth(tableEntityCRC.getMinWidth() * 2);
         tableEntityCRC.setCellFactory(_ -> new HashCellFactory<>());
-        tableEntityCRC.setCellValueFactory(p -> new ReadOnlyStringWrapper( p.getValue() instanceof final Rom r ? r.getCrc() : (p.getValue() instanceof final Disk d ? d.getCrc() : null) ));
+        tableEntityCRC.setCellValueFactory(p -> new ReadOnlyStringWrapper(getEntityCrc(p.getValue())));
     }
 
     /**
@@ -329,25 +332,28 @@ public class ProfileViewerController implements Initializable {
         tableEntityMD5.setPrefWidth(tableEntityMD5.getMinWidth());
         tableEntityMD5.setMaxWidth(tableEntityMD5.getMinWidth() * 2);
         tableEntityMD5.setCellFactory(_ -> new HashCellFactory<>());
-        tableEntityMD5.setCellValueFactory(p -> new ReadOnlyStringWrapper( p.getValue() instanceof final Rom r ? r.getMd5() : null ));
+        tableEntityMD5.setCellValueFactory(
+                p -> new ReadOnlyStringWrapper(p.getValue() instanceof final Rom r ? r.getMd5() : null));
     }
 
     /**
-     * Configures the entity SHA-1 column with monospaced font width and cell factory.
+     * Configures the entity SHA-1 column with monospaced font width and cell
+     * factory.
      */
     private void initTableESHA1() {
         tableEntitySHA1.setMinWidth(getWidth(42, MONOSPACED));
         tableEntitySHA1.setPrefWidth(tableEntitySHA1.getMinWidth());
         tableEntitySHA1.setMaxWidth(tableEntitySHA1.getMinWidth() * 2);
         tableEntitySHA1.setCellFactory(_ -> new HashCellFactory<>());
-        tableEntitySHA1.setCellValueFactory(p -> new ReadOnlyStringWrapper( p.getValue() instanceof final Disk d ? d.getSha1() : null ));
+        tableEntitySHA1.setCellValueFactory(
+                p -> new ReadOnlyStringWrapper(p.getValue() instanceof final Disk d ? d.getSha1() : null));
     }
 
     /**
      * Configures the entity merge name column with value factory.
      */
     private void initTableEMergeName() {
-        tableEntityMergeName.setCellValueFactory(p -> new ReadOnlyStringWrapper( p.getValue() instanceof final Rom r ? r.getMerge() : (p.getValue() instanceof final Disk d ? d.getMerge() : null) ));
+        tableEntityMergeName.setCellValueFactory(p -> new ReadOnlyStringWrapper(getEntityMerge(p.getValue())));
     }
 
     /**
@@ -355,7 +361,7 @@ public class ProfileViewerController implements Initializable {
      */
     private void initTableEDumpStatus() {
         tableEntityDumpStatus.setCellFactory(_ -> new EntityDumpStatusCellFactory());
-        tableEntityDumpStatus.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>( p.getValue() instanceof final Rom r ? r.getDumpStatus() : (p.getValue() instanceof final Disk d ? d.getDumpStatus() : null) ));
+        tableEntityDumpStatus.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(getDumpStatus(p.getValue())));
     }
 
     /**
@@ -384,10 +390,8 @@ public class ProfileViewerController implements Initializable {
     }
 
     /**
-     * Enables or disables context menu items based on whether an entity is selected.
-     */
-    /**
-     * Initializes the entries table with its columns, toggle buttons, and selection listeners.
+     * Initializes the entries table with its columns, toggle buttons, and selection
+     * listeners.
      */
     private void initTableW() {
         tableW.setFixedCellSize(-1);
@@ -417,7 +421,8 @@ public class ProfileViewerController implements Initializable {
     }
 
     /**
-     * Configures the machine name column with width, cell factory, and value factory.
+     * Configures the machine name column with width, cell factory, and value
+     * factory.
      */
     private void initTableWMName() {
         tableWMName.setMinWidth(50);
@@ -432,9 +437,9 @@ public class ProfileViewerController implements Initializable {
         tableWMName.setSortable(true);
     }
 
-    
     /**
-     * Handles double-click on a machine cell to launch MAME if the machine is complete.
+     * Handles double-click on a machine cell to launch MAME if the machine is
+     * complete.
      *
      * @param event the mouse event
      */
@@ -448,19 +453,22 @@ public class ProfileViewerController implements Initializable {
                 } else
                     Dialogs.showAlert(Messages.getString("ProfileViewer.NoProfile"));
             } else
-                Dialogs.showAlert(String.format(Messages.getString("ProfileViewer.CantLaunchIncompleteSet"), ware.getStatus()));
+                Dialogs.showAlert(
+                        String.format(Messages.getString("ProfileViewer.CantLaunchIncompleteSet"), ware.getStatus()));
         }
     }
 
     /**
-     * Configures the machine description column with width, cell factory, and value factory.
+     * Configures the machine description column with width, cell factory, and value
+     * factory.
      */
     private void initTableWMDescription() {
         tableWMDescription.setMinWidth(100);
         tableWMDescription.setPrefWidth(200);
         tableWMDescription.setMaxWidth(600);
         tableWMDescription.setCellFactory(_ -> new TooltipStringCellFactory<>());
-        tableWMDescription.setCellValueFactory(p -> new ReadOnlyStringWrapper(p.getValue().getDescription().toString()));
+        tableWMDescription
+                .setCellValueFactory(p -> new ReadOnlyStringWrapper(p.getValue().getDescription().toString()));
         tableWMDescription.setSortable(true);
     }
 
@@ -474,12 +482,12 @@ public class ProfileViewerController implements Initializable {
         tableWMHave.setMaxWidth(90);
         tableWMHave.setCellFactory(_ -> new TooltipStringCellFactory<>());
         tableWMHave.setCellValueFactory(p -> {
-            if (p.getValue() instanceof final Machine m) return new ReadOnlyStringWrapper(String.format(D_OF_D_FMT, m.countHave(), m.countAll()));
+            if (p.getValue() instanceof final Machine m)
+                return new ReadOnlyStringWrapper(String.format(D_OF_D_FMT, m.countHave(), m.countAll()));
             return new ReadOnlyStringWrapper(null);
         });
     }
 
-    
     /**
      * Configures the clone-of column with cell factory and value factory.
      */
@@ -493,16 +501,19 @@ public class ProfileViewerController implements Initializable {
             c.addEventFilter(MouseEvent.MOUSE_CLICKED, this::handleCloneOfDoubleClick);
             return c;
         });
-        tableWMCloneOf.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(wareRelations.getCloneOfValue(p.getValue())));
+        tableWMCloneOf
+                .setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(wareRelations.getCloneOfValue(p.getValue())));
     }
 
     /**
-     * Handles double-click on a clone-of cell to select and scroll to the referenced entry.
+     * Handles double-click on a clone-of cell to select and scroll to the
+     * referenced entry.
      *
      * @param event the mouse event
      */
     private void handleCloneOfDoubleClick(final MouseEvent event) {
-        if (event.getClickCount() > 1 && event.getSource() instanceof final TableCell<?, ?> c && (c.getUserData() instanceof final Anyware ware)) {
+        if (event.getClickCount() > 1 && event.getSource() instanceof final TableCell<?, ?> c
+                && (c.getUserData() instanceof final Anyware ware)) {
             final var sm = tableW.getSelectionModel();
             sm.clearSelection();
             sm.select(ware);
@@ -522,7 +533,9 @@ public class ProfileViewerController implements Initializable {
         tableWMRomOf.setCellValueFactory(p -> {
             if (p.getValue() instanceof final Machine m) {
                 final AnywareList<? extends Anyware> ml = tableWL.getSelectionModel().getSelectedItem();
-                return new ReadOnlyObjectWrapper<>(Optional.ofNullable(m.getRomof()).filter(romof -> !romof.equals(m.getCloneof())).map(romof -> ml.containsName(romof) ? ml.getByName(romof) : romof).orElse(null));
+                return new ReadOnlyObjectWrapper<>(
+                        Optional.ofNullable(m.getRomof()).filter(romof -> !romof.equals(m.getCloneof()))
+                                .map(romof -> ml.containsName(romof) ? ml.getByName(romof) : romof).orElse(null));
             }
             return new ReadOnlyObjectWrapper<>(null);
         });
@@ -537,7 +550,8 @@ public class ProfileViewerController implements Initializable {
         tableWMSampleOf.setPrefWidth(100);
         tableWMSampleOf.setMaxWidth(200);
         tableWMSampleOf.setCellFactory(_ -> new SampleOfCellFactory());
-        tableWMSampleOf.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(wareRelations.getSampleOfValue(p.getValue())));
+        tableWMSampleOf
+                .setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(wareRelations.getSampleOfValue(p.getValue())));
     }
 
     /**
@@ -552,7 +566,8 @@ public class ProfileViewerController implements Initializable {
     }
 
     /**
-     * Creates a checkbox cell for the selected column, bound to the entry's selected state.
+     * Creates a checkbox cell for the selected column, bound to the entry's
+     * selected state.
      *
      * @param p the cell data features
      * @return an observable containing the checkbox
@@ -566,7 +581,8 @@ public class ProfileViewerController implements Initializable {
     }
 
     /**
-     * Configures the software table columns reusing cell factories from the machine columns.
+     * Configures the software table columns reusing cell factories from the machine
+     * columns.
      */
     private void initTableWSColumns() {
         tableWSStatus.setResizable(false);
@@ -588,14 +604,17 @@ public class ProfileViewerController implements Initializable {
         tableWSHave.setSortable(false);
         tableWSHave.setPrefWidth(45);
         tableWSHave.setCellFactory(tableWMHave.getCellFactory());
-        tableWSHave.setCellValueFactory(p -> new ReadOnlyStringWrapper( p.getValue() instanceof final Software s ? String.format(D_OF_D_FMT, s.countHave(), s.countAll()) : null ));
+        tableWSHave.setCellValueFactory(p -> new ReadOnlyStringWrapper(
+                p.getValue() instanceof final Software s ? String.format(D_OF_D_FMT, s.countHave(), s.countAll())
+                        : null));
         tableWSCloneOf.setSortable(false);
         tableWSCloneOf.setMinWidth(50);
         tableWSCloneOf.setPrefWidth(100);
         tableWSCloneOf.setCellFactory(tableWMCloneOf.getCellFactory());
         tableWSCloneOf.setCellValueFactory(p -> {
             final AnywareList<? extends Anyware> sl = tableWL.getSelectionModel().getSelectedItem();
-            return new ReadOnlyObjectWrapper<>(p.getValue().getCloneof() != null ? sl.getByName(p.getValue().getCloneof()) : null);
+            return new ReadOnlyObjectWrapper<>(
+                    p.getValue().getCloneof() != null ? sl.getByName(p.getValue().getCloneof()) : null);
         });
         tableWSSelected.setResizable(false);
         tableWSSelected.setSortable(false);
@@ -603,7 +622,6 @@ public class ProfileViewerController implements Initializable {
         tableWSSelected.setCellValueFactory(tableWMSelected.getCellValueFactory());
     }
 
-    
     /**
      * Initializes the entry toggle buttons with folder icons.
      */
@@ -630,19 +648,22 @@ public class ProfileViewerController implements Initializable {
      * Creates a search predicate that filters entries by name or description.
      *
      * @param newValue the search text
-     * @return a predicate matching entries whose name or description contains the search text
+     * @return a predicate matching entries whose name or description contains the
+     *         search text
      */
     private Predicate<? super Anyware> searchPredicate(final String newValue) {
         return t -> {
             if (newValue == null || newValue.isEmpty())
                 return true;
             final var lcase = newValue.toLowerCase();
-            return t.getBaseName().toLowerCase().contains(lcase) || t.getDescription().toString().toLowerCase().contains(lcase);
+            return t.getBaseName().toLowerCase().contains(lcase)
+                    || t.getDescription().toString().toLowerCase().contains(lcase);
         };
     }
 
     /**
-     * Initializes the software/machine list table with columns, toggle buttons, and selection listeners.
+     * Initializes the software/machine list table with columns, toggle buttons, and
+     * selection listeners.
      */
     private void initTableWL() {
         tableWL.setFixedCellSize(-1);
@@ -650,7 +671,8 @@ public class ProfileViewerController implements Initializable {
         tableWLName.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(p.getValue()));
         tableWLName.setSortable(true);
         tableWLDesc.setCellFactory(_ -> new WareListDescCellFactory());
-        tableWLDesc.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(wareRelations.getWLDescription(p.getValue())));
+        tableWLDesc.setCellValueFactory(
+                p -> new ReadOnlyObjectWrapper<>(ProfileViewerWareRelations.getWLDescription(p.getValue())));
         tableWLHave.setCellFactory(_ -> new WareListHaveCellFactory());
         tableWLHave.setCellValueFactory(p -> new ReadOnlyObjectWrapper<>(wareRelations.getWLHave(p.getValue())));
         tableWL.getSelectionModel().selectedItemProperty().addListener((_, _, newValue) -> reloadW(newValue));
@@ -671,10 +693,6 @@ public class ProfileViewerController implements Initializable {
         idmgreen.getStyleClass().add("icon");
         toggleWLComplete.setGraphic(idmgreen);
         menuWL.setOnShowing(_ -> actions.refreshMenuItemAvailability());
-    }
-
-    private void refreshMenuItemAvailability() {
-        actions.refreshMenuItemAvailability();
     }
 
     /**
@@ -742,7 +760,8 @@ public class ProfileViewerController implements Initializable {
      */
     @FXML
     public void diskMultipleFilter(final ActionEvent e) {
-        setFilterWL(toggleWLUnknown.isSelected(), toggleWLMissing.isSelected(), toggleWLPartial.isSelected(), toggleWLComplete.isSelected());
+        setFilterWL(toggleWLUnknown.isSelected(), toggleWLMissing.isSelected(), toggleWLPartial.isSelected(),
+                toggleWLComplete.isSelected());
     }
 
     /**
@@ -752,7 +771,8 @@ public class ProfileViewerController implements Initializable {
      */
     @FXML
     public void folderFilter(final ActionEvent e) {
-        setFilterW(toggleWUnknown.isSelected(), toggleWMissing.isSelected(), toggleWPartial.isSelected(), toggleWComplete.isSelected());
+        setFilterW(toggleWUnknown.isSelected(), toggleWMissing.isSelected(), toggleWPartial.isSelected(),
+                toggleWComplete.isSelected());
     }
 
     /**
@@ -765,38 +785,51 @@ public class ProfileViewerController implements Initializable {
         setFilterE(toggleEntityUnknown.isSelected(), toggleEntityKO.isSelected(), toggleEntityOK.isSelected());
     }
 
-    private EnumSet<AnywareStatus> buildAnywareFilter(final boolean unknown, final boolean missing, final boolean partial, final boolean complete) {
+    private EnumSet<AnywareStatus> buildAnywareFilter(final boolean unknown, final boolean missing,
+            final boolean partial, final boolean complete) {
         final EnumSet<AnywareStatus> filter = EnumSet.noneOf(AnywareStatus.class);
-        if (unknown) filter.add(AnywareStatus.UNKNOWN);
-        if (missing) filter.add(AnywareStatus.MISSING);
-        if (partial) filter.add(AnywareStatus.PARTIAL);
-        if (complete) filter.add(AnywareStatus.COMPLETE);
+        if (unknown)
+            filter.add(AnywareStatus.UNKNOWN);
+        if (missing)
+            filter.add(AnywareStatus.MISSING);
+        if (partial)
+            filter.add(AnywareStatus.PARTIAL);
+        if (complete)
+            filter.add(AnywareStatus.COMPLETE);
         return filter;
     }
 
-    private EnumSet<EntityStatus> buildEntityFilter(final boolean unknown, final boolean missing, final boolean complete) {
+    private EnumSet<EntityStatus> buildEntityFilter(final boolean unknown, final boolean missing,
+            final boolean complete) {
         final EnumSet<EntityStatus> filter = EnumSet.noneOf(EntityStatus.class);
-        if (unknown) filter.add(EntityStatus.UNKNOWN);
-        if (missing) filter.add(EntityStatus.KO);
-        if (complete) filter.add(EntityStatus.OK);
+        if (unknown)
+            filter.add(EntityStatus.UNKNOWN);
+        if (missing)
+            filter.add(EntityStatus.KO);
+        if (complete)
+            filter.add(EntityStatus.OK);
         return filter;
     }
 
-    private void setFilterWL(final boolean unknown, final boolean missing, final boolean partial, final boolean complete) {
+    private void setFilterWL(final boolean unknown, final boolean missing, final boolean partial,
+            final boolean complete) {
         session.getCurrProfile().setFilterListLists(buildAnywareFilter(unknown, missing, partial, complete));
         reset(session.getCurrProfile());
     }
 
-    private void setFilterW(final boolean unknown, final boolean missing, final boolean partial, final boolean complete) {
+    private void setFilterW(final boolean unknown, final boolean missing, final boolean partial,
+            final boolean complete) {
         session.getCurrProfile().setFilterList(buildAnywareFilter(unknown, missing, partial, complete));
         final var item = tableWL.getSelectionModel().getSelectedItem();
-        if (item != null) reloadW(item);
+        if (item != null)
+            reloadW(item);
     }
 
     private void setFilterE(final boolean unknown, final boolean missing, final boolean complete) {
         session.getCurrProfile().setFilterEntities(buildEntityFilter(unknown, missing, complete));
         final var item = tableW.getSelectionModel().getSelectedItem();
-        if (item != null) reloadE(item);
+        if (item != null)
+            reloadE(item);
     }
 
     /**
@@ -807,6 +840,36 @@ public class ProfileViewerController implements Initializable {
      */
     static Image getStatusIcon(final AnywareStatus status) {
         return ProfileViewerIcons.getStatusIcon(status);
+    }
+
+    private Entity.Status getDumpStatus(final EntityBase eb) {
+        if (eb instanceof final Rom r) {
+            return r.getDumpStatus();
+        }
+        if (eb instanceof final Disk d) {
+            return d.getDumpStatus();
+        }
+        return null;
+    }
+
+    private String getEntityCrc(final EntityBase eb) {
+        if (eb instanceof final Rom r) {
+            return r.getCrc();
+        }
+        if (eb instanceof final Disk d) {
+            return d.getCrc();
+        }
+        return null;
+    }
+
+    private String getEntityMerge(final EntityBase eb) {
+        if (eb instanceof final Rom r) {
+            return r.getMerge();
+        }
+        if (eb instanceof final Disk d) {
+            return d.getMerge();
+        }
+        return null;
     }
 
     /**
@@ -820,7 +883,8 @@ public class ProfileViewerController implements Initializable {
     }
 
     /**
-     * Returns the pixel width for the given number of digits using the specified font.
+     * Returns the pixel width for the given number of digits using the specified
+     * font.
      *
      * @param digits the number of digits
      * @param font   the font family name, or {@code null} for default
@@ -858,7 +922,8 @@ public class ProfileViewerController implements Initializable {
     }
 
     /**
-     * Resets the profile viewer with data from the given profile, preserving the current selection if possible.
+     * Resets the profile viewer with data from the given profile, preserving the
+     * current selection if possible.
      *
      * @param profile the profile to display
      */

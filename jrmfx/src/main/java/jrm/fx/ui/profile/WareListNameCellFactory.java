@@ -9,7 +9,6 @@ import jrm.fx.ui.MainFrame;
 import jrm.locale.Messages;
 import jrm.profile.data.Anyware;
 import jrm.profile.data.AnywareList;
-import jrm.profile.data.AnywareStatus;
 import jrm.profile.data.MachineList;
 import jrm.profile.data.SoftwareList;
 

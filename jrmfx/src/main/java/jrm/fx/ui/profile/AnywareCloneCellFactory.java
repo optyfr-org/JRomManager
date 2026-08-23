@@ -1,13 +1,9 @@
 package jrm.fx.ui.profile;
 
-import java.util.Optional;
-
 import javafx.geometry.Pos;
 import javafx.scene.control.TableCell;
 import javafx.scene.image.ImageView;
 import jrm.profile.data.Anyware;
-import jrm.profile.data.AnywareList;
-import jrm.profile.data.MachineList;
 
 /**
  * Cell for clone-of / rom-of / sample-of columns, showing icon + name, or gray for missing.

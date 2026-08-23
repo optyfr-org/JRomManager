@@ -6,11 +6,9 @@ import javafx.scene.control.TableCell;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import jrm.fx.ui.MainFrame;
-import jrm.profile.data.Disk;
 import jrm.profile.data.Entity;
 import jrm.profile.data.Entity.Status;
 import jrm.profile.data.EntityBase;
-import jrm.profile.data.Rom;
 
 /**
  * Table cell that renders an entity's dump status (verified/good/baddump/nodump) as an icon.

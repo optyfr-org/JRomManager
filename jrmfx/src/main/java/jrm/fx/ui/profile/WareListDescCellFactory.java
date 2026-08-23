@@ -3,10 +3,8 @@ package jrm.fx.ui.profile;
 import javafx.geometry.Pos;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.Tooltip;
-import jrm.locale.Messages;
 import jrm.profile.data.Anyware;
 import jrm.profile.data.AnywareList;
-import jrm.profile.data.SoftwareList;
 
 /**
  * Table cell for software/machine list description, with tooltip.
