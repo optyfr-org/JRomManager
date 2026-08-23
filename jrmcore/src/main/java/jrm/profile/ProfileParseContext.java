@@ -55,11 +55,7 @@ class ProfileParseContext {
 	/** XML tag name for ROM elements. */
 	private static final String STATUS = "status";
 
-	/**
-	 * Map for tracking ROMs by their CRC values to identify suspicious cases where identical CRCs map to different SHA1/MD5
-	 * signatures.
-	 */
-	private final HashMap<String, Rom> romsByCRC = new HashMap<>();
+
 
 	/**
 	 * Flags and temporary variables used during XML parsing to track the current context and state of the parsing process.
@@ -118,7 +114,7 @@ class ProfileParseContext {
 	 * parsed in the XML, allowing for proper association of ROMs, disks, and other related data with the correct software entry
 	 * context.
 	 */
-	private Software currSoftware = null;
+	Software currSoftware = null;
 
 	/**
 	 * Reference to the currently parsed software part. This variable is used to keep track of the active software part being
@@ -132,21 +128,21 @@ class ProfileParseContext {
 	 * being parsed within a software part, allowing for proper association of ROMs and other related data with the correct data
 	 * area context.
 	 */
-	private Software.Part.DataArea currDataArea = null;
+	Software.Part.DataArea currDataArea = null;
 
 	/**
 	 * Reference to the currently parsed software part disk area. This variable is used to keep track of the active disk area
 	 * being parsed within a software part, allowing for proper association of disks and other related data with the correct
 	 * disk area context.
 	 */
-	private Software.Part.DiskArea currDiskArea = null;
+	Software.Part.DiskArea currDiskArea = null;
 
 	/**
 	 * Reference to the currently parsed machine. This variable is used to keep track of the active machine being parsed in the
 	 * XML, allowing for proper association of software lists, ROMs, disks, and other related data with the correct machine
 	 * context.
 	 */
-	private Machine currMachine = null;
+	Machine currMachine = null;
 
 	/**
 	 * Reference to the currently parsed device. This variable is used to keep track of the active device being parsed within a
@@ -165,13 +161,13 @@ class ProfileParseContext {
 	 * Reference to the currently parsed ROM. This variable is used to keep track of the active ROM being parsed in the XML,
 	 * allowing for proper association of ROM attributes and related data with the correct ROM context.
 	 */
-	private Rom currRom = null;
+	Rom currRom = null;
 
 	/**
 	 * Reference to the currently parsed disk. This variable is used to keep track of the active disk being parsed in the XML,
 	 * allowing for proper association of disk attributes and related data with the correct disk context.
 	 */
-	private Disk currDisk = null;
+	Disk currDisk = null;
 
 	/**
 	 * Reference to the currently parsed slot. This variable is used to keep track of the active slot being parsed within a
@@ -179,17 +175,7 @@ class ProfileParseContext {
 	 */
 	private Slot currSlot = null;
 
-	/**
-	 * Set of parsed ROM names for the current machine, software, or device, used to keep track of processed ROMs and detect or
-	 * prevent duplicates.
-	 */
-	private final HashSet<String> roms = new HashSet<>();
 
-	/**
-	 * Set of disk names currently being parsed. This set is used to track the specific disk names associated with the disks
-	 * being parsed, allowing for proper association of disk attributes and related data with the correct disk context.
-	 */
-	private final HashSet<String> disks = new HashSet<>();
 
 	/**
 	 * Current XML tag name being processed. This variable is used to keep track of the active XML tag being parsed, allowing
@@ -200,12 +186,14 @@ class ProfileParseContext {
 	/**
 	 * Owning profile instance for accessing parse accumulators and collections.
 	 */
-	private final Profile profile;
+	final Profile profile;
 
 	/**
 	 * Progress handler for reporting and cancellation.
 	 */
 	private final ProgressHandler handler;
+
+	private final RomDiskParseHelper romDiskHelper = new RomDiskParseHelper(this);
 
 	ProfileParseContext(Profile profile, ProgressHandler handler) {
 		this.profile = profile;
@@ -310,94 +298,15 @@ class ProfileParseContext {
 		return msg.toString();
 	}
 
-	private void startDisk(final Attributes attributes) throws NumberFormatException {
-		if (currMachine == null && currSoftware == null)
-			return;
-		currDisk = new Disk(currMachine != null ? currMachine : currSoftware);
-		if (currSoftware != null && currDiskArea != null)
-			currDiskArea.getDisks().add(currDisk);
-		for (var i = 0; i < attributes.getLength(); i++) {
-			final var value = attributes.getValue(i);
-			switch (attributes.getQName(i)) {
-				case "name" -> {
-					var name = value.trim();
-					if (name.endsWith(".chd"))
-						name = name.substring(0, name.length() - 4);
-					currDisk.setName(name);
-				}
-				case "sha1" -> {
-					currDisk.setSha1(safeHex(value, 40));
-					profile.sha1Disks = true;
-				}
-				case "md5" -> {
-					currDisk.setMd5(safeHex(value, 32));
-					profile.md5Disks = true;
-				}
-				case "merge" -> currDisk.setMerge(value.trim());
-				case "index" -> currDisk.setIndex(Integer.decode(value));
-				case "optional" -> currDisk.setOptional(BooleanUtils.toBoolean(value));
-				case "writeable" -> currDisk.setWriteable(BooleanUtils.toBoolean(value));
-				case "region" -> currDisk.setRegion(value);
-				case STATUS -> currDisk.setDumpStatus(Entity.Status.valueOf(value));
-				default -> { /* skip unknown */ }
-			}
-		}
+	private void startDisk(final Attributes attributes) {
+		romDiskHelper.startDisk(attributes);
 	}
 
-	private void startRom(final Attributes attributes) throws NumberFormatException {
-		if (currMachine == null && currSoftware == null)
-			return;
-		currRom = new Rom(currMachine != null ? currMachine : currSoftware);
-		if (currSoftware != null && currDataArea != null)
-			currDataArea.getRoms().add(currRom);
-		for (var i = 0; i < attributes.getLength(); i++) {
-			final var value = attributes.getValue(i);
-			switch (attributes.getQName(i)) {
-				case "name" -> currRom.setName(value.trim());
-				case "size" -> currRom.setSize(Long.decode(value));
-				case "offset" -> {
-					if (value.toLowerCase().startsWith("0x"))
-						currRom.setOffset(Long.decode(value));
-					else
-						currRom.setOffset(Long.decode("0x" + value));
-				}
-				case "value" -> currRom.setValue(value);
-				case "crc" -> currRom.setCrc(safeHex(value, 8));
-				case "sha1" -> {
-					currRom.setSha1(safeHex(value, 40));
-					profile.sha1Roms = true;
-				}
-				case "md5" -> {
-					currRom.setMd5(safeHex(value, 32));
-					profile.md5Roms = true;
-				}
-				case "merge" -> currRom.setMerge(value.trim());
-				case "bios" -> currRom.setBios(value);
-				case "region" -> currRom.setRegion(value);
-				case "date" -> currRom.setDate(value);
-				case "optional" -> currRom.setOptional(BooleanUtils.toBoolean(value));
-				case STATUS -> currRom.setDumpStatus(Entity.Status.valueOf(value));
-				case "loadflag" -> currRom.setLoadflag(LoadFlag.getEnum(value));
-				default -> { /* skip unknown */ }
-			}
-		}
+	private void startRom(final Attributes attributes) {
+		romDiskHelper.startRom(attributes);
 	}
 
-	private String safeHex(String value, int len) {
-		value = value.trim();
-		if (value.startsWith("0x")) {
-			if (len > 8) {
-				final var bi = new BigInteger(value.substring(2), 16).toString(16);
-				return StringUtils.leftPad(bi.toLowerCase(), len - bi.length(), '0');
-			} else {
-				final var fmt = "%0" + len + "x";
-				return String.format(fmt, Long.decode(value));
-			}
-		} else if (value.length() == len)
-			return value.toLowerCase();
-		else
-			return StringUtils.leftPad(value.toLowerCase(), len - value.length(), '0');
-	}
+
 
 	private void startSlotOption(final Attributes attributes) {
 		if (currMachine == null || currSlot == null)
@@ -766,46 +675,11 @@ class ProfileParseContext {
 	}
 
 	private void endDisk() {
-		if (currDisk.getBaseName() != null && !disks.contains(currDisk.getBaseName())) {
-			disks.add(currDisk.getBaseName());
-			if (currMachine != null) {
-				currMachine.getDisks().add(currDisk);
-				profile.disksCnt++;
-			} else if (currSoftware != null) {
-				currSoftware.getDisks().add(currDisk);
-				profile.swdisksCnt++;
-			}
-		}
-		currDisk = null;
+		romDiskHelper.endDisk();
 	}
 
 	private void endRom() {
-		if (currRom.getBaseName() != null) {
-			if (!roms.contains(currRom.getBaseName())) {
-				roms.add(currRom.getBaseName());
-				if (currMachine != null) {
-					currMachine.getRoms().add(currRom);
-					profile.romsCnt++;
-				} else if (currSoftware != null) {
-					currSoftware.getRoms().add(currRom);
-					profile.swromsCnt++;
-				}
-			}
-			endRomCheckSuspiciousCRC();
-		}
-		currRom = null;
-	}
-
-	private void endRomCheckSuspiciousCRC() {
-		if (currRom.getCrc() != null) {
-			final var oldRom = romsByCRC.put(currRom.getCrc(), currRom);
-			if (oldRom != null) {
-				if (oldRom.getSha1() != null && currRom.getSha1() != null && !oldRom.equals(currRom))
-					profile.suspiciousCRC.add(currRom.getCrc());
-				if (oldRom.getMd5() != null && currRom.getMd5() != null && !oldRom.equals(currRom))
-					profile.suspiciousCRC.add(currRom.getCrc());
-			}
-		}
+		romDiskHelper.endRom();
 	}
 
 	private void endSoftwareList() {
@@ -817,8 +691,7 @@ class ProfileParseContext {
 	}
 
 	private void endMachine() throws BreakException {
-		roms.clear();
-		disks.clear();
+		romDiskHelper.endMachineOrSoftware();
 		profile.machineListList.get(0).add(currMachine);
 		profile.machinesCnt++;
 		currMachine = null;
@@ -831,8 +704,7 @@ class ProfileParseContext {
 	private void endSoftware() throws BreakException {
 		if (currSoftwareList == null || currSoftware == null)
 			return;
-		roms.clear();
-		disks.clear();
+		romDiskHelper.endMachineOrSoftware();
 		currSoftwareList.add(currSoftware);
 		profile.softwaresCnt++;
 		currSoftware = null;

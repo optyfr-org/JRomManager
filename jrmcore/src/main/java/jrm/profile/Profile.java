@@ -179,7 +179,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * 
      * @return visibility filters set
      */
-    private transient @Getter @Setter Set<AnywareStatus> filterListLists = null;
+    transient @Getter @Setter Set<AnywareStatus> filterListLists = null;
 
     /**
      * Dynamic single machine anyware visibility status filter settings.
@@ -188,7 +188,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * 
      * @return visibility filters set
      */
-    private transient @Getter @Setter Set<AnywareStatus> filterList = null;
+    transient @Getter @Setter Set<AnywareStatus> filterList = null;
 
     /**
      * Dynamic physical entities visibility status filter settings.
@@ -197,7 +197,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * 
      * @return visibility filters set
      */
-    private transient @Getter @Setter Set<EntityStatus> filterEntities = null;
+    transient @Getter @Setter Set<EntityStatus> filterEntities = null;
 
     /**
      * Local profiles Settings parameters.
@@ -222,7 +222,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * 
      * @return profile NFO summary reference
      */
-    private transient @Getter ProfileNFO nfo = null;
+    transient @Getter ProfileNFO nfo = null;
     /**
      * Parsed categories configuration mapping.
      * 
@@ -244,7 +244,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * 
      * @return active workspace session
      */
-    private transient @Getter Session session = null;
+    transient @Getter Session session = null;
     /**
      * Parsed metadata DAT catalogs specifications tracking metrics.
      * 
@@ -255,7 +255,7 @@ public class Profile implements Serializable, StatusRendererFactory {
     /**
      * Protected zero-argument constructor initializing an empty profile.
      */
-    private Profile() {
+    Profile() {
 
     }
 
@@ -274,7 +274,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * 
      * @return true on success, false on errors or cancellations
      */
-    private boolean internalLoad(final File file, final ProgressHandler handler) {
+    boolean internalLoad(final File file, final ProgressHandler handler) {
         handler.setProgress(String.format(Messages.getString("Profile.Parsing"), new PathAbstractor(session).getRelativePath(file.toPath())), -1); //$NON-NLS-1$
         try (var in = handler.getInputStream(new FileInputStream(file), (int) file.length())) {
             XMLTools.getSaxParser().parse(in, new ProfileHandler(this, handler));
@@ -298,241 +298,28 @@ public class Profile implements Serializable, StatusRendererFactory {
      * Serializes current profile state properties to cached binary files.
      */
     public void save() {
-        try {
-            SignedObjectStore.write(session, session.getUser().getSettings().getCacheFile(nfo.getFile()), this, SignedObjectStore.Codec.CACHE);
-        } catch (final Exception _) {
-            // do nothing
-        }
+        ProfileLoader.save(this);
     }
 
     /**
      * Loads profile database configurations from physical file descriptors.
-     * 
-     * @param session execution workspace context
-     * @param file target source config catalog file (.jrm, .dat, .xml)
-     * @param handler progressive feedback reporter
-     * 
-     * @return parsed profile metadata container
      */
     public static Profile load(final Session session, final File file, final ProgressHandler handler) {
-        return Profile.load(session, ProfileNFO.load(session, file), handler);
+        return ProfileLoader.load(session, file, handler);
     }
 
     /**
      * Loads profile properties matching cached descriptors or walk parsers.
-     * 
-     * @param session execution workspace context
-     * @param nfo JRomManager database profile information stats summary
-     * @param handler progressive feedback reporter
-     * 
-     * @return parsed profile metadata container
      */
     public static Profile load(final Session session, final ProfileNFO nfo, final ProgressHandler handler) {
-        Profile profile = loadProfile(session, nfo, handler);
-        if (profile == null) {
-            session.setCurrProfile(null);
-            return null;
-        }
-
-        initializeProfile(profile, handler);
-        session.setCurrProfile(profile);
-        return profile;
-    }
-
-    /**
-     * Loads profile from cache or creates new profile from source files.
-     * 
-     * @param session execution workspace context
-     * @param nfo JRomManager database profile information stats summary
-     * @param handler progressive feedback reporter
-     * 
-     * @return loaded profile or null if loading failed
-     */
-    private static Profile loadProfile(final Session session, final ProfileNFO nfo, final ProgressHandler handler) {
-        final var cachefile = session.getUser().getSettings().getCacheFile(nfo.getFile());
-        Profile profile = null;
-        if (shouldLoadFromCache(cachefile, nfo, session)) {
-            profile = loadCache(session, nfo, handler, null, cachefile);
-        }
-        // Cache may be missing, corrupt, unsigned, or rejected by the deserialization filter
-        if (profile == null) {
-            profile = loadThenSaveToCache(session, nfo, handler);
-        }
-        return profile;
-    }
-
-    /**
-     * Determines whether profile should be loaded from cache based on file timestamps and cache settings.
-     * 
-     * @param cachefile cached profile file
-     * @param nfo JRomManager database profile information stats summary
-     * @param session execution workspace context
-     * 
-     * @return true if cache should be used, false otherwise
-     */
-    private static boolean shouldLoadFromCache(final File cachefile, final ProfileNFO nfo, final Session session) {
-        return cachefile.lastModified() >= nfo.getFile().lastModified()
-            && (!nfo.isJRM() || cachefile.lastModified() >= nfo.getMame().getFileroms().lastModified())
-            && Boolean.TRUE.equals(!session.getUser().getSettings().getProperty(SettingsEnum.debug_nocache, Boolean.class)); // $NON-NLS-1$
-    }
-
-    /**
-     * Initializes loaded profile by building relationships, updating statistics, and loading components.
-     * 
-     * @param profile profile to initialize
-     * @param handler progressive feedback reporter
-     */
-    private static void initializeProfile(final Profile profile, final ProgressHandler handler) {
-        handler.setProgress(Messages.getString("Profile.BuildingParentClonesRelations"), -1); //$NON-NLS-1$
-        profile.buildParentClonesRelations();
-        updateNfoStats(profile);
-        profile.nfo.save(profile.session);
-        
-        loadProfileComponents(profile, handler);
-        
-        profile.filterEntities = EnumSet.allOf(EntityStatus.class);
-        profile.filterList = EnumSet.allOf(AnywareStatus.class);
-        profile.filterListLists = EnumSet.allOf(AnywareStatus.class);
-    }
-
-    /**
-     * Updates profile NFO statistics with current counts and version information.
-     * 
-     * @param profile profile containing statistics to update
-     */
-    private static void updateNfoStats(final Profile profile) {
-        final var stats = profile.nfo.getStats();
-        final String version;
-        if (profile.build != null) {
-            version = profile.build;
-        } else if (profile.header.containsKey(VERSION)) {
-            version = profile.header.get(VERSION).toString();
-        } else {
-            version = null;
-        }
-        stats.setVersion(version); // $NON-NLS-1$
-        stats.setTotalSets(profile.softwaresCnt + profile.machinesCnt);
-        stats.setTotalRoms(profile.romsCnt + profile.swromsCnt);
-        stats.setTotalDisks(profile.disksCnt + profile.swdisksCnt);
-    }
-
-    /**
-     * Loads all profile components including settings, filters, and configuration files.
-     * 
-     * @param profile profile to load components for
-     * @param handler progressive feedback reporter
-     */
-    private static void loadProfileComponents(final Profile profile, final ProgressHandler handler) {
-        handler.setProgress("Loading settings...", -1); //$NON-NLS-1$
-        profile.loadSettings();
-        
-        handler.setProgress("Creating Systems filters...", -1); //$NON-NLS-1$
-        profile.loadSystems();
-        
-        handler.setProgress("Creating Years filters...", -1); //$NON-NLS-1$
-        profile.loadYears();
-        
-        profile.loadCatVer(handler);
-        profile.loadNPlayers(handler);
-    }
-
-    /**
-     * Parses profile catalog DAT file content and serializes binary database states.
-     * 
-     * @param session active session context
-     * @param nfo catalogs info summary
-     * @param handler progressive feedback reporter
-     * 
-     * @return parsed profile metadata database
-     */
-    private static Profile loadThenSaveToCache(final Session session, final ProfileNFO nfo, final ProgressHandler handler) {
-        Profile profile;
-        handler.setInfos(1, true);
-        profile = new Profile();
-        profile.session = session;
-        profile.nfo = nfo;
-        if (!load(nfo, profile, handler))
-            return null;
-        // save cache
-        handler.setInfos(1, null);
-        handler.setProgress(Messages.getString("Profile.SavingCache"), -1); //$NON-NLS-1$
-        profile.save();
-        return profile;
-    }
-
-    /**
-     * Triggers XML parsing on single dat files or paired ROMs + SoftwareLists.
-     * 
-     * @param nfo catalogs details stats
-     * @param profile parent target empty database
-     * @param handler progressive feedback reporter
-     * 
-     * @return true on success, false on failure or cancellation
-     */
-    private static boolean load(final ProfileNFO nfo, Profile profile, final ProgressHandler handler) {
-        if (!nfo.isJRM()) // load DAT file not attached to a JRM
-            return (nfo.getFile().exists() && profile.internalLoad(nfo.getFile(), handler));
-
-        // we use JRM file keep ROMs/SL DATs in relation
-        if (nfo.getMame().getFileroms() != null) { // load ROMs dat
-            if (!nfo.getMame().getFileroms().exists() || !profile.internalLoad(nfo.getMame().getFileroms(), handler))
-                return false;
-            if (nfo.getMame().getFilesl() != null && (!nfo.getMame().getFilesl().exists() || !profile.internalLoad(nfo.getMame().getFilesl(), handler))) {
-                // load SL dat (note that loading software list without ROMs dat is NOT
-                // recommended)
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /**
-     * Retrieves profile database state properties from standard cache files.
-     * 
-     * @param session active session context
-     * @param nfo catalogs info stats
-     * @param handler progressive reporter
-     * @param profile target empty profile object
-     * @param cachefile target cache binary file
-     * 
-     * @return loaded profile, or null on cache mismatches
-     */
-    private static Profile loadCache(final Session session, final ProfileNFO nfo, final ProgressHandler handler, Profile profile, final File cachefile) {
-        handler.setInfos(1, null);
-        handler.setProgress(Messages.getString("Profile.LoadingCache"), -1); //$NON-NLS-1$
-        try (final var in = handler.getInputStream(new java.io.FileInputStream(cachefile), (int) cachefile.length())) {
-            profile = (Profile) SignedObjectStore.read(session, in, (int) cachefile.length(), SignedObjectStore.Codec.CACHE);
-            profile.session = session;
-            profile.nfo = nfo;
-        } catch (final Exception e) {
-            // may fail to load because serialized classes did change since last cache save
-            // or if deserialization filter rejected untrusted classes
-            Log.debug(() -> "Failed to load cache file: " + e.getMessage());
-        }
-        return profile;
+        return ProfileLoader.load(session, nfo, handler);
     }
 
     /**
      * Maps parent-clones database relationships sequentially after loading metadata catalog elements.
      */
-    private void buildParentClonesRelations() {
-        machineListList.forEach(machineList -> machineList.forEach(machine -> {
-            if (machine.getRomof() != null) {
-                machine.setParent(machineList.getByName(machine.getRomof()));
-                if (machine.getParent() != null && !machine.getParent().isIsbios())
-                    machine.getParent().getClones().put(machine.getName(), machine);
-            }
-            machine.getDeviceRef().forEach(deviceRef -> machine.getDeviceMachines().putIfAbsent(deviceRef, machineList.getByName(deviceRef)));
-            machine.getSlots().values()
-                    .forEach(slot -> slot.forEach(slotoption -> machine.getDeviceMachines().putIfAbsent(slotoption.getDevName(), machineList.getByName(slotoption.getDevName()))));
-        }));
-        machineListList.getSoftwareListList().forEach(softwareList -> softwareList.forEach(software -> {
-            if (software.getCloneof() != null) {
-                software.setParent(softwareList.getByName(software.getCloneof()));
-                if (software.getParent() != null)
-                    software.getParent().getClones().put(software.getName(), software);
-            }
-        }));
+    void buildParentClonesRelations() {
+        ProfileLoader.buildParentClonesRelations(this);
     }
 
     /**
