@@ -2,6 +2,7 @@ package jrm.server.shared.datasources;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Optional;
 
 import javax.xml.stream.XMLStreamException;
 
@@ -169,19 +170,19 @@ public class ReportTreeXMLResponse extends XMLResponse {
         final var reportfile = ReportIntf.getReportFile(request.session, srcfile);
         final var lastModified = reportfile.lastModified();
         final var cached = cachedTmpReport(reportfile, lastModified);
-        if (cached != null)
-            return cached;
+        if (cached.isPresent())
+            return cached.get();
         final var loaded = Report.load(request.session, srcfile);
         return publishTmpReport(reportfile, lastModified, loaded);
     }
 
-    private Report cachedTmpReport(File reportfile, long lastModified) {
+    private Optional<Report> cachedTmpReport(File reportfile, long lastModified) {
         synchronized (request.session) {
             final var tmp = request.session.getTmpReport();
             if (isCurrentTmpReport(tmp, reportfile, lastModified))
-                return tmp;
+                return Optional.of(tmp);
         }
-        return null;
+        return Optional.empty();
     }
 
     private Report publishTmpReport(File reportfile, long lastModified, Report loaded) {
