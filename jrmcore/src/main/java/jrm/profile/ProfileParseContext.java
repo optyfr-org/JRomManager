@@ -22,9 +22,6 @@ import jrm.misc.BreakException;
  */
 class ProfileParseContext {
 
-	/** XML tag name for ROM elements. */
-	private static final String STATUS = "status";
-
 	/**
 	 * Owning profile instance for accessing parse accumulators and collections.
 	 */
@@ -204,10 +201,6 @@ class ProfileParseContext {
 
 	private void startSoftwareList(final Attributes attributes) {
 		softwareHelper.startSoftwareList(attributes);
-	}
-
-	private void startSoftwareListDesc(final Attributes attributes) {
-		softwareHelper.startSoftwareListDesc(attributes);
 	}
 
 	private void startSoftware(final Attributes attributes) {

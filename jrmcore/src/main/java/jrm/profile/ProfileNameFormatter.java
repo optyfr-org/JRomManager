@@ -32,13 +32,13 @@ class ProfileNameFormatter implements StatusRendererFactory {
 			.append("] ");
 		if (profile.build != null) {
 			nameBuilder.append(toBoldBlack(profile.build));
-		} else if (!profile.header.isEmpty()) {
-			if (profile.header.containsKey(Profile.DESCRIPTION)) {
-				nameBuilder.append(toBoldBlack(profile.header.get(Profile.DESCRIPTION)));
-			} else if (profile.header.containsKey("name")) {
-				nameBuilder.append(toBoldBlack(profile.header.get("name")));
-				if (profile.header.containsKey(Profile.VERSION))
-					nameBuilder.append(" (").append(escape(profile.header.get(Profile.VERSION))).append(")");
+		} else if (!profile.getHeader().isEmpty()) {
+			if (profile.getHeader().containsKey(Profile.DESCRIPTION)) {
+				nameBuilder.append(toBoldBlack(profile.getHeader().get(Profile.DESCRIPTION)));
+			} else if (profile.getHeader().containsKey("name")) {
+				nameBuilder.append(toBoldBlack(profile.getHeader().get("name")));
+				if (profile.getHeader().containsKey(Profile.VERSION))
+					nameBuilder.append(" (").append(escape(profile.getHeader().get(Profile.VERSION))).append(")");
 			}
 		}
 		final var strcntBuilder = new StringBuilder();

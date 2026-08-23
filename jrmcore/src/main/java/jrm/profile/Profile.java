@@ -141,7 +141,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * 
      * @return map containing XML header elements key-value associations
      */
-     final @Getter Map<String, StringBuilder> header = new HashMap<>();
+      private final @Getter Map<String, StringBuilder> header = new HashMap<>();
 
     /**
      * Global collection grouping parsed machines, computer clones, and associated software catalogs.
@@ -155,7 +155,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * 
      * @return suspicious CRC checksum values set
      */
-     final @Getter Set<String> suspiciousCRC = new HashSet<>();
+      private final @Getter Set<String> suspiciousCRC = new HashSet<>();
 
     /**
      * Dynamic anyware lists visibility status filter settings.

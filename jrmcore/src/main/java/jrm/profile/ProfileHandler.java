@@ -20,8 +20,6 @@ import jrm.aui.progress.ProgressHandler;
  */
 class ProfileHandler extends DefaultHandler {
 
-	private final Profile profile;
-	private final ProgressHandler handler;
 	private final ProfileParseContext context;
 
 	/**
@@ -31,8 +29,6 @@ class ProfileHandler extends DefaultHandler {
 	 * @param handler the progress handler monitor
 	 */
 	public ProfileHandler(Profile profile, ProgressHandler handler) {
-		this.profile = profile;
-		this.handler = handler;
 		this.context = new ProfileParseContext(profile, handler);
 	}
 

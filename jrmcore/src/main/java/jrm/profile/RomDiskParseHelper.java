@@ -150,9 +150,9 @@ class RomDiskParseHelper {
 			final var oldRom = romsByCRC.put(ctx.state.currRom.getCrc(), ctx.state.currRom);
 			if (oldRom != null) {
 				if (oldRom.getSha1() != null && ctx.state.currRom.getSha1() != null && !oldRom.equals(ctx.state.currRom))
-					ctx.state.profile.suspiciousCRC.add(ctx.state.currRom.getCrc());
+					ctx.state.profile.getSuspiciousCRC().add(ctx.state.currRom.getCrc());
 				if (oldRom.getMd5() != null && ctx.state.currRom.getMd5() != null && !oldRom.equals(ctx.state.currRom))
-					ctx.state.profile.suspiciousCRC.add(ctx.state.currRom.getCrc());
+					ctx.state.profile.getSuspiciousCRC().add(ctx.state.currRom.getCrc());
 			}
 		}
 	}

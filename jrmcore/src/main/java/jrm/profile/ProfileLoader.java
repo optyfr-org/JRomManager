@@ -111,8 +111,8 @@ final class ProfileLoader {
 		final String version;
 		if (profile.build != null) {
 			version = profile.build;
-		} else if (profile.header.containsKey(Profile.VERSION)) {
-			version = profile.header.get(Profile.VERSION).toString();
+		} else if (profile.getHeader().containsKey(Profile.VERSION)) {
+			version = profile.getHeader().get(Profile.VERSION).toString();
 		} else {
 			version = null;
 		}

@@ -41,7 +41,7 @@ class ParseCharacterHandler {
 		} else if (state.inPublisher && state.currSoftware != null) {
 			return state.currSoftware.getPublisher();
 		} else if (state.inHeader) {
-			return ctx.profile.header.computeIfAbsent(state.currTag, _ -> new StringBuilder());
+			return ctx.profile.getHeader().computeIfAbsent(state.currTag, _ -> new StringBuilder());
 		}
 		return null;
 	}
