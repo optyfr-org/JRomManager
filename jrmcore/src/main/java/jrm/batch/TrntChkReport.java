@@ -304,11 +304,15 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
         @Override
         public String toString() {
             final StringBuilder sb = new StringBuilder();
+            appendTo(sb);
+            return sb.toString();
+        }
+
+        private void appendTo(final StringBuilder sb) {
             sb.append(String.format("%s%-50s %12d %s%n", parent == null ? "" : "|_ ", data.title, data.length, data.status));
             if (children != null)
                 for (Child child : children)
-                    sb.append(child);
-            return sb.toString();
+                    child.appendTo(sb);
         }
 
         /**
@@ -349,7 +353,7 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
     public String toString() {
         final StringBuilder sb = new StringBuilder();
         for (final Child node : nodes)
-            sb.append(node);
+            node.appendTo(sb);
         return sb.toString();
     }
 
