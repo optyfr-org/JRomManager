@@ -10,8 +10,8 @@ import javafx.util.Callback;
 /**
  * A table cell factory that renders HTML content in an embedded {@link WebView}.
  * <p>
- * The cell creates a new WebView for each row and loads the HTML string as content.
- * The WebView is styled with a transparent background and reduced font scale.
+ * The cell creates a new WebView (lazily on first content update) for each cell and loads
+ * the HTML string as content. The WebView is styled with a transparent background and reduced font scale.
  *
  * @param <S> the type of the TableView items
  * @param <T> the type of the cell item
@@ -22,22 +22,16 @@ public class WebviewCellFactory<S, T> implements Callback<TableColumn<S, T>, Tab
     public TableCell<S, T> call(TableColumn<S, T> column) {
         return new TableCell<S, T>() {
             /**
-             * Updates the cell by loading the item as HTML content.
-             * <p>
-             * Empty or null items clear the cell; otherwise a new {@link WebView} is created
-             * and the content is loaded with transparent styling.
-             *
-             * @param item  the HTML content to render, or {@code null}
-             * @param empty whether this cell represents an empty row
-             */
-            private final WebView webview = new WebView();
-            private final WebEngine engine = webview.getEngine();
-
-            {
-                webview.setPrefHeight(-1); // <- Absolute must at this position (before calling the Javascript)
-                webview.setBlendMode(BlendMode.DARKEN);
-                webview.setFontScale(0.75);
-            }
+              * Updates the cell by loading the item as HTML content.
+              * <p>
+              * Empty or null items clear the cell; otherwise a {@link WebView} (created once per cell
+              * on first use) is set as graphic and the content is loaded with transparent styling.
+              *
+              * @param item  the HTML content to render, or {@code null}
+              * @param empty whether this cell represents an empty row
+              */
+            private WebView webview;
+            private WebEngine engine;
 
             @Override
             protected void updateItem(T item, boolean empty) {
@@ -47,6 +41,13 @@ public class WebviewCellFactory<S, T> implements Callback<TableColumn<S, T>, Tab
                     setGraphic(null);
                     setStyle("");
                 } else {
+                    if (webview == null) {
+                        webview = new WebView();
+                        engine = webview.getEngine();
+                        webview.setPrefHeight(-1); // <- Absolute must at this position (before calling the Javascript)
+                        webview.setBlendMode(BlendMode.DARKEN);
+                        webview.setFontScale(0.75);
+                    }
                     setGraphic(webview);
                     engine.loadContent(
                             "<body topmargin=0 leftmargin=0 style=\"background-color: transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis\">" + item + "</body>");
