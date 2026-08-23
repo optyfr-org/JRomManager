@@ -14,7 +14,6 @@ import jrm.misc.Tree.Node;
 import jrm.profile.manager.Dir;
 import jrm.profile.manager.DirTree;
 import jrm.server.shared.datasources.XMLRequest.Operation;
-import lombok.val;
 
 /**
  * Handles XML responses for managing the profiles directory tree. This class processes operations such as fetching the tree
@@ -62,7 +61,7 @@ public class ProfilesTreeXMLResponse extends XMLResponse {
      */
     private int countNode(Node<Dir> node) {
         var count = 0;
-        for (val child : node) {
+        for (final var child : node) {
             count++;
             if (child.getChildCount() > 0)
                 count += countNode(child);
@@ -95,7 +94,7 @@ public class ProfilesTreeXMLResponse extends XMLResponse {
         } else
             request.getSession().newProfileList();
         id.incrementAndGet();
-        for (val child : node)
+        for (final var child : node)
             outputNode(writer, child, strID, id);
     }
 
@@ -110,9 +109,9 @@ public class ProfilesTreeXMLResponse extends XMLResponse {
      */
     @Override
     protected void fetch(Operation operation) throws XMLStreamException, IOException {
-        val rootpath = request.getSession().getUser().getSettings().getWorkPath().resolve("xmlfiles").toAbsolutePath().normalize();
+        final var rootpath = request.getSession().getUser().getSettings().getWorkPath().resolve("xmlfiles").toAbsolutePath().normalize();
         Files.createDirectories(rootpath);
-        val root = new DirTree(rootpath.toFile());
+        final var root = new DirTree(rootpath.toFile());
         int nodecount = countNode(root.getRoot());
         writer.writeStartElement(RESPONSE);
         writer.writeElement(STATUS, "0");

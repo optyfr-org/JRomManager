@@ -15,7 +15,6 @@ import jrm.aui.basic.ResultColUpdater;
 import jrm.aui.basic.SrcDstResult;
 import java.util.stream.Collectors;
 
-import lombok.val;
 
 import jrm.aui.basic.AbstractSrcDstResult;
 import jrm.batch.TorrentChecker;
@@ -52,7 +51,7 @@ public class TrntChkCLI {
 
     private int trntchkAddSDR(final String... args) {
         if (args.length == 2) {
-            val list = SrcDstResult.fromJSON(JRomManagerCLI.session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.trntchk_sdr));
+            final var list = SrcDstResult.fromJSON(JRomManagerCLI.session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.trntchk_sdr));
             list.add(new SrcDstResult(args[0], args[1]));
             cli.prefs(jrm.misc.SettingsEnum.trntchk_sdr, AbstractSrcDstResult.toJSON(list));
         } else
@@ -61,7 +60,7 @@ public class TrntChkCLI {
     }
 
     private int trntchkHelp() {
-        for (val ducmd : CMD_TRNTCHK.values()) {
+        for (final var ducmd : CMD_TRNTCHK.values()) {
             if (ducmd != CMD_TRNTCHK.EMPTY && ducmd != CMD_TRNTCHK.UNKNOWN) {
                 cli.out.append(new AttributedString(ducmd.allStrings().collect(Collectors.joining(", ")), JRomManagerCLI.STYLE_YELLOW_BOLD).toAnsi());
                 cli.out.append(new AttributedString(": " + CLIMessages.getString("CLI_HELP_TRNTCHK_" + ducmd.name()), AttributedStyle.DEFAULT).toAnsi());

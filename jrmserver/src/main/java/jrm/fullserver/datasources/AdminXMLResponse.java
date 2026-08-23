@@ -15,7 +15,6 @@ import jrm.fullserver.security.UserCredential;
 import jrm.server.shared.datasources.XMLRequest;
 import jrm.server.shared.datasources.XMLRequest.Operation;
 import jrm.server.shared.datasources.XMLResponse;
-import lombok.val;
 
 /**
  * AdminXMLResponse is an XMLResponse that allows an admin user to manage user credentials. It supports fetching all users, adding a
@@ -73,7 +72,7 @@ public class AdminXMLResponse extends XMLResponse {
     public void fetch(Operation operation) throws XMLStreamException {
         if (request.getSession().getUser().isAdmin()) {
             try (final var login = new Login()) {
-                val rows = login.queryHandler("SELECT * FROM USERS", new BeanListHandler<UserCredential>(UserCredential.class));
+                final var rows = login.queryHandler("SELECT * FROM USERS", new BeanListHandler<UserCredential>(UserCredential.class));
                 writer.writeStartElement(RESPONSE);
                 writer.writeElement(STATUS, "0");
                 fetchList(operation, rows, (row, _) -> writeRecord(row));
@@ -196,7 +195,7 @@ public class AdminXMLResponse extends XMLResponse {
      * @throws XMLStreamException If an error occurs while writing the XML response.
      */
     private void fetchSingle(Operation operation, final Login login) throws SQLException, XMLStreamException {
-        val user = login.queryHandler("SELECT * FROM USERS WHERE LOGIN=?", new BeanHandler<UserCredential>(UserCredential.class), operation.getData(LOGIN));
+        final var user = login.queryHandler("SELECT * FROM USERS WHERE LOGIN=?", new BeanHandler<UserCredential>(UserCredential.class), operation.getData(LOGIN));
         if (user != null)
             writeSingle(user);
         else

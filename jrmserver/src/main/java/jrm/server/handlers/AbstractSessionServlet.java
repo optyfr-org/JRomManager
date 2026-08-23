@@ -15,7 +15,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jrm.locale.Messages;
 import jrm.server.shared.WebSession;
-import lombok.val;
 
 /**
  * An abstract base servlet that provides helper functionality for managing web sessions, handling localization based on client
@@ -43,8 +42,8 @@ public abstract class AbstractSessionServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs while writing the response
      */
     protected void fillAndSendJSO(HttpServletRequest req, HttpServletResponse resp, JsonObject jso) throws IOException {
-        val ws = (WebSession) req.getSession().getAttribute("session");
-        val sessionid = req.getSession().getId();
+        final var ws = (WebSession) req.getSession().getAttribute("session");
+        final var sessionid = req.getSession().getId();
         jso.add("session", sessionid);
         final var msgs = new JsonObject();
         List<LanguageRange> lr = LanguageRange.parse(req.getHeader("accept-language"));

@@ -70,7 +70,6 @@ import jrm.security.SignedObjectStore;
 import jtrrntzip.DummyLogCallback;
 import jtrrntzip.SimpleTorrentZipOptions;
 import jtrrntzip.TorrentZip;
-import lombok.val;
 import net.lingala.zip4j.ZipFile;
 import net.lingala.zip4j.model.FileHeader;
 import net.sf.sevenzipjbinding.ExtractAskMode;
@@ -648,7 +647,7 @@ public final class DirScan extends PathAbstractor {
      */
     private void listFilesSrc(final Path rootPath, Path entryPath, final File entryFile, final BasicFileAttributes entryAttr, ScanOptions options) throws IOException {
         if (entryAttr.isRegularFile()) {
-            val entryType = Container.getType(entryFile);
+            final var entryType = Container.getType(entryFile);
             if (entryType == Type.UNK || options.archivesAndChdAsRoms) {
                 if (rootPath.equals(entryFile.getParentFile().toPath())) {
                     listFilesSrcUnknown(entryFile, entryAttr, entryType);
@@ -736,7 +735,7 @@ public final class DirScan extends PathAbstractor {
      */
     private void listFilesSrcUnknown(final File file, final BasicFileAttributes attr, final jrm.profile.data.Container.Type type) {
         final Container existingContainer;
-        val fname = type == Type.UNK ? (FilenameUtils.getBaseName(file.getName()) + Ext.FAKE) : file.getName();
+        final var fname = type == Type.UNK ? (FilenameUtils.getBaseName(file.getName()) + Ext.FAKE) : file.getName();
         if (null == (existingContainer = containersByName.get(fname))
                 || (existingContainer.getModified() != attr.lastModifiedTime().toMillis() && !existingContainer.isUp2date())) {
             final var newContainer = new FakeDirectory(file, getRelativePath(file), attr);

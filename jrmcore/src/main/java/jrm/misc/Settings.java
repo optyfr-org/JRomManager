@@ -18,7 +18,6 @@ import com.eclipsesource.json.JsonObject;
 import com.eclipsesource.json.JsonValue;
 
 import lombok.Getter;
-import lombok.val;
 
 /**
  * Abstract base class managing general key-value properties. Provides capabilities for reading, writing, and synchronizing
@@ -140,7 +139,7 @@ public abstract class Settings extends SettingsImpl {
     @Override
     public void loadSettings(final File file) {
         if (file.exists()) {
-            try (val is = new BufferedInputStream(new FileInputStream(file))) {
+            try (final var is = new BufferedInputStream(new FileInputStream(file))) {
                 properties.clear();
                 properties.loadFromXML(is);
             } catch (final IOException e) {
@@ -152,7 +151,7 @@ public abstract class Settings extends SettingsImpl {
     @Override
     public void saveSettings(final File file) {
         Log.debug(() -> "file=" + file + ", propsize=" + properties.size());
-        try (val os = new BufferedOutputStream(new FileOutputStream(file))) {
+        try (final var os = new BufferedOutputStream(new FileOutputStream(file))) {
             Log.debug("before store");
             properties.storeToXML(os, null);
             Log.debug("stored");

@@ -57,7 +57,6 @@ import jrm.profile.report.Note;
 import jrm.profile.report.Report;
 import jrm.profile.report.RomSuspiciousCRC;
 import jrm.profile.report.SubjectSet;
-import lombok.val;
 
 /**
  * FXML controller for the report tree view.
@@ -265,10 +264,10 @@ public class ReportViewController implements Initializable {
     private void searchWeb(javafx.event.ActionEvent e) {
         if (treeview.getSelectionModel().getSelectedItem() != null && treeview.getSelectionModel().getSelectedItem().getValue() instanceof Note note) {
             try {
-                val name = note.getName();
-                val crc = note.getCrc();
-                val sha1 = note.getSha1();
-                val hash = Optional.ofNullable(Optional.ofNullable(crc).orElse(sha1)).map(h -> '+' + h).orElse("");
+                final var name = note.getName();
+                final var crc = note.getCrc();
+                final var sha1 = note.getSha1();
+                final var hash = Optional.ofNullable(Optional.ofNullable(crc).orElse(sha1)).map(h -> '+' + h).orElse("");
                 MainFrame.getApplication().getHostServices()
                         .showDocument(new URI("https://www.google.com/search?q=" + URLEncoder.encode('"' + name + '"', "UTF-8") + hash).toString());
             } catch (IOException | URISyntaxException e1) {

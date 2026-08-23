@@ -14,7 +14,6 @@ import org.apache.commons.io.FilenameUtils;
 import jrm.misc.Log;
 import jrm.misc.SystemSettings;
 import lombok.NonNull;
-import lombok.val;
 
 /**
  * H2 Database implementation.
@@ -84,7 +83,7 @@ class H2 extends DB {
      */
     @Override
     public void dropDB(String name) throws IOException {
-        for (val file : getDBPath(name).getParent().toFile().listFiles(f -> f.getName().toLowerCase().startsWith(name.toLowerCase() + '.') && Files.isRegularFile(f.toPath())))
+        for (final var file : getDBPath(name).getParent().toFile().listFiles(f -> f.getName().toLowerCase().startsWith(name.toLowerCase() + '.') && Files.isRegularFile(f.toPath())))
             file.delete();
     }
 
@@ -104,12 +103,12 @@ class H2 extends DB {
     @Override
     public boolean shouldDropDB(final @NonNull Path cpsPath, final Path capturePath) throws IOException {
         final var name = cpsPath.getFileName().toString();
-        val dbpath = getDBPath(name, true);
+        final var dbpath = getDBPath(name, true);
         if (!Files.exists(dbpath)) // pas de bd h2 => drop
             return true;
         if (!Files.exists(cpsPath)) // pas de source access mais une bd h2, pas d'import possible => pas de drop
             return false;
-        val created = Files.exists(dbpath) ? Files.getFileAttributeView(dbpath, BasicFileAttributeView.class).readAttributes().creationTime().toMillis() : 0L;
+        final var created = Files.exists(dbpath) ? Files.getFileAttributeView(dbpath, BasicFileAttributeView.class).readAttributes().creationTime().toMillis() : 0L;
         if (cpsPath.toFile().lastModified() > created) // drop si la source access est plus récente
             return true;
         return (capturePath != null && capturePath.toFile().lastModified() > created); // drop si le capture access est plus récente

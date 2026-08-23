@@ -94,7 +94,6 @@ import jrm.ui.profile.data.MachineListModel;
 import jrm.ui.profile.data.SoftwareListModel;
 import jrm.ui.profile.filter.KeywordFilter;
 import jrm.ui.progress.SwingWorkerProgress;
-import lombok.val;
 
 /**
  * Dialog for viewing and managing profile data.
@@ -452,13 +451,13 @@ public class ProfileViewer extends JDialog {
 
         final var mntmSearchWeb = new JMenuItem("Search on the Web");
         mntmSearchWeb.addActionListener(_ -> {
-            val index = tableEntity.getSelectedRow();
+            final var index = tableEntity.getSelectedRow();
             if (index >= 0 && Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                 try {
-                    val name = tableEntity.getModel().getValueAt(index, 1).toString();
-                    val crc = tableEntity.getModel().getValueAt(index, 3);
-                    val sha1 = tableEntity.getModel().getValueAt(index, 5);
-                    val hash = Optional.ofNullable(Optional.ofNullable(crc).orElse(sha1)).map(h -> '+' + h.toString()).orElse("");
+                    final var name = tableEntity.getModel().getValueAt(index, 1).toString();
+                    final var crc = tableEntity.getModel().getValueAt(index, 3);
+                    final var sha1 = tableEntity.getModel().getValueAt(index, 5);
+                    final var hash = Optional.ofNullable(Optional.ofNullable(crc).orElse(sha1)).map(h -> '+' + h.toString()).orElse("");
                     Desktop.getDesktop().browse(new URI("https://www.google.com/search?q=" + URLEncoder.encode('"' + name + '"', "UTF-8") + hash));
                 } catch (IOException | URISyntaxException e1) {
                     Log.err(e1.getMessage(), e1);
@@ -507,9 +506,9 @@ public class ProfileViewer extends JDialog {
      * @throws HeadlessException if the operation requires a display that is not available
      */
     private void copyHash(int col) throws HeadlessException {
-        val index = tableEntity.getSelectedRow();
+        final var index = tableEntity.getSelectedRow();
         if (index >= 0) {
-            val hash = tableEntity.getModel().getValueAt(index, col);
+            final var hash = tableEntity.getModel().getValueAt(index, col);
             if (hash != null)
                 Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(hash.toString()), null);
         }

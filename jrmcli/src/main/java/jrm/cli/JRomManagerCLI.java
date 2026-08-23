@@ -32,7 +32,6 @@ import jrm.profile.scan.ScanException;
 import jrm.security.Session;
 import jrm.security.Sessions;
 import lombok.Setter;
-import lombok.val;
 
 /**
  * Command line interface for JRomManager.
@@ -275,7 +274,7 @@ public class JRomManagerCLI {
      * @return An integer status code indicating the result of the operation.
      */
     private int help() {
-        for (val cmd : commandHandlers.keySet()) {
+        for (final var cmd : commandHandlers.keySet()) {
             final var sb = new AttributedStringBuilder();
             sb.style(STYLE_YELLOW_BOLD).append(cmd.allStrings().collect(Collectors.joining(", "))); // NOSONAR
             sb.style(AttributedStyle.DEFAULT).append(": ").append(CLIMessages.getString("CLI_HELP_" + cmd.name())); // NOSONAR

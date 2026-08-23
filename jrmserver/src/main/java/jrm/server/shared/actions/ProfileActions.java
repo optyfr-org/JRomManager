@@ -29,7 +29,6 @@ import jrm.profile.scan.options.ScanAutomation;
 import jrm.security.PathAbstractor;
 import jrm.server.shared.WebSession;
 import jrm.server.shared.Worker;
-import lombok.val;
 
 /**
  * Action handler for profile management operations in the ROM manager web server.
@@ -285,7 +284,7 @@ public class ProfileActions extends PathAbstractor {
         session.getWorker().setProgress(new ProgressActions(ws));
         try {
             JsonObject jsobj = jso.get(PARAMS).asObject();
-            val file = getAbsolutePath(jsobj.getString(PARENT, null)).resolve(jsobj.getString("file", null));
+            final var file = getAbsolutePath(jsobj.getString(PARENT, null)).resolve(jsobj.getString("file", null));
             session.setCurrProfile(jrm.profile.Profile.load(session, file.toFile(), session.getWorker().getProgress()));
             if (session.getCurrProfile() != null) {
                 session.getCurrProfile().getNfo().save(session);

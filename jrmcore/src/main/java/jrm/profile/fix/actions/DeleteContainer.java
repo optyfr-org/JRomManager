@@ -20,7 +20,6 @@ import jrm.profile.data.Container;
 import jrm.profile.scan.options.FormatOptions;
 import jrm.security.PathAbstractor;
 import jrm.security.Session;
-import lombok.val;
 
 /**
  * Delete a container (will all its entries)
@@ -80,7 +79,7 @@ public class DeleteContainer extends ContainerAction {
      * 
      */
     private boolean doActionFake() {
-        for (val entry : container.getEntries()) {
+        for (final var entry : container.getEntries()) {
             try {
                 if (!Files.deleteIfExists(container.getFile().getParentFile().toPath().resolve(entry.getFile())))
                     return false;

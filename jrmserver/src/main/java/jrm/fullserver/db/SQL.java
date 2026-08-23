@@ -29,7 +29,6 @@ import jrm.misc.Log;
 import jrm.misc.SystemSettings;
 import lombok.Getter;
 import lombok.NonNull;
-import lombok.val;
 
 /**
  * Abstract class for database operations. This class provides common methods for executing SQL queries and updates, as well as
@@ -177,8 +176,8 @@ public abstract class SQL implements SQLUtils, Closeable {
     @Override
     public Long getLongValue(String select, Object... args) throws SQLException {
         if (!supportsArrayParams() && findArrayParam(args) != -1) {
-            val selectRef = new AtomicReference<String>(select);
-            val argsRef = new AtomicReference<Object[]>(args);
+            final var selectRef = new AtomicReference<String>(select);
+            final var argsRef = new AtomicReference<Object[]>(args);
             convertArrayParams(selectRef, argsRef);
             select = selectRef.get();
             args = argsRef.get();
@@ -203,8 +202,8 @@ public abstract class SQL implements SQLUtils, Closeable {
     public Long count(String select, Object... args) throws SQLException {
         select = requireSelectStatement(select);
         if (!supportsArrayParams() && findArrayParam(args) != -1) {
-            val selectRef = new AtomicReference<String>(select);
-            val argsRef = new AtomicReference<Object[]>(args);
+            final var selectRef = new AtomicReference<String>(select);
+            final var argsRef = new AtomicReference<Object[]>(args);
             convertArrayParams(selectRef, argsRef);
             select = selectRef.get();
             args = argsRef.get();
@@ -358,11 +357,11 @@ public abstract class SQL implements SQLUtils, Closeable {
      * @return the resulted map containing property names and values from the bean
      */
     protected LinkedHashMap<String, Object> convertBeanToMap(final Object bean, Set<String> columns) {
-        val set = new LinkedHashMap<String, Object>();
+        final var set = new LinkedHashMap<String, Object>();
         try {
             if (columns != null)
                 columns = columns.stream().map(Introspector::decapitalize).collect(Collectors.toSet());
-            for (val prop : Introspector.getBeanInfo(bean.getClass()).getPropertyDescriptors()) {
+            for (final var prop : Introspector.getBeanInfo(bean.getClass()).getPropertyDescriptors()) {
                 if (columns != null) {
                     if (columns.contains(prop.getName()))
                         set.put(prop.getName(), prop.getReadMethod().invoke(bean, new Object[0]));
@@ -447,8 +446,8 @@ public abstract class SQL implements SQLUtils, Closeable {
     @Override
     public List<Map<String, Object>> query(String select, Object... args) throws SQLException {
         if (!supportsArrayParams() && findArrayParam(args) != -1) {
-            val selectRef = new AtomicReference<String>(select);
-            val argsRef = new AtomicReference<Object[]>(args);
+            final var selectRef = new AtomicReference<String>(select);
+            final var argsRef = new AtomicReference<Object[]>(args);
             convertArrayParams(selectRef, argsRef);
             select = selectRef.get();
             args = argsRef.get();
@@ -473,8 +472,8 @@ public abstract class SQL implements SQLUtils, Closeable {
      */
     public <T> T queryHandler(String select, ResultSetHandler<T> beanListHandler, Object... args) throws SQLException {
         if (!supportsArrayParams() && findArrayParam(args) != -1) {
-            val selectRef = new AtomicReference<String>(select);
-            val argsRef = new AtomicReference<Object[]>(args);
+            final var selectRef = new AtomicReference<String>(select);
+            final var argsRef = new AtomicReference<Object[]>(args);
             convertArrayParams(selectRef, argsRef);
             select = selectRef.get();
             args = argsRef.get();
@@ -500,8 +499,8 @@ public abstract class SQL implements SQLUtils, Closeable {
         if (!select.contains(" LIMIT "))
             select += " LIMIT 1";
         if (!supportsArrayParams() && findArrayParam(args) != -1) {
-            val selectRef = new AtomicReference<String>(select);
-            val argsRef = new AtomicReference<Object[]>(args);
+            final var selectRef = new AtomicReference<String>(select);
+            final var argsRef = new AtomicReference<Object[]>(args);
             convertArrayParams(selectRef, argsRef);
             select = selectRef.get();
             args = argsRef.get();
@@ -524,8 +523,8 @@ public abstract class SQL implements SQLUtils, Closeable {
     @Override
     public int update(String update, Object... args) throws SQLException {
         if (!supportsArrayParams() && findArrayParam(args) != -1) {
-            val updateRef = new AtomicReference<String>(update);
-            val argsRef = new AtomicReference<Object[]>(args);
+            final var updateRef = new AtomicReference<String>(update);
+            final var argsRef = new AtomicReference<Object[]>(args);
             convertArrayParams(updateRef, argsRef);
             update = updateRef.get();
             args = argsRef.get();

@@ -12,7 +12,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import jrm.profile.manager.ProfileNFO;
 import jrm.server.shared.datasources.XMLRequest.Operation;
-import lombok.val;
 
 /**
  * Handles XML responses for managing the list of profiles. This class processes operations such as fetching the list of profiles,
@@ -58,7 +57,7 @@ public class ProfilesListXMLResponse extends XMLResponse {
     @Override
     protected void fetch(Operation operation) throws XMLStreamException {
         Path dir = resolveParentDir(operation);
-        val rows = ProfileNFO.list(request.getSession(), dir.toFile());
+        final var rows = ProfileNFO.list(request.getSession(), dir.toFile());
         writer.writeStartElement(RESPONSE);
         writer.writeElement(STATUS, "0");
         writer.writeElement("startRow", "0");
@@ -105,7 +104,7 @@ public class ProfilesListXMLResponse extends XMLResponse {
         if (operation.hasData("Src")) {
             try {
                 Path dir = resolveParentDir(operation);
-                val src = pathAbstractor.getAbsolutePath(operation.getData("Src"));
+                final var src = pathAbstractor.getAbsolutePath(operation.getData("Src"));
                 if (Files.exists(src) && Files.isRegularFile(src)) {
                     copyAndWriteProfile(dir, src, operation);
                 } else
@@ -145,7 +144,7 @@ public class ProfilesListXMLResponse extends XMLResponse {
     protected void remove(Operation operation) throws XMLStreamException {
         try {
             Path dir = resolveParentDir(operation);
-            val dst = resolveContainedFile(dir, operation.getData(FILE));
+            final var dst = resolveContainedFile(dir, operation.getData(FILE));
             ProfileNFO nfo = ProfileNFO.load(request.getSession(), dst.toFile());
             if (request.session.getCurrProfile() == null || !request.getSession().getCurrProfile().getNfo().equals(nfo)) {
                 if (nfo.delete()) {
@@ -179,9 +178,9 @@ public class ProfilesListXMLResponse extends XMLResponse {
         if ("DropCache".equals(operation.getOperationId().toString())) {
             try {
                 Path dir = resolveParentDir(operation);
-                val dst = resolveContainedFile(dir, operation.getData(FILE));
+                final var dst = resolveContainedFile(dir, operation.getData(FILE));
                 if (Files.isRegularFile(dst)) {
-                    val cache = resolveContainedFile(dir, operation.getData(FILE) + ".cache");
+                    final var cache = resolveContainedFile(dir, operation.getData(FILE) + ".cache");
                     if (Files.exists(cache) && !cache.toFile().delete())
                         failure("Can't delete " + cache);
                     else

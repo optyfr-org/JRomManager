@@ -19,7 +19,6 @@ import jrm.misc.Log;
 import jrm.security.CachePathGuard;
 import jrm.security.PathAbstractor;
 import jrm.server.shared.WebSession;
-import lombok.val;
 
 /**
  * Servlet responsible for handling file and directory download requests.
@@ -107,11 +106,11 @@ public class DownloadServlet extends HttpServlet {
      */
     private void download(final HttpServletRequest req, final HttpServletResponse resp) {
         try {
-            val ws = (WebSession) req.getSession().getAttribute("session");
-            val pathAbstractor = new PathAbstractor(ws);
-            val path = req.getParameter("path");
+            final var ws = (WebSession) req.getSession().getAttribute("session");
+            final var pathAbstractor = new PathAbstractor(ws);
+            final var path = req.getParameter("path");
             if (path != null) {
-                val file = pathAbstractor.getAbsolutePath(path);
+                final var file = pathAbstractor.getAbsolutePath(path);
                 if (CachePathGuard.isProtectedFile(ws, file)) {
                     resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     return;
@@ -143,7 +142,7 @@ public class DownloadServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs during streaming
      */
     private void streamZippedDirectory(final HttpServletResponse resp, final Path file) throws IOException {
-        val dlfilename = file.getFileName().toString() + ".zip";
+        final var dlfilename = file.getFileName().toString() + ".zip";
         resp.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + URLEncoder.encode(dlfilename, "UTF-8") + "; filename=\"" + dlfilename + "\"");
         resp.setHeader("Content-Transfer-Encoding", "binary");
         resp.setContentType("application/zip");
@@ -169,7 +168,7 @@ public class DownloadServlet extends HttpServlet {
      * @throws IOException if an I/O error occurs during streaming
      */
     private void streamFile(final HttpServletResponse resp, final Path file) throws IOException {
-        val dlfilename = file.getFileName().toString();
+        final var dlfilename = file.getFileName().toString();
         resp.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + URLEncoder.encode(dlfilename, "UTF-8") + "; filename=\"" + dlfilename + "\"");
         resp.setHeader("Content-Transfer-Encoding", "binary");
         resp.setStatus(HttpServletResponse.SC_OK);

@@ -24,7 +24,6 @@ import jrm.misc.Log;
 import jrm.server.shared.WebSession;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.val;
 
 /**
  * Login service for the Jetty server.
@@ -230,7 +229,7 @@ public class Login extends SQL implements LoginService {
         String sessionid = null;
         WebSession sess = null;
         if (request instanceof Request) {
-            val session = getOrCreateSession.apply(true);
+            final var session = getOrCreateSession.apply(true);
             if (session != null) {
                 sessionid = session.getId();
                 if (sessionid != null)
@@ -379,7 +378,7 @@ public class Login extends SQL implements LoginService {
         Log.debug("validate");
         cacheLock.lock();
         try {
-            for (val credential : user.getSubject().getPublicCredentials())
+            for (final var credential : user.getSubject().getPublicCredentials())
                 if (cache.containsKey(credential))
                     return true;
             return false;
@@ -463,7 +462,7 @@ public class Login extends SQL implements LoginService {
     public void logout(UserIdentity user) {
         cacheLock.lock();
         try {
-            for (val credential : user.getSubject().getPublicCredentials())
+            for (final var credential : user.getSubject().getPublicCredentials())
                 cache.remove(credential);
         } finally {
             cacheLock.unlock();

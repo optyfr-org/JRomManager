@@ -20,7 +20,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jrm.misc.Log;
 import jrm.misc.URIUtils;
-import lombok.val;
 
 /**
  * Servlet responsible for serving static image and resource icon files to the web client.
@@ -181,9 +180,9 @@ public class ImageServlet extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) {
         try {
-            val geturi = resolveRequestedResourceUri(req.getRequestURI());
-            val url = geturi.toURL();
-            val urlconn = url.openConnection();
+            final var geturi = resolveRequestedResourceUri(req.getRequestURI());
+            final var url = geturi.toURL();
+            final var urlconn = url.openConnection();
             urlconn.setDoInput(true);
             if (urlconn.getContentLength() == 0) {
                 resp.sendError(HttpServletResponse.SC_NOT_FOUND, "Empty result");

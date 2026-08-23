@@ -12,7 +12,6 @@ import javax.xml.stream.XMLStreamException;
 
 import jrm.server.shared.datasources.XMLRequest.Operation;
 import jrm.xml.SimpleAttribute;
-import lombok.val;
 
 /**
  * Handles XML responses for selecting a remote root directory or path. This class processes fetch operations to list available root
@@ -53,7 +52,7 @@ public class RemoteRootChooserXMLResponse extends XMLResponse {
         writer.writeElement("endRow", Long.toString(paths.size() - 1L));
         writer.writeElement("totalRows", Long.toString(paths.size()));
         writer.writeStartElement("data");
-        for (val root : paths.entrySet()) {
+        for (final var root : paths.entrySet()) {
             writer.writeElement("record", new SimpleAttribute("Name", root.getKey()), new SimpleAttribute("Path", root.getValue()));
         }
         writer.writeEndElement();

@@ -7,7 +7,6 @@ import javax.xml.stream.XMLStreamException;
 import jrm.profile.filter.NPlayer;
 import jrm.server.shared.datasources.XMLRequest.Operation;
 import jrm.xml.SimpleAttribute;
-import lombok.val;
 
 /**
  * Handles XML responses for retrieving the list of NPlayers configurations.
@@ -75,7 +74,7 @@ public class NPlayersXMLResponse extends XMLResponse {
      */
     @Override
     protected void fetch(Operation operation) throws XMLStreamException {
-        val session = request.session;
+        final var session = request.session;
         writer.writeStartElement("response");
         writer.writeElement("status", "0");
         writer.writeElement("startRow", "0");

@@ -21,7 +21,6 @@ import jrm.misc.Log;
 import jrm.security.CachePathGuard;
 import jrm.security.PathAbstractor;
 import jrm.server.shared.WebSession;
-import lombok.val;
 
 /**
  * Servlet handler for file upload operations in the JRM web server.
@@ -137,10 +136,10 @@ public class UploadServlet extends HttpServlet {
     protected void doPost(final HttpServletRequest req, final HttpServletResponse resp) {
         if ("/upload/".equals(req.getRequestURI())) {
             try {
-                val ws = (WebSession) req.getSession().getAttribute("session");
-                val pathAbstractor = new PathAbstractor(ws);
-                val result = new Result();
-                val init = req.getParameter("init");
+                final var ws = (WebSession) req.getSession().getAttribute("session");
+                final var pathAbstractor = new PathAbstractor(ws);
+                final var result = new Result();
+                final var init = req.getParameter("init");
                 if (init != null && init.equals("1")) {
                     checkRequest(req, ws, pathAbstractor, result);
                 } else {
@@ -397,8 +396,8 @@ public class UploadServlet extends HttpServlet {
 
     private void handlePutUpload(final HttpServletRequest req, final HttpServletResponse resp) {
         try {
-            val ws = (WebSession) req.getSession().getAttribute("session");
-            val pathAbstractor = new PathAbstractor(ws);
+            final var ws = (WebSession) req.getSession().getAttribute("session");
+            final var pathAbstractor = new PathAbstractor(ws);
             final var result = new Result();
             final String filename = sanitizeHeader(req.getHeader("x-file-name"));
             final String fileparent = sanitizeHeader(req.getHeader("x-file-parent"));

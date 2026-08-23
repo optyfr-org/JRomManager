@@ -18,7 +18,6 @@ import com.beust.jcommander.ParameterException;
 import com.beust.jcommander.Parameters;
 import com.eclipsesource.json.Json;
 
-import lombok.val;
 
 import jrm.aui.basic.AbstractSrcDstResult;
 import jrm.aui.basic.ResultColUpdater;
@@ -56,14 +55,14 @@ public class DirUpd8rCLI {
     }
 
     private int addSourceDestinationResult(final String... args) {
-        val list = SrcDstResult.fromJSON(JRomManagerCLI.session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dat2dir_sdr));
+        final var list = SrcDstResult.fromJSON(JRomManagerCLI.session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dat2dir_sdr));
         list.add(new SrcDstResult(args[0], args[1]));
         cli.prefs(jrm.misc.SettingsEnum.dat2dir_sdr, AbstractSrcDstResult.toJSON(list));
         return 0;
     }
 
     private int addSourceDirectory(final String... args) {
-        val list = Stream.of(StringUtils.split(JRomManagerCLI.session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dat2dir_srcdirs), '|'))
+        final var list = Stream.of(StringUtils.split(JRomManagerCLI.session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dat2dir_srcdirs), '|'))
                 .collect(Collectors.toCollection(ArrayList::new));
         list.add(args[0]);
         cli.prefs(jrm.misc.SettingsEnum.dat2dir_srcdirs, list.stream().collect(Collectors.joining("|")));
@@ -93,7 +92,7 @@ public class DirUpd8rCLI {
     }
 
     private int dirupd8rHelp() {
-        for (val ducmd : CMD_DIRUPD8R.values()) {
+        for (final var ducmd : CMD_DIRUPD8R.values()) {
             if (ducmd != CMD_DIRUPD8R.EMPTY && ducmd != CMD_DIRUPD8R.UNKNOWN) {
                 cli.out.append(new AttributedString(ducmd.allStrings().collect(Collectors.joining(", ")), JRomManagerCLI.STYLE_YELLOW_BOLD).toAnsi()); //$NON-NLS-1$
                 cli.out.append(new AttributedString(": " + CLIMessages.getString("CLI_HELP_DIRUPD8R_" + ducmd.name()), AttributedStyle.DEFAULT).toAnsi()); //$NON-NLS-1$ //$NON-NLS-2$
@@ -144,7 +143,7 @@ public class DirUpd8rCLI {
         if (args.length <= 0)
             return cli.error(CLIMessages.getString(JRomManagerCLI.CLI_ERR_WRONG_ARGS));
 
-        val list = SrcDstResult.fromJSON(JRomManagerCLI.session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dat2dir_sdr));
+        final var list = SrcDstResult.fromJSON(JRomManagerCLI.session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dat2dir_sdr));
         final var index = Integer.parseInt(args[0]);
         if (index < list.size()) {
             final ProfileSettings settings = JRomManagerCLI.session.getUser().getSettings().loadProfileSettings(PathAbstractor.getAbsolutePath(JRomManagerCLI.session, list.get(index).getSrc()).toFile(), null);
@@ -168,8 +167,8 @@ public class DirUpd8rCLI {
                 yield 0;
             }
             case 2 -> {
-                val list = SrcDstResult.fromJSON(JRomManagerCLI.session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dat2dir_sdr));
-                val index = Integer.parseInt(args[0]);
+                final var list = SrcDstResult.fromJSON(JRomManagerCLI.session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dat2dir_sdr));
+                final var index = Integer.parseInt(args[0]);
                 if (index >= list.size())
                     yield cli.error(CLIMessages.getString(JRomManagerCLI.CLI_ERR_WRONG_ARGS));
                 switch (args[1]) {

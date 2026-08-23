@@ -28,7 +28,6 @@ import jrm.profile.Profile;
 import jrm.profile.fix.actions.BackupContainer;
 import jrm.profile.fix.actions.ContainerAction;
 import jrm.profile.scan.Scan;
-import lombok.val;
 
 /**
  * Orchestrates the application of fixes, repairs, and container actions determined by a prior scan across the user's ROM and game
@@ -58,8 +57,8 @@ public class Fix {
     public Fix(final Profile currProfile, final Scan currScan, final ProgressHandler progress) {
         this.currScan = currScan;
 
-        val useParallelism = currProfile.getProperty(ProfileSettingsEnum.use_parallelism, Boolean.class); // $NON-NLS-1$
-        val nThreads = useParallelism ? currProfile.getSession().getUser().getSettings().getProperty(SettingsEnum.thread_count, Integer.class) : 1;
+        final var useParallelism = currProfile.getProperty(ProfileSettingsEnum.use_parallelism, Boolean.class); // $NON-NLS-1$
+        final var nThreads = useParallelism ? currProfile.getSession().getUser().getSettings().getProperty(SettingsEnum.thread_count, Integer.class) : 1;
 
         final long start = System.currentTimeMillis();
 

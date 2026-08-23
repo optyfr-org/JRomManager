@@ -31,7 +31,6 @@ import jrm.misc.IOUtils;
 import jrm.misc.Log;
 import jrm.security.CachePathGuard;
 import jrm.server.shared.datasources.XMLRequest.Operation;
-import lombok.val;
 
 /**
  * Handles XML responses for a remote file chooser interface. This class processes operations to browse directories, filter files by
@@ -276,7 +275,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
                 writer.writeEndElement();
                 cnt++;
             }
-            val initialPath = operation.hasData(INITIAL_PATH) ? CaseInsensitiveFileFinder.findFileIgnoreCase(pathAbstractor.getAbsolutePath(operation.getData(INITIAL_PATH)))
+            final var initialPath = operation.hasData(INITIAL_PATH) ? CaseInsensitiveFileFinder.findFileIgnoreCase(pathAbstractor.getAbsolutePath(operation.getData(INITIAL_PATH)))
                     : Optional.empty();
             for (Path entry : stream) {
                 BasicFileAttributeView view = Files.getFileAttributeView(entry, BasicFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);

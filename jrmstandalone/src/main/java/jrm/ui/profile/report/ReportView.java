@@ -36,7 +36,6 @@ import jrm.ui.MainFrame;
 import jrm.ui.basic.Popup;
 import jrm.ui.profile.report.ReportNode.SubjectNode;
 import jrm.ui.profile.report.ReportNode.SubjectNode.NoteNode;
-import lombok.val;
 
 /**
  * Scrollable view displaying scan reports as a tree.
@@ -118,9 +117,9 @@ public class ReportView extends JScrollPane implements Popup {
         popupMenu.add(mntmSearchWeb);
 
         tree.addTreeSelectionListener(e -> {
-            val path = e.getNewLeadSelectionPath();
+            final var path = e.getNewLeadSelectionPath();
             if (path != null) {
-                val node = path.getLastPathComponent();
+                final var node = path.getLastPathComponent();
                 mntmDetail.setEnabled(node instanceof NoteNode);
                 mntmCopyCRC.setEnabled(node instanceof NoteNode);
                 mntmCopySHA1.setEnabled(node instanceof NoteNode);
@@ -140,15 +139,15 @@ public class ReportView extends JScrollPane implements Popup {
      * 
      */
     private void searchOnTheWeb() {
-        val path = tree.getSelectionPath();
+        final var path = tree.getSelectionPath();
         if (path != null) {
             Object node = path.getLastPathComponent();
             if (node instanceof NoteNode nn && Desktop.isDesktopSupported() && Desktop.getDesktop().isSupported(Desktop.Action.BROWSE)) {
                 try {
-                    val name = nn.getNote().getName();
-                    val crc = nn.getNote().getCrc();
-                    val sha1 = nn.getNote().getSha1();
-                    val hash = Optional.ofNullable(Optional.ofNullable(crc).orElse(sha1)).map(h -> '+' + h).orElse("");
+                    final var name = nn.getNote().getName();
+                    final var crc = nn.getNote().getCrc();
+                    final var sha1 = nn.getNote().getSha1();
+                    final var hash = Optional.ofNullable(Optional.ofNullable(crc).orElse(sha1)).map(h -> '+' + h).orElse("");
                     Desktop.getDesktop().browse(new URI("https://www.google.com/search?q=" + URLEncoder.encode('"' + name + '"', "UTF-8") + hash));
                 } catch (IOException | URISyntaxException e1) {
                     Log.err(e1.getMessage(), e1);
@@ -161,7 +160,7 @@ public class ReportView extends JScrollPane implements Popup {
      * @throws HeadlessException
      */
     private void copyName() throws HeadlessException {
-        val path = tree.getSelectionPath();
+        final var path = tree.getSelectionPath();
         if (path != null) {
             Object node = path.getLastPathComponent();
             if (node instanceof NoteNode nn) {
@@ -174,7 +173,7 @@ public class ReportView extends JScrollPane implements Popup {
      * @throws HeadlessException
      */
     private void copySHA1() throws HeadlessException {
-        val path = tree.getSelectionPath();
+        final var path = tree.getSelectionPath();
         if (path != null) {
             Object node = path.getLastPathComponent();
             if (node instanceof NoteNode nn) {
@@ -187,7 +186,7 @@ public class ReportView extends JScrollPane implements Popup {
      * @throws HeadlessException
      */
     private void copyCRC() throws HeadlessException {
-        val path = tree.getSelectionPath();
+        final var path = tree.getSelectionPath();
         if (path != null) {
             Object node = path.getLastPathComponent();
             if (node instanceof NoteNode nn) {
@@ -200,11 +199,11 @@ public class ReportView extends JScrollPane implements Popup {
      * @throws HeadlessException
      */
     private void showDetail() throws HeadlessException {
-        val path = tree.getSelectionPath();
+        final var path = tree.getSelectionPath();
         if (path != null) {
             Object node = path.getLastPathComponent();
             if (node instanceof NoteNode nn) {
-                val msg = nn.getNote().getDetail();
+                final var msg = nn.getNote().getDetail();
                 JOptionPane.showMessageDialog(this, new JTextArea(msg), "Details", JOptionPane.INFORMATION_MESSAGE);
             } else if (node instanceof SubjectNode) {
                 // not supported

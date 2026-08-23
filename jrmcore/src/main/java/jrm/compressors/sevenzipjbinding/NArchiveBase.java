@@ -15,7 +15,6 @@ import jrm.misc.IOUtils;
 import jrm.misc.Log;
 import lombok.Getter;
 import lombok.Setter;
-import lombok.val;
 import lombok.experimental.Accessors;
 import net.sf.sevenzipjbinding.IInArchive;
 import net.sf.sevenzipjbinding.IInStream;
@@ -111,7 +110,7 @@ public abstract class NArchiveBase implements Archive, Closeables {
 
     @Override
     public void close() throws IOException {
-        for (val closeable : closeables)
+        for (final var closeable : closeables)
             closeable.close();
         closeables.clear();
     }

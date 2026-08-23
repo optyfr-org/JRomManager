@@ -64,7 +64,6 @@ import jrm.ui.profile.manager.DirTreeSelectionListener;
 import jrm.ui.profile.manager.FileTableCellRenderer;
 import jrm.ui.profile.manager.FileTableModel;
 import jrm.ui.progress.SwingWorkerProgress;
-import lombok.val;
 
 /**
  * Panel for managing profiles in the profile manager.
@@ -620,7 +619,7 @@ public class ProfilePanel extends JPanel {
      */
     private void importDat(final Session session, final boolean sl, List<Import> imprts) throws HeadlessException, IllegalArgumentException {
         var rejected = 0;
-        for (val imprt : imprts) {
+        for (final var imprt : imprts) {
             if (imprt.getFile() == null) {
                 rejected++;
                 continue;

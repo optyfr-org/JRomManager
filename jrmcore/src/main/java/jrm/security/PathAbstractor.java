@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import jrm.misc.Log;
-import lombok.val;
 
 /**
  * Path abstracter and security sandbox manager for the ROM manager application. This class translates fully resolved absolute
@@ -213,15 +212,15 @@ public class PathAbstractor {
      */
     public static Path getRelativePath(Session session, Path path) {
         try {
-            val pdir = session.getUser().getSettings().getWorkPath().resolve("presets");
+            final var pdir = session.getUser().getSettings().getWorkPath().resolve("presets");
             if (path.startsWith(pdir))
                 return Paths.get(PRESETS, pdir.relativize(path).toString());
             else {
-                val wdir = session.getUser().getSettings().getWorkPath();
+                final var wdir = session.getUser().getSettings().getWorkPath();
                 if (path.startsWith(wdir))
                     return Paths.get(WORK, wdir.relativize(path).toString());
                 else {
-                    val sdir = session.getUser().getSettings().getBasePath().resolve(USERS).resolve(SHARED2);
+                    final var sdir = session.getUser().getSettings().getBasePath().resolve(USERS).resolve(SHARED2);
                     if (path.startsWith(sdir))
                         return Paths.get(SHARED, sdir.relativize(path).toString());
                 }
@@ -282,12 +281,12 @@ public class PathAbstractor {
             if (!path.startsWith(presetsPath))
                 throw new SecurityException(FORGED_PATH);
         } else if (strpath.startsWith(WORK)) {
-            val basepath = session.getUser().getSettings().getWorkPath();
+            final var basepath = session.getUser().getSettings().getWorkPath();
             path = Paths.get(strpath.replace(WORK, basepath.toString())).toAbsolutePath().normalize();
             if (!path.startsWith(basepath))
                 throw new SecurityException(FORGED_PATH);
         } else if (strpath.startsWith(SHARED)) {
-            val basepath = session.getUser().getSettings().getBasePath().resolve(USERS).resolve(SHARED2);
+            final var basepath = session.getUser().getSettings().getBasePath().resolve(USERS).resolve(SHARED2);
             path = Paths.get(strpath.replace(SHARED, basepath.toString())).toAbsolutePath().normalize();
             if (!path.startsWith(basepath))
                 throw new SecurityException(FORGED_PATH);
@@ -301,7 +300,7 @@ public class PathAbstractor {
     }
 
     private static Path getPresetsPath(Session session) {
-        val presetsPath = session.getUser().getSettings().getWorkPath().resolve("presets");
+        final var presetsPath = session.getUser().getSettings().getWorkPath().resolve("presets");
         try {
             Files.createDirectories(presetsPath);
         } catch (IOException e) {

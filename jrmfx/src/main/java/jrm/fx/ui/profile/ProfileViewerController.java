@@ -76,7 +76,6 @@ import jrm.profile.manager.ProfileNFOMame;
 import jrm.profile.manager.ProfileNFOMame.MameStatus;
 import jrm.security.Session;
 import jrm.security.Sessions;
-import lombok.val;
 
 /**
  * FXML controller for the profile viewer window.
@@ -1833,10 +1832,10 @@ public class ProfileViewerController implements Initializable {
     public void searchWeb(final javafx.event.ActionEvent e) {
         if (tableEntity.getSelectionModel().getSelectedItem() != null && tableEntity.getSelectionModel().getSelectedItem() instanceof final Entity entity) {
             try {
-                val name = entity.getName();
-                val crc = entity.getCrc();
-                val sha1 = entity.getSha1();
-                val hash = Optional.ofNullable(Optional.ofNullable(crc).orElse(sha1)).map(h -> '+' + h).orElse("");
+                final var name = entity.getName();
+                final var crc = entity.getCrc();
+                final var sha1 = entity.getSha1();
+                final var hash = Optional.ofNullable(Optional.ofNullable(crc).orElse(sha1)).map(h -> '+' + h).orElse("");
                 MainFrame.getApplication().getHostServices()
                         .showDocument(new URI("https://www.google.com/search?q=" + URLEncoder.encode('"' + name + '"', "UTF-8") + hash).toString());
             } catch (IOException | URISyntaxException e1) {
