@@ -50,6 +50,8 @@ public class DirUpdater {
      * flag indicating whether to perform a dry run (no actual changes) or to apply fixes
      */
     private final boolean dryrun;
+    /** map from result to its row index to avoid repeated indexOf scans */
+    private final Map<AbstractSrcDstResult, Integer> rowMap;
 
     /**
      * Constructs a DirUpdater with the specified parameters.
@@ -70,8 +72,12 @@ public class DirUpdater {
         this.result = result;
         this.dryrun = dryrun;
 
+        rowMap = new HashMap<>();
+        for (int i = 0; i < sdrl.size(); i++)
+            rowMap.put(sdrl.get(i), i);
+
         final Map<String, DirScan> scancache = new HashMap<>();
-        sdrl.stream().filter(AbstractSrcDstResult::isSelected).forEach(sdr -> result.updateResult(sdrl.indexOf(sdr), "") //$NON-NLS-1$
+        sdrl.stream().filter(AbstractSrcDstResult::isSelected).forEach(sdr -> result.updateResult(rowMap.get(sdr), "") //$NON-NLS-1$
         );
         sdrl.stream().filter(AbstractSrcDstResult::isSelected).takeWhile(_ -> !progress.isCancel()).forEach(sdr -> update(scancache, sdr));
     }
@@ -86,7 +92,7 @@ public class DirUpdater {
      * @throws BreakException if the process was cancelled
      */
     private void update(final Map<String, DirScan> scancache, AbstractSrcDstResult sdr) throws SecurityException, BreakException {
-        final var row = sdrl.indexOf(sdr);
+        final var row = rowMap.get(sdr);
         result.updateResult(row, "In progress..."); //$NON-NLS-1$
         final var dat = PathAbstractor.getAbsolutePath(session, sdr.getSrc()).toFile();
         final var dst = PathAbstractor.getAbsolutePath(session, sdr.getDst()).toFile();
