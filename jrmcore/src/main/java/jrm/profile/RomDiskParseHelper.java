@@ -43,50 +43,50 @@ class RomDiskParseHelper {
 	}
 
 	void startRom(final Attributes attributes) {
-		if (ctx.currMachine == null && ctx.currSoftware == null)
+		if (ctx.state.currMachine == null && ctx.state.currSoftware == null)
 			return;
-		ctx.currRom = new Rom(ctx.currMachine != null ? ctx.currMachine : ctx.currSoftware);
-		if (ctx.currSoftware != null && ctx.currDataArea != null)
-			ctx.currDataArea.getRoms().add(ctx.currRom);
+		ctx.state.currRom = new Rom(ctx.state.currMachine != null ? ctx.state.currMachine : ctx.state.currSoftware);
+		if (ctx.state.currSoftware != null && ctx.state.currDataArea != null)
+			ctx.state.currDataArea.getRoms().add(ctx.state.currRom);
 		for (var i = 0; i < attributes.getLength(); i++) {
 			final var value = attributes.getValue(i);
 			switch (attributes.getQName(i)) {
-				case "name" -> ctx.currRom.setName(value.trim());
-				case "size" -> ctx.currRom.setSize(Long.decode(value));
+				case "name" -> ctx.state.currRom.setName(value.trim());
+				case "size" -> ctx.state.currRom.setSize(Long.decode(value));
 				case "offset" -> {
 					if (value.toLowerCase().startsWith("0x"))
-						ctx.currRom.setOffset(Long.decode(value));
+						ctx.state.currRom.setOffset(Long.decode(value));
 					else
-						ctx.currRom.setOffset(Long.decode("0x" + value));
+						ctx.state.currRom.setOffset(Long.decode("0x" + value));
 				}
-				case "value" -> ctx.currRom.setValue(value);
-				case "crc" -> ctx.currRom.setCrc(safeHex(value, 8));
+				case "value" -> ctx.state.currRom.setValue(value);
+				case "crc" -> ctx.state.currRom.setCrc(safeHex(value, 8));
 				case "sha1" -> {
-					ctx.currRom.setSha1(safeHex(value, 40));
-					ctx.profile.sha1Roms = true;
+					ctx.state.currRom.setSha1(safeHex(value, 40));
+					ctx.state.profile.sha1Roms = true;
 				}
 				case "md5" -> {
-					ctx.currRom.setMd5(safeHex(value, 32));
-					ctx.profile.md5Roms = true;
+					ctx.state.currRom.setMd5(safeHex(value, 32));
+					ctx.state.profile.md5Roms = true;
 				}
-				case "merge" -> ctx.currRom.setMerge(value.trim());
-				case "bios" -> ctx.currRom.setBios(value);
-				case "region" -> ctx.currRom.setRegion(value);
-				case "date" -> ctx.currRom.setDate(value);
-				case "optional" -> ctx.currRom.setOptional(org.apache.commons.lang3.BooleanUtils.toBoolean(value));
-				case "status" -> ctx.currRom.setDumpStatus(Entity.Status.valueOf(value));
-				case "loadflag" -> ctx.currRom.setLoadflag(LoadFlag.getEnum(value));
+				case "merge" -> ctx.state.currRom.setMerge(value.trim());
+				case "bios" -> ctx.state.currRom.setBios(value);
+				case "region" -> ctx.state.currRom.setRegion(value);
+				case "date" -> ctx.state.currRom.setDate(value);
+				case "optional" -> ctx.state.currRom.setOptional(org.apache.commons.lang3.BooleanUtils.toBoolean(value));
+				case "status" -> ctx.state.currRom.setDumpStatus(Entity.Status.valueOf(value));
+				case "loadflag" -> ctx.state.currRom.setLoadflag(LoadFlag.getEnum(value));
 				default -> { /* skip unknown */ }
 			}
 		}
 	}
 
 	void startDisk(final Attributes attributes) {
-		if (ctx.currMachine == null && ctx.currSoftware == null)
+		if (ctx.state.currMachine == null && ctx.state.currSoftware == null)
 			return;
-		ctx.currDisk = new Disk(ctx.currMachine != null ? ctx.currMachine : ctx.currSoftware);
-		if (ctx.currSoftware != null && ctx.currDiskArea != null)
-			ctx.currDiskArea.getDisks().add(ctx.currDisk);
+		ctx.state.currDisk = new Disk(ctx.state.currMachine != null ? ctx.state.currMachine : ctx.state.currSoftware);
+		if (ctx.state.currSoftware != null && ctx.state.currDiskArea != null)
+			ctx.state.currDiskArea.getDisks().add(ctx.state.currDisk);
 		for (var i = 0; i < attributes.getLength(); i++) {
 			final var value = attributes.getValue(i);
 			switch (attributes.getQName(i)) {
@@ -94,66 +94,66 @@ class RomDiskParseHelper {
 					var name = value.trim();
 					if (name.endsWith(".chd"))
 						name = name.substring(0, name.length() - 4);
-					ctx.currDisk.setName(name);
+					ctx.state.currDisk.setName(name);
 				}
 				case "sha1" -> {
-					ctx.currDisk.setSha1(safeHex(value, 40));
-					ctx.profile.sha1Disks = true;
+					ctx.state.currDisk.setSha1(safeHex(value, 40));
+					ctx.state.profile.sha1Disks = true;
 				}
 				case "md5" -> {
-					ctx.currDisk.setMd5(safeHex(value, 32));
-					ctx.profile.md5Disks = true;
+					ctx.state.currDisk.setMd5(safeHex(value, 32));
+					ctx.state.profile.md5Disks = true;
 				}
-				case "merge" -> ctx.currDisk.setMerge(value.trim());
-				case "index" -> ctx.currDisk.setIndex(Integer.decode(value));
-				case "optional" -> ctx.currDisk.setOptional(org.apache.commons.lang3.BooleanUtils.toBoolean(value));
-				case "writeable" -> ctx.currDisk.setWriteable(org.apache.commons.lang3.BooleanUtils.toBoolean(value));
-				case "region" -> ctx.currDisk.setRegion(value);
-				case "status" -> ctx.currDisk.setDumpStatus(Entity.Status.valueOf(value));
+				case "merge" -> ctx.state.currDisk.setMerge(value.trim());
+				case "index" -> ctx.state.currDisk.setIndex(Integer.decode(value));
+				case "optional" -> ctx.state.currDisk.setOptional(org.apache.commons.lang3.BooleanUtils.toBoolean(value));
+				case "writeable" -> ctx.state.currDisk.setWriteable(org.apache.commons.lang3.BooleanUtils.toBoolean(value));
+				case "region" -> ctx.state.currDisk.setRegion(value);
+				case "status" -> ctx.state.currDisk.setDumpStatus(Entity.Status.valueOf(value));
 				default -> { /* skip unknown */ }
 			}
 		}
 	}
 
 	void endRom() {
-		if (ctx.currRom.getBaseName() != null) {
-			if (!roms.contains(ctx.currRom.getBaseName())) {
-				roms.add(ctx.currRom.getBaseName());
-				if (ctx.currMachine != null) {
-					ctx.currMachine.getRoms().add(ctx.currRom);
-					ctx.profile.romsCnt++;
-				} else if (ctx.currSoftware != null) {
-					ctx.currSoftware.getRoms().add(ctx.currRom);
-					ctx.profile.swromsCnt++;
+		if (ctx.state.currRom.getBaseName() != null) {
+			if (!roms.contains(ctx.state.currRom.getBaseName())) {
+				roms.add(ctx.state.currRom.getBaseName());
+				if (ctx.state.currMachine != null) {
+					ctx.state.currMachine.getRoms().add(ctx.state.currRom);
+					ctx.state.profile.romsCnt++;
+				} else if (ctx.state.currSoftware != null) {
+					ctx.state.currSoftware.getRoms().add(ctx.state.currRom);
+					ctx.state.profile.swromsCnt++;
 				}
 			}
 			endRomCheckSuspiciousCRC();
 		}
-		ctx.currRom = null;
+		ctx.state.currRom = null;
 	}
 
 	void endDisk() {
-		if (ctx.currDisk.getBaseName() != null && !disks.contains(ctx.currDisk.getBaseName())) {
-			disks.add(ctx.currDisk.getBaseName());
-			if (ctx.currMachine != null) {
-				ctx.currMachine.getDisks().add(ctx.currDisk);
-				ctx.profile.disksCnt++;
-			} else if (ctx.currSoftware != null) {
-				ctx.currSoftware.getDisks().add(ctx.currDisk);
-				ctx.profile.swdisksCnt++;
+		if (ctx.state.currDisk.getBaseName() != null && !disks.contains(ctx.state.currDisk.getBaseName())) {
+			disks.add(ctx.state.currDisk.getBaseName());
+			if (ctx.state.currMachine != null) {
+				ctx.state.currMachine.getDisks().add(ctx.state.currDisk);
+				ctx.state.profile.disksCnt++;
+			} else if (ctx.state.currSoftware != null) {
+				ctx.state.currSoftware.getDisks().add(ctx.state.currDisk);
+				ctx.state.profile.swdisksCnt++;
 			}
 		}
-		ctx.currDisk = null;
+		ctx.state.currDisk = null;
 	}
 
 	private void endRomCheckSuspiciousCRC() {
-		if (ctx.currRom.getCrc() != null) {
-			final var oldRom = romsByCRC.put(ctx.currRom.getCrc(), ctx.currRom);
+		if (ctx.state.currRom.getCrc() != null) {
+			final var oldRom = romsByCRC.put(ctx.state.currRom.getCrc(), ctx.state.currRom);
 			if (oldRom != null) {
-				if (oldRom.getSha1() != null && ctx.currRom.getSha1() != null && !oldRom.equals(ctx.currRom))
-					ctx.profile.suspiciousCRC.add(ctx.currRom.getCrc());
-				if (oldRom.getMd5() != null && ctx.currRom.getMd5() != null && !oldRom.equals(ctx.currRom))
-					ctx.profile.suspiciousCRC.add(ctx.currRom.getCrc());
+				if (oldRom.getSha1() != null && ctx.state.currRom.getSha1() != null && !oldRom.equals(ctx.state.currRom))
+					ctx.state.profile.suspiciousCRC.add(ctx.state.currRom.getCrc());
+				if (oldRom.getMd5() != null && ctx.state.currRom.getMd5() != null && !oldRom.equals(ctx.state.currRom))
+					ctx.state.profile.suspiciousCRC.add(ctx.state.currRom.getCrc());
 			}
 		}
 	}

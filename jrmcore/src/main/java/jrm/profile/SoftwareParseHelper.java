@@ -33,17 +33,17 @@ class SoftwareParseHelper {
 	}
 
 	void startSoftwareList(final Attributes attributes) {
-		if (ctx.currMachine != null)
+		if (ctx.state.currMachine != null)
 			startSoftwareListDesc(attributes);
 		else {
-			ctx.currSoftwareList = new SoftwareList(ctx.profile);
+			ctx.state.currSoftwareList = new SoftwareList(ctx.state.profile);
 			for (var i = 0; i < attributes.getLength(); i++) {
 				switch (attributes.getQName(i)) {
 					case "name" -> {
-						ctx.currSoftwareList.setName(attributes.getValue(i).trim());
-						ctx.profile.machineListList.getSoftwareListList().putByName(ctx.currSoftwareList);
+						ctx.state.currSoftwareList.setName(attributes.getValue(i).trim());
+						ctx.state.profile.machineListList.getSoftwareListList().putByName(ctx.state.currSoftwareList);
 					}
-					case Profile.DESCRIPTION -> ctx.currSoftwareList.getDescription().append(attributes.getValue(i).trim());
+					case Profile.DESCRIPTION -> ctx.state.currSoftwareList.getDescription().append(attributes.getValue(i).trim());
 					default -> { /* skip unknown */ }
 				}
 			}
@@ -51,7 +51,7 @@ class SoftwareParseHelper {
 	}
 
 	void startSoftwareListDesc(final Attributes attributes) {
-		final var swlist = ctx.currMachine.new SWList();
+		final var swlist = ctx.state.currMachine.new SWList();
 		for (var i = 0; i < attributes.getLength(); i++) {
 			switch (attributes.getQName(i)) {
 				case "name" -> swlist.setName(attributes.getValue(i));
@@ -60,86 +60,86 @@ class SoftwareParseHelper {
 				default -> { /* skip unknown */ }
 			}
 		}
-		ctx.currMachine.getSwlists().put(swlist.getName(), swlist);
-		ctx.profile.machineListList.getSoftwareListDefs().computeIfAbsent(swlist.getName(), _ -> new java.util.ArrayList<>()).add(ctx.currMachine);
+		ctx.state.currMachine.getSwlists().put(swlist.getName(), swlist);
+		ctx.state.profile.machineListList.getSoftwareListDefs().computeIfAbsent(swlist.getName(), _ -> new java.util.ArrayList<>()).add(ctx.state.currMachine);
 	}
 
 	void startSoftware(final Attributes attributes) {
-		ctx.currSoftware = new Software(ctx.profile);
+		ctx.state.currSoftware = new Software(ctx.profile);
 		for (var i = 0; i < attributes.getLength(); i++) {
 			switch (attributes.getQName(i)) {
-				case "name" -> ctx.currSoftware.setName(attributes.getValue(i).trim());
-				case "cloneof" -> ctx.currSoftware.setCloneof(attributes.getValue(i).trim());
-				case "supported" -> ctx.currSoftware.setSupported(Software.Supported.valueOf(attributes.getValue(i)));
+				case "name" -> ctx.state.currSoftware.setName(attributes.getValue(i).trim());
+				case "cloneof" -> ctx.state.currSoftware.setCloneof(attributes.getValue(i).trim());
+				case "supported" -> ctx.state.currSoftware.setSupported(Software.Supported.valueOf(attributes.getValue(i)));
 				default -> { /* skip unknown */ }
 			}
 		}
 	}
 
 	void startSoftwareFeature(Attributes attributes) {
-		if (ctx.currSoftware == null)
+		if (ctx.state.currSoftware == null)
 			return;
 		if (attributes.getValue("name").equalsIgnoreCase("compatibility"))
-			ctx.currSoftware.setCompatibility(attributes.getValue("value"));
+			ctx.state.currSoftware.setCompatibility(attributes.getValue("value"));
 	}
 
 	void startSoftwarePart(Attributes attributes) {
-		if (ctx.currSoftware == null)
+		if (ctx.state.currSoftware == null)
 			return;
-		ctx.currPart = new Part();
-		ctx.currSoftware.getParts().add(ctx.currPart);
+		ctx.state.currPart = new Part();
+		ctx.state.currSoftware.getParts().add(ctx.state.currPart);
 		for (var i = 0; i < attributes.getLength(); i++) {
 			if ("name".equals(attributes.getQName(i)))
-				ctx.currPart.setName(attributes.getValue(i).trim());
+				ctx.state.currPart.setName(attributes.getValue(i).trim());
 			else if ("interface".equals(attributes.getQName(i)))
-				ctx.currPart.setIntrface(attributes.getValue(i).trim());
+				ctx.state.currPart.setIntrface(attributes.getValue(i).trim());
 		}
 	}
 
 	void startSoftwarePartDataarea(Attributes attributes) {
-		if (ctx.currSoftware == null || ctx.currPart == null)
+		if (ctx.state.currSoftware == null || ctx.state.currPart == null)
 			return;
-		ctx.currDataArea = new DataArea();
-		ctx.currPart.getDataareas().add(ctx.currDataArea);
+		ctx.state.currDataArea = new DataArea();
+		ctx.state.currPart.getDataareas().add(ctx.state.currDataArea);
 		for (var i = 0; i < attributes.getLength(); i++) {
 			switch (attributes.getQName(i)) {
-				case "name" -> ctx.currDataArea.setName(attributes.getValue(i).trim());
+				case "name" -> ctx.state.currDataArea.setName(attributes.getValue(i).trim());
 				case "size" -> {
 					final var value = attributes.getValue(i).trim();
-					ExceptionUtils.unthrowF(ctx.currDataArea::setSize, Integer::decode, value, t -> ExceptionUtils.test(t, "0x" + value, 0));
+					ExceptionUtils.unthrowF(ctx.state.currDataArea::setSize, Integer::decode, value, t -> ExceptionUtils.test(t, "0x" + value, 0));
 				}
-				case "width", "databits" -> ctx.currDataArea.setDatabits(Integer.valueOf(attributes.getValue(i)));
-				case "endianness", "endian" -> ctx.currDataArea.setEndianness(Endianness.valueOf(attributes.getValue(i)));
+				case "width", "databits" -> ctx.state.currDataArea.setDatabits(Integer.valueOf(attributes.getValue(i)));
+				case "endianness", "endian" -> ctx.state.currDataArea.setEndianness(Endianness.valueOf(attributes.getValue(i)));
 				default -> { /* skip unknown */ }
 			}
 		}
 	}
 
 	void startSoftwarePartDiskarea(Attributes attributes) {
-		if (ctx.currSoftware == null || ctx.currPart == null)
+		if (ctx.state.currSoftware == null || ctx.state.currPart == null)
 			return;
-		ctx.currDiskArea = new DiskArea();
-		ctx.currPart.getDiskareas().add(ctx.currDiskArea);
+		ctx.state.currDiskArea = new DiskArea();
+		ctx.state.currPart.getDiskareas().add(ctx.state.currDiskArea);
 		for (var i = 0; i < attributes.getLength(); i++) {
 			if ("name".equals(attributes.getQName(i)))
-				ctx.currDiskArea.setName(attributes.getValue(i).trim());
+				ctx.state.currDiskArea.setName(attributes.getValue(i).trim());
 		}
 	}
 
 	void endSoftwareList() {
-		if (ctx.currSoftwareList == null)
+		if (ctx.state.currSoftwareList == null)
 			return;
-		ctx.profile.machineListList.getSoftwareListList().add(ctx.currSoftwareList);
-		ctx.profile.softwaresListCnt++;
-		ctx.currSoftwareList = null;
+		ctx.state.profile.machineListList.getSoftwareListList().add(ctx.state.currSoftwareList);
+		ctx.state.profile.softwaresListCnt++;
+		ctx.state.currSoftwareList = null;
 	}
 
 	void endSoftware() {
-		if (ctx.currSoftwareList == null || ctx.currSoftware == null)
+		if (ctx.state.currSoftwareList == null || ctx.state.currSoftware == null)
 			return;
 		ctx.romDiskHelper.endMachineOrSoftware();  // reuse for clear
-		ctx.currSoftwareList.add(ctx.currSoftware);
-		ctx.profile.softwaresCnt++;
-		ctx.currSoftware = null;
+		ctx.state.currSoftwareList.add(ctx.state.currSoftware);
+		ctx.state.profile.softwaresCnt++;
+		ctx.state.currSoftware = null;
 	}
 }

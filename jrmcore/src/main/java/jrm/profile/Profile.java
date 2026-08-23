@@ -484,35 +484,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * @return HTML format text summary
      */
     public String getName() {
-        final var xmlpath = session.getUser().getSettings().getWorkPath().resolve("xmlfiles").toAbsolutePath().normalize();
-        final var fname = nfo.getFile().toPath().startsWith(xmlpath)
-            ? xmlpath.relativize(nfo.getFile().toPath()).toString()
-            : nfo.getFile().getName();
-        final var nameBuilder = new StringBuilder("[")
-            .append(toBlue(fname))
-            .append("] "); //$NON-NLS-1$ //$NON-NLS-2$
-        if (build != null) {
-            nameBuilder.append(toBoldBlack(build)); // $NON-NLS-1$
-        } else if (!header.isEmpty()) {
-            if (header.containsKey(DESCRIPTION)) { // $NON-NLS-1$
-                nameBuilder.append(toBoldBlack(header.get(DESCRIPTION))); // $NON-NLS-1$
-            } else if (header.containsKey("name")) { //$NON-NLS-1$
-                nameBuilder.append(toBoldBlack(header.get("name"))); //$NON-NLS-1$
-                if (header.containsKey(VERSION)) // $NON-NLS-1$
-                    nameBuilder.append(" (").append(escape(header.get(VERSION))).append(")"); //$NON-NLS-1$ //$NON-NLS-2$
-            }
-        }
-        final var strcntBuilder = new StringBuilder();
-        if (!machineListList.get(0).isEmpty())
-            strcntBuilder.append(machinesCnt).append(" Machines"); //$NON-NLS-1$
-        if (!machineListList.getSoftwareListList().isEmpty()) {
-            if (!strcntBuilder.isEmpty())
-                strcntBuilder.append(", "); //$NON-NLS-1$
-            strcntBuilder.append(softwaresListCnt).append(" Software Lists, ") //$NON-NLS-1$
-                .append(softwaresCnt).append(" Softwares"); //$NON-NLS-1$
-        }
-        nameBuilder.append("(").append(strcntBuilder).append(")"); //$NON-NLS-1$ //$NON-NLS-2$
-        return toDocument(nameBuilder.toString());
+        return new ProfileNameFormatter(this).getName();
     }
 
     /**
