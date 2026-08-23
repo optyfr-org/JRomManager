@@ -12,12 +12,9 @@ import org.apache.commons.lang3.BooleanUtils;
 import org.xml.sax.Attributes;
 
 import jrm.misc.ExceptionUtils;
-import jrm.profile.data.Device;
 import jrm.profile.data.Machine;
 import jrm.profile.data.Machine.CabinetType;
 import jrm.profile.data.Samples;
-import jrm.profile.data.Slot;
-import jrm.profile.data.SlotOption;
 
 /**
  * Helper for machine-related SAX parsing elements (devices, slots, dips, displays, etc.).
@@ -26,9 +23,11 @@ import jrm.profile.data.SlotOption;
 class MachineParseHelper {
 
 	private final ProfileParseContext ctx;
+	private final DeviceSlotParseHelper deviceSlotHelper;
 
 	MachineParseHelper(ProfileParseContext ctx) {
 		this.ctx = ctx;
+		this.deviceSlotHelper = new DeviceSlotParseHelper(ctx);
 	}
 
 	void startMachine(Attributes attributes) {
@@ -63,85 +62,12 @@ class MachineParseHelper {
 			ctx.state.currMachine.setCloneof(null);
 	}
 
-	void startDevice(Attributes attributes) {
-		if (ctx.state.currMachine == null)
-			return;
-		ctx.state.currDevice = new Device();
-		ctx.state.currMachine.getDevices().add(ctx.state.currDevice);
-		for (var i = 0; i < attributes.getLength(); i++) {
-			final String value = attributes.getValue(i);
-			switch (attributes.getQName(i)) {
-				case "type" -> ctx.state.currDevice.setType(value.trim());
-				case "tag" -> ctx.state.currDevice.setTag(value.trim());
-				case "interface" -> ctx.state.currDevice.setIntrface(value.trim());
-				case "fixed_image" -> ctx.state.currDevice.setFixedImage(value.trim());
-				case "mandatory" -> ctx.state.currDevice.setMandatory(value.trim());
-				default -> { /* skip unknown */ }
-			}
-		}
-	}
-
-	void startInstance(Attributes attributes) {
-		if (ctx.state.currMachine == null || ctx.state.currDevice == null)
-			return;
-		ctx.state.currDevice.setInstance(ctx.state.currDevice.new Instance());
-		for (var i = 0; i < attributes.getLength(); i++) {
-			if ("name".equals(attributes.getQName(i)))
-				ctx.state.currDevice.getInstance().setName(attributes.getValue(i).trim());
-			else if ("briefname".equals(attributes.getQName(i)))
-				ctx.state.currDevice.getInstance().setBriefname(attributes.getValue(i).trim());
-		}
-	}
-
-	void startExtension(Attributes attributes) {
-		if (ctx.state.currMachine == null || ctx.state.currDevice == null)
-			return;
-		final var ext = ctx.state.currDevice.new Extension();
-		ctx.state.currDevice.getExtensions().add(ext);
-		for (var i = 0; i < attributes.getLength(); i++) {
-			if (attributes.getQName(i).equals("name"))
-				ext.setName(attributes.getValue(i).trim());
-		}
-	}
-
-	void startDeviceRef(Attributes attributes) {
-		if (ctx.state.currMachine == null)
-			return;
-		for (var i = 0; i < attributes.getLength(); i++) {
-			if ("name".equals(attributes.getQName(i)))
-				ctx.state.currMachine.getDeviceRef().add(attributes.getValue(i));
-		}
-	}
-
-	void startSlot(Attributes attributes) {
-		if (ctx.state.currMachine == null)
-			return;
-		for (var i = 0; i < attributes.getLength(); i++) {
-			if ("name".equals(attributes.getQName(i))) {
-				ctx.state.currSlot = new Slot();
-				ctx.state.currSlot.setName(attributes.getValue(i));
-				ctx.state.currMachine.getSlots().put(ctx.state.currSlot.getName(), ctx.state.currSlot);
-			}
-		}
-	}
-
-	void startSlotOption(Attributes attributes) {
-		if (ctx.state.currMachine == null || ctx.state.currSlot == null)
-			return;
-		final var slotoption = new SlotOption();
-		for (var i = 0; i < attributes.getLength(); i++) {
-			String value = attributes.getValue(i);
-			switch (attributes.getQName(i)) {
-				case "name" -> {
-					slotoption.setName(value);
-					ctx.state.currSlot.add(slotoption);
-				}
-				case "devname" -> slotoption.setDevName(value);
-				case "default" -> slotoption.setDef(BooleanUtils.toBoolean(value));
-				default -> { /* skip unknown */ }
-			}
-		}
-	}
+	void startDevice(Attributes attributes) { deviceSlotHelper.startDevice(attributes); }
+	void startInstance(Attributes attributes) { deviceSlotHelper.startInstance(attributes); }
+	void startExtension(Attributes attributes) { deviceSlotHelper.startExtension(attributes); }
+	void startDeviceRef(Attributes attributes) { deviceSlotHelper.startDeviceRef(attributes); }
+	void startSlot(Attributes attributes) { deviceSlotHelper.startSlot(attributes); }
+	void startSlotOption(Attributes attributes) { deviceSlotHelper.startSlotOption(attributes); }
 
 	void startInput(Attributes attributes) {
 		if (ctx.state.currMachine == null)

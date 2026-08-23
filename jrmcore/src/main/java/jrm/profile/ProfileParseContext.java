@@ -8,15 +8,6 @@
  */
 package jrm.profile;
 
-import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-
 import org.apache.commons.lang3.BooleanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.xml.sax.Attributes;
@@ -70,6 +61,7 @@ class ProfileParseContext {
 	final RomDiskParseHelper romDiskHelper;
 	private final MachineParseHelper machineHelper;
 	private final SoftwareParseHelper softwareHelper;
+	private final ParseCharacterHandler characterHandler;
 
 	ProfileParseContext(Profile profile, ProgressHandler handler) {
 		this.profile = profile;
@@ -78,6 +70,7 @@ class ProfileParseContext {
 		this.romDiskHelper = new RomDiskParseHelper(this);
 		this.machineHelper = new MachineParseHelper(this);
 		this.softwareHelper = new SoftwareParseHelper(this);
+		this.characterHandler = new ParseCharacterHandler(this);
 	}
 
 	/**
@@ -143,39 +136,14 @@ class ProfileParseContext {
 	 * Handles character data for the current target (called from SAX handler).
 	 */
 	void characters(final char[] ch, final int start, final int length) {
-		final var value = new String(ch, start, length);
-		if (!value.isBlank())
-			Optional.ofNullable(getCharacterTarget()).ifPresent(target -> target.append(value));
+		characterHandler.characters(ch, start, length);
 	}
 
 	/**
 	 * Generates detailed debug information string mapping where error was met.
 	 */
 	String getDebugMsg(Attributes attributes, String qName, Exception e) {
-		final var msg = new StringBuilder("Error");
-
-		if (state.currMachine != null) {
-			msg.append(" for machine ").append(state.currMachine.getName());
-		} else if (state.currSoftwareList != null) {
-			msg.append(" for software list ").append(state.currSoftwareList.getName());
-			if (state.currSoftware != null)
-				msg.append(", software ").append(state.currSoftware.getName());
-		}
-
-		if (state.currRom != null)
-			msg.append(", rom ").append(state.currRom.getName());
-		if (state.currDisk != null)
-			msg.append(", disk ").append(state.currDisk.getName());
-
-		msg.append(", xmltag=").append(qName);
-		final var attrs = IntStream.range(0, attributes.getLength())
-				.mapToObj(i -> attributes.getQName(i) + "=" + attributes.getValue(i))
-				.collect(Collectors.joining(", "));
-		msg.append(", xmlattributes={").append(attrs).append("}");
-
-		msg.append("\nOriginal exception=").append(e.getClass().getSimpleName())
-				.append(" ").append(e.getMessage());
-		return msg.toString();
+		return characterHandler.getDebugMsg(attributes, qName, e);
 	}
 
 	private void startDisk(final Attributes attributes) {
@@ -273,38 +241,5 @@ class ProfileParseContext {
 		handler.setProgress(null, null, null, String.format(Messages.getString("Profile.SWLoaded"), profile.softwaresCnt, profile.swromsCnt, profile.swdisksCnt));
 		if (handler.isCancel())
 			throw new BreakException();
-	}
-
-	private StringBuilder getCharacterTarget() {
-		if (state.inDescription) {
-			return getDescriptionTarget();
-		} else if (state.inYear) {
-			return getYearTarget();
-		} else if (state.inManufacturer && state.currMachine != null) {
-			return state.currMachine.manufacturer;
-		} else if (state.inPublisher && state.currSoftware != null) {
-			return state.currSoftware.getPublisher();
-		} else if (state.inHeader) {
-			return profile.header.computeIfAbsent(state.currTag, _ -> new StringBuilder());
-		}
-		return null;
-	}
-
-	private StringBuilder getDescriptionTarget() {
-		if (state.currMachine != null)
-			return state.currMachine.description;
-		if (state.currSoftware != null)
-			return state.currSoftware.description;
-		if (state.currSoftwareList != null)
-			return state.currSoftwareList.getDescription();
-		return null;
-	}
-
-	private StringBuilder getYearTarget() {
-		if (state.currMachine != null)
-			return state.currMachine.year;
-		if (state.currSoftware != null)
-			return state.currSoftware.year;
-		return null;
 	}
 }

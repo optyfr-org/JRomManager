@@ -252,11 +252,13 @@ public class Profile implements Serializable, StatusRendererFactory {
      */
     transient @Getter Sources sources = null;
 
+    private transient ProfileProperties properties;
+
     /**
      * Protected zero-argument constructor initializing an empty profile.
      */
     Profile() {
-
+        properties = new ProfileProperties(this);
     }
 
     /**
@@ -264,6 +266,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      */
     public void afterLoad() {
         machineListList.afterLoad();
+        if (properties == null) properties = new ProfileProperties(this);
     }
 
     /**
@@ -362,8 +365,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * @param value target option state value
      */
     public void setProperty(final ProfileSettingsEnum property, final boolean value) {
-        Log.info(() -> "%s : %b".formatted(property, value));
-        settings.setProperty(property, Boolean.toString(value));
+        properties.setProperty(property, value);
     }
 
     /**
@@ -373,8 +375,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * @param value target option state value
      */
     public void setProperty(final String property, final boolean value) {
-        Log.info(() -> "%s : %b".formatted(property, value));
-        settings.setProperty(property, Boolean.toString(value));
+        properties.setProperty(property, value);
     }
 
     /**
@@ -384,7 +385,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * @param value target option text value
      */
     public void setProperty(final ProfileSettingsEnum property, final String value) {
-        settings.setProperty(property, value);
+        properties.setProperty(property, value);
     }
 
     /**
@@ -394,7 +395,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * @param value target option text value
      */
     public void setProperty(final String property, final String value) {
-        settings.setProperty(property, value);
+        properties.setProperty(property, value);
     }
 
     /**
@@ -406,7 +407,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * @return option state value
      */
     public boolean getProperty(final String property, final boolean def) {
-        return Boolean.parseBoolean(settings.getProperty(property, Boolean.toString(def)));
+        return properties.getProperty(property, def);
     }
 
     /**
@@ -418,7 +419,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * @return option value
      */
     public int getProperty(final String property, final int def) {
-        return Integer.parseInt(settings.getProperty(property, Integer.toString(def)));
+        return properties.getProperty(property, def);
     }
 
     /**
@@ -430,7 +431,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * @return option value
      */
     public String getProperty(final String property, final String def) {
-        return settings.getProperty(property, def);
+        return properties.getProperty(property, def);
     }
 
     /**
@@ -443,7 +444,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * @return option value
      */
     public <T> T getProperty(final ProfileSettingsEnum property, Class<T> cls) {
-        return settings.getProperty(property, cls);
+        return properties.getProperty(property, cls);
     }
 
     /**
@@ -454,19 +455,14 @@ public class Profile implements Serializable, StatusRendererFactory {
      * @return option text value
      */
     public String getProperty(final ProfileSettingsEnum property) {
-        return settings.getProperty(property, String.class);
+        return properties.getProperty(property);
     }
-
-    /**
-     * Cached hash code of the profile settings used to detect modifications.
-     */
-    private int propsHashCode = 0;
 
     /**
      * Saves properties checkpoints hash codes to track modifications state.
      */
     public void setPropsCheckPoint() {
-        propsHashCode = settings.hashCode();
+        properties.setPropsCheckPoint();
     }
 
     /**
@@ -475,7 +471,7 @@ public class Profile implements Serializable, StatusRendererFactory {
      * @return true if properties changed, false otherwise
      */
     public boolean hasPropsChanged() {
-        return propsHashCode != settings.hashCode();
+        return properties.hasPropsChanged();
     }
 
     /**
