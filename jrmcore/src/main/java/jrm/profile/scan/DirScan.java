@@ -1176,8 +1176,12 @@ public final class DirScan extends PathAbstractor {
                 }
                 container.setLoaded(options.needSha1OrMd5 ? 2 : 1);
             } else {
+                final Map<String, ISimpleInArchiveItem> pathToItem = new HashMap<>();
+                for (final ISimpleInArchiveItem itm : getNInterface().getArchiveItems())
+                    if (!itm.isFolder())
+                        pathToItem.put(itm.getPath(), itm);
                 for (final Entry entry : container.getEntries())
-                    updateEntry(entry, entries, null);
+                    updateEntry(entry, entries, pathToItem.get(entry.getFile()));
             }
             computeHashes(entries);
         }
