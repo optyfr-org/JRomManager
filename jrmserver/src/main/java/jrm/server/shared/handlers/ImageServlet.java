@@ -141,14 +141,14 @@ public class ImageServlet extends HttpServlet {
                 || resourcePath.contains("\0")
                 || resourcePath.startsWith("//")
                 || !SAFE_RESOURCE_PATH.matcher(resourcePath).matches()) {
-            Log.debug("Disallowed resource path : " + resourcePath);
+            Log.debug("Disallowed resource path");
             throw new URISyntaxException(resourcePath, "Disallowed resource path");
         }
 
         final URI baseUri = getURI();
         final URI resolved = (baseUri.isOpaque() ? URI.create(baseUri + resourcePath) : baseUri.resolve(resourcePath)).normalize();
         if (!resolved.toString().startsWith(baseUri.toString())) {
-            Log.debug(() -> "Resolved path '%s' escapes base URI '%s' for request '%s'".formatted(resolved, baseUri, requestUri));
+            Log.debug("Resolved path escapes base URI");
             throw new URISyntaxException(resourcePath, "Resolved path escapes base URI");
         }
         return resolved;

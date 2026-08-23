@@ -214,10 +214,10 @@ public class Dir2DatActions {
             new Dir2Dat(session, validatedSrcDir.toFile(), validatedDstDat.toFile(), worker.getProgress(),
                     options, ExportType.valueOf(format), headers);
         } catch (SecurityException e) {
-            Log.err(() -> "Path validation failed for Dir2Dat operation: " + e.getMessage(), e);
+            Log.err(() -> "Path validation failed for Dir2Dat operation", e);
             new GlobalActions(ws).warn("Invalid source directory or destination file path. Operation cancelled for security reasons.");
         } catch (IllegalArgumentException e) {
-            Log.err(() -> "Dir2Dat destination rejected: " + e.getMessage(), e);
+            Log.err(() -> "Dir2Dat destination rejected", e);
             new GlobalActions(ws).warn("Destination file path is outside the allowed workspace. Operation cancelled.");
         }
     }

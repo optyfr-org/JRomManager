@@ -608,7 +608,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
             
             return resolvedPath;
         } catch (Exception e) {
-            Log.err("Error validating path: " + e.getMessage(), e);
+            Log.err("Error validating path", e);
             return null;
         }
     }
@@ -692,11 +692,11 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
         try {
             Path resolvedPath = IOUtils.resolveContainedPath(normalizedOutputPath, entry.getName());
             if (!resolvedPath.startsWith(normalizedOutputPath)) {
-                Log.err("Skipping unsafe zip entry outside target dir: " + entry.getName());
+                Log.err("Skipping unsafe zip entry outside target dir");
                 return;
             }
             if (CachePathGuard.isProtectedFile(request.getSession(), resolvedPath)) {
-                Log.err("Skipping zip entry targeting a protected cache path: " + entry.getName());
+                Log.err("Skipping zip entry targeting a protected cache path");
                 return;
             }
             if (entry.isDirectory()) {

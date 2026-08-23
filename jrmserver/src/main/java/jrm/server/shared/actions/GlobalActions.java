@@ -175,7 +175,7 @@ public class GlobalActions {
         if (isValidSandboxPath(stringValue, isDestPathProperty(rawName) || isDestPathProperty(propertyName))) {
             return true;
         }
-        Log.err("Rejected property '" + propertyName + "': path escapes workspace: " + stringValue);
+        Log.err("Rejected property '" + propertyName + "': path escapes workspace");
         return false;
     }
 

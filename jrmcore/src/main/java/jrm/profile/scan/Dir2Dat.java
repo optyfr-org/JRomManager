@@ -112,7 +112,7 @@ public class Dir2Dat {
             if (!isInsideExportRoots(absolute))
                 throw new SecurityException("Forged path");
         } catch (SecurityException e) {
-            throw new IllegalArgumentException("Destination file path escapes workspace: " + dstdat.getAbsolutePath(), e);
+            throw new IllegalArgumentException("Destination file path escapes workspace", e);
         }
     }
 
