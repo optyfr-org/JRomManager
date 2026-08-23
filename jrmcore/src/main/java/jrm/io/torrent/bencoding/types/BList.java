@@ -8,7 +8,9 @@
  */
 package jrm.io.torrent.bencoding.types;
 
-import java.util.ArrayList;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -79,20 +81,17 @@ public class BList implements IBencodable {
      * @return the bencoded byte array
      */
     public byte[] bencode() {
-        // Get the total size of the keys and values.
-        final var bytes = new ArrayList<Byte>();
-        bytes.add((byte) 'l');
-        for (final var entry : this.list)
-            for (byte b : entry.bencode())
-                bytes.add(b);
-        bytes.add((byte) 'e');
-
-        final var bencoded = new byte[bytes.size()];
-
-        for (var i = 0; i < bytes.size(); i++)
-            bencoded[i] = bytes.get(i);
-
-        return bencoded;
+        try (final var baos = new ByteArrayOutputStream()) {
+            baos.write('l');
+            for (final var entry : this.list) {
+                final var enc = entry.bencode();
+                baos.write(enc, 0, enc.length);
+            }
+            baos.write('e');
+            return baos.toByteArray();
+        } catch (final IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
     // Overridden methods
 
