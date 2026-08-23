@@ -440,7 +440,7 @@ public class UploadServlet extends HttpServlet {
         Files.createDirectories(filepath.getParent());
         doUpload(req, result, filename, filepath);
         if (result.status != 3) {
-            Log.debug(() -> result.status + " : " + result.extstatus);
+            Log.debug(() -> "Upload failed with status: " + result.status);
             Files.delete(filepath);
         }
     }

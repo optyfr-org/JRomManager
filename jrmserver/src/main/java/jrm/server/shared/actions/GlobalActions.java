@@ -242,7 +242,7 @@ public class GlobalActions {
                 throw new SecurityException("Forged path");
             return true;
         } catch (SecurityException e) {
-            Log.err("Failed to validate path: " + pathString + " (" + e.getMessage() + ")");
+            Log.err("Failed to validate path (" + e.getMessage() + ")");
             return false;
         }
     }

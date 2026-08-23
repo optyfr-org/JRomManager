@@ -166,7 +166,7 @@ public class ReportActions {
             Export.export(profile, file, Report.resolveFixDatType(profile), EnumSet.of(ExportMode.MISSING), null, session.getWorker().getProgress());
             sendFixDatCreated(path);
         } catch (SecurityException e) {
-            Log.err(() -> "Path validation failed for fixDAT export: " + e.getMessage(), e);
+            Log.err(() -> "Path validation failed for fixDAT export", e);
             new GlobalActions(ws).warn("Invalid destination file path. Operation cancelled for security reasons.");
         } catch (BreakException _) {
             // user cancelled

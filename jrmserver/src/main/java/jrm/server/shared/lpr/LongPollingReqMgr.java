@@ -59,7 +59,7 @@ public class LongPollingReqMgr implements ActionsMgr {
      * @param msg the JSON message string received from the client
      */
     public void process(String msg) {
-        Log.debug(msg);
+        Log.debug("processing client message");
         processActions(this, Json.parse(msg).asObject());
     }
 

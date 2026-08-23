@@ -176,7 +176,7 @@ public abstract class AbstractSrcDstResult {
                 }
                 sdrl.add(sdr);
             } catch (Exception e) {
-                Log.err(() ->e.getMessage() + " for " + json, e);
+                Log.err(() -> e.getMessage() + " for AbstractSrcDstResult JSON", e);
             }
         }
         return sdrl;

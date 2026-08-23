@@ -905,7 +905,7 @@ public class FullServer extends AbstractServer {
      * @throws Exception if an error occurs during argument parsing, server startup, or shutdown
      */
     static void windowsService(String[] args) throws Exception {
-        Log.info(() -> "WINDOW SERVICE " + Stream.of(args).collect(Collectors.joining(" ")));
+        Log.info(() -> "WINDOW SERVICE " + (args.length > 0 ? args[0] : ""));
         var cmd = "start";
         if (args.length > 0)
             cmd = args[0];

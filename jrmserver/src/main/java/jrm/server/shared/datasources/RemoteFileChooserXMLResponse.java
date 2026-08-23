@@ -602,7 +602,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
             
             // Verify the resolved path stays within the parent directory
             if (!resolvedPath.startsWith(normalizedParent)) {
-                Log.err("Path traversal attempt detected: " + name + " escapes parent directory");
+                Log.err("Path traversal attempt detected");
                 return null;
             }
             

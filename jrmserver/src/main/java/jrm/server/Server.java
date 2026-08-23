@@ -418,7 +418,7 @@ public class Server extends AbstractServer {
      * @throws Exception if an error occurs while processing the commands or starting/stopping the service
      */
     static void windowsService(String[] args) throws Exception {
-        Log.info(() -> "WINDOW SERVICE " + Stream.of(args).collect(Collectors.joining(" ")));
+        Log.info(() -> "WINDOW SERVICE " + (args.length > 0 ? args[0] : ""));
         var cmd = "start";
         if (args.length > 0)
             cmd = args[0];
