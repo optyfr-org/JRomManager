@@ -238,12 +238,17 @@ public class TempFileInputStream extends FileInputStream {
     public static InputStream newInstance(InputStream in, long len, boolean close) throws IOException {
         final var tmpfile = IOUtils.createTempFile("JRMSRV", null);
         try (final var out = new BufferedOutputStream(Files.newOutputStream(tmpfile))) {
-            if (len < 0)
-                for (int b = in.read(); b != -1; b = in.read())
-                    out.write(b);
-            else
-                for (long i = 0; i < len; i++)
-                    out.write(in.read());
+            if (len < 0) {
+                in.transferTo(out);
+            } else {
+                final byte[] buf = new byte[8192];
+                long remaining = len;
+                int r;
+                while (remaining > 0 && (r = in.read(buf, 0, (int) Math.min(buf.length, remaining))) != -1) {
+                    out.write(buf, 0, r);
+                    remaining -= r;
+                }
+            }
             if (close)
                 in.close();
         }
