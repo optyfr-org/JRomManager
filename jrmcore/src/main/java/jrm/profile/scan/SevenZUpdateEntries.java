@@ -226,22 +226,29 @@ class SevenZUpdateEntries implements Closeable {
 	private void updateEntries7ZipJBindingMethod() throws IOException {
 		final Map<Integer, Entry> entries = new HashMap<>();
 		if (container.getLoaded() < 1 || (options.needSha1OrMd5 && container.getLoaded() < 2)) {
-			for (final ISimpleInArchiveItem item : getNInterface().getArchiveItems()) {
-				if (item.isFolder())
-					continue;
-				updateEntry(container.add(new Entry(item.getPath(), null)), entries, item);
-
-			}
+			loadNewEntries7Zip(entries);
 			container.setLoaded(options.needSha1OrMd5 ? 2 : 1);
 		} else {
-			final Map<String, ISimpleInArchiveItem> pathToItem = new HashMap<>();
-			for (final ISimpleInArchiveItem itm : getNInterface().getArchiveItems())
-				if (!itm.isFolder())
-					pathToItem.put(itm.getPath(), itm);
-			for (final Entry entry : container.getEntries())
-				updateEntry(entry, entries, pathToItem.get(entry.getFile()));
+			reloadExistingEntries7Zip(entries);
 		}
 		computeHashes(entries);
+	}
+
+	private void loadNewEntries7Zip(final Map<Integer, Entry> entries) throws IOException {
+		for (final ISimpleInArchiveItem item : getNInterface().getArchiveItems()) {
+			if (item.isFolder())
+				continue;
+			updateEntry(container.add(new Entry(item.getPath(), null)), entries, item);
+		}
+	}
+
+	private void reloadExistingEntries7Zip(final Map<Integer, Entry> entries) throws IOException {
+		final Map<String, ISimpleInArchiveItem> pathToItem = new HashMap<>();
+		for (final ISimpleInArchiveItem itm : getNInterface().getArchiveItems())
+			if (!itm.isFolder())
+				pathToItem.put(itm.getPath(), itm);
+		for (final Entry entry : container.getEntries())
+			updateEntry(entry, entries, pathToItem.get(entry.getFile()));
 	}
 
 	/**

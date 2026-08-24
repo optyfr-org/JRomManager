@@ -5,6 +5,10 @@ import jrm.fx.ui.MainFrame;
 import jrm.profile.data.AnywareStatus;
 
 final class ProfileViewerIcons {
+	private ProfileViewerIcons() {
+		/* This utility class should not be instantiated */
+	}
+
 	static final Image diskMultipleGreen = MainFrame.getIcon("/jrm/resicons/disk_multiple_green.png");
 	static final Image diskMultipleOrange = MainFrame.getIcon("/jrm/resicons/disk_multiple_orange.png");
 	static final Image diskMultipleRed = MainFrame.getIcon("/jrm/resicons/disk_multiple_red.png");

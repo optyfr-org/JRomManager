@@ -84,7 +84,7 @@ class H2 extends DB {
     @Override
     public void dropDB(String name) throws IOException {
         for (final var file : getDBPath(name).getParent().toFile().listFiles(f -> f.getName().toLowerCase().startsWith(name.toLowerCase() + '.') && Files.isRegularFile(f.toPath())))
-            file.delete();
+            Files.delete(file.toPath());
     }
 
     /**

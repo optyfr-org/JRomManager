@@ -364,10 +364,10 @@ public abstract class SQL implements SQLUtils, Closeable {
             for (final var prop : Introspector.getBeanInfo(bean.getClass()).getPropertyDescriptors()) {
                 if (columns != null) {
                     if (columns.contains(prop.getName()))
-                        set.put(prop.getName(), prop.getReadMethod().invoke(bean, new Object[0]));
+                        set.put(prop.getName(), prop.getReadMethod().invoke(bean, (Object[]) new Object[0]));
                 } else {
                     if (prop.getWriteMethod() != null)
-                        set.put(prop.getName(), prop.getReadMethod().invoke(bean, new Object[0]));
+                        set.put(prop.getName(), prop.getReadMethod().invoke(bean, (Object[]) new Object[0]));
                 }
             }
         } catch (IntrospectionException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {

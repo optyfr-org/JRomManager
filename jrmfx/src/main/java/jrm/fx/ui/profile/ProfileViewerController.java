@@ -256,10 +256,10 @@ public class ProfileViewerController implements Initializable {
     @Override
     public void initialize(final URL location, final ResourceBundle resources) {
         actions = new ProfileViewerActions(tableWL, tableW, tableEntity, session,
-                mntmAllAsMameDat, mntmAllAsLogiqxDat, mntmAllAsSoftwareLists,
-                mntmFilteredAsMameDat, mntmFilteredAsLogiqxDat, mntmFilteredAsSoftwareLists,
-                mntmSelectedAsSoftwareLists, mntmSelectedFilteredAsSoftwareLists,
-                mntmCopyCrc, mntmCopySha1, mntmCopyName, mntmSearchWeb);
+                new ProfileViewerActions.ExportMenuItems(mntmAllAsMameDat, mntmAllAsLogiqxDat, mntmAllAsSoftwareLists,
+                        mntmFilteredAsMameDat, mntmFilteredAsLogiqxDat, mntmFilteredAsSoftwareLists,
+                        mntmSelectedAsSoftwareLists, mntmSelectedFilteredAsSoftwareLists),
+                new ProfileViewerActions.EntityMenuItems(mntmCopyCrc, mntmCopySha1, mntmCopyName, mntmSearchWeb));
         wareRelations = new ProfileViewerWareRelations(tableWL);
         initTableWL();
         initTableW();

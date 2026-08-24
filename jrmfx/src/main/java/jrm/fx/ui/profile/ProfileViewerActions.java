@@ -24,80 +24,68 @@ import jrm.profile.manager.Export.ExportType;
 import jrm.security.Session;
 
 final class ProfileViewerActions {
+
+	record ExportMenuItems(
+			MenuItem allAsMameDat,
+			MenuItem allAsLogiqxDat,
+			MenuItem allAsSoftwareLists,
+			MenuItem filteredAsMameDat,
+			MenuItem filteredAsLogiqxDat,
+			MenuItem filteredAsSoftwareLists,
+			MenuItem selectedAsSoftwareLists,
+			MenuItem selectedFilteredAsSoftwareLists) {
+	}
+
+	record EntityMenuItems(
+			MenuItem copyCrc,
+			MenuItem copySha1,
+			MenuItem copyName,
+			MenuItem searchWeb) {
+	}
+
 	private final TableView<AnywareList<? extends Anyware>> tableWL;
 	private final TableView<Anyware> tableW;
 	private final TableView<jrm.profile.data.EntityBase> tableEntity;
 	private final Session session;
 
-	private final MenuItem mntmAllAsMameDat;
-	private final MenuItem mntmAllAsLogiqxDat;
-	private final MenuItem mntmAllAsSoftwareLists;
-	private final MenuItem mntmFilteredAsMameDat;
-	private final MenuItem mntmFilteredAsLogiqxDat;
-	private final MenuItem mntmFilteredAsSoftwareLists;
-	private final MenuItem mntmSelectedAsSoftwareLists;
-	private final MenuItem mntmSelectedFilteredAsSoftwareLists;
-
-	private final MenuItem mntmCopyCrc;
-	private final MenuItem mntmCopySha1;
-	private final MenuItem mntmCopyName;
-	private final MenuItem mntmSearchWeb;
+	private final ExportMenuItems exportMenuItems;
+	private final EntityMenuItems entityMenuItems;
 
 	ProfileViewerActions(
 			final TableView<AnywareList<? extends Anyware>> tableWL,
 			final TableView<Anyware> tableW,
 			final TableView<jrm.profile.data.EntityBase> tableEntity,
 			final Session session,
-			final MenuItem mntmAllAsMameDat,
-			final MenuItem mntmAllAsLogiqxDat,
-			final MenuItem mntmAllAsSoftwareLists,
-			final MenuItem mntmFilteredAsMameDat,
-			final MenuItem mntmFilteredAsLogiqxDat,
-			final MenuItem mntmFilteredAsSoftwareLists,
-			final MenuItem mntmSelectedAsSoftwareLists,
-			final MenuItem mntmSelectedFilteredAsSoftwareLists,
-			final MenuItem mntmCopyCrc,
-			final MenuItem mntmCopySha1,
-			final MenuItem mntmCopyName,
-			final MenuItem mntmSearchWeb) {
+			final ExportMenuItems exportMenuItems,
+			final EntityMenuItems entityMenuItems) {
 		this.tableWL = tableWL;
 		this.tableW = tableW;
 		this.tableEntity = tableEntity;
 		this.session = session;
-		this.mntmAllAsMameDat = mntmAllAsMameDat;
-		this.mntmAllAsLogiqxDat = mntmAllAsLogiqxDat;
-		this.mntmAllAsSoftwareLists = mntmAllAsSoftwareLists;
-		this.mntmFilteredAsMameDat = mntmFilteredAsMameDat;
-		this.mntmFilteredAsLogiqxDat = mntmFilteredAsLogiqxDat;
-		this.mntmFilteredAsSoftwareLists = mntmFilteredAsSoftwareLists;
-		this.mntmSelectedAsSoftwareLists = mntmSelectedAsSoftwareLists;
-		this.mntmSelectedFilteredAsSoftwareLists = mntmSelectedFilteredAsSoftwareLists;
-		this.mntmCopyCrc = mntmCopyCrc;
-		this.mntmCopySha1 = mntmCopySha1;
-		this.mntmCopyName = mntmCopyName;
-		this.mntmSearchWeb = mntmSearchWeb;
+		this.exportMenuItems = exportMenuItems;
+		this.entityMenuItems = entityMenuItems;
 	}
 
 	void refreshMenuItemAvailability() {
 		final boolean has_machines = session.getCurrProfile().getMachineListList().getList().stream().mapToInt(ml -> ml.getList().size()).sum() > 0;
 		final boolean has_filtered_machines = session.getCurrProfile().getMachineListList().getFilteredStream().mapToInt(m -> (int) m.countAll()).sum() > 0;
 		final boolean has_selected_swlist = tableWL.getSelectionModel().getSelectedItems().size() == 1 && tableWL.getSelectionModel().getSelectedItem() instanceof SoftwareList;
-		mntmAllAsMameDat.setDisable(!has_machines);
-		mntmAllAsLogiqxDat.setDisable(!has_machines);
-		mntmAllAsSoftwareLists.setDisable(session.getCurrProfile().getMachineListList().getSoftwareListList().isEmpty());
-		mntmFilteredAsMameDat.setDisable(!has_filtered_machines);
-		mntmFilteredAsLogiqxDat.setDisable(!has_filtered_machines);
-		mntmFilteredAsSoftwareLists.setDisable(session.getCurrProfile().getMachineListList().getSoftwareListList().getFilteredStream().count() == 0);
-		mntmSelectedAsSoftwareLists.setDisable(!has_selected_swlist);
-		mntmSelectedFilteredAsSoftwareLists.setDisable(!has_selected_swlist);
+		exportMenuItems.allAsMameDat().setDisable(!has_machines);
+		exportMenuItems.allAsLogiqxDat().setDisable(!has_machines);
+		exportMenuItems.allAsSoftwareLists().setDisable(session.getCurrProfile().getMachineListList().getSoftwareListList().isEmpty());
+		exportMenuItems.filteredAsMameDat().setDisable(!has_filtered_machines);
+		exportMenuItems.filteredAsLogiqxDat().setDisable(!has_filtered_machines);
+		exportMenuItems.filteredAsSoftwareLists().setDisable(session.getCurrProfile().getMachineListList().getSoftwareListList().getFilteredStream().count() == 0);
+		exportMenuItems.selectedAsSoftwareLists().setDisable(!has_selected_swlist);
+		exportMenuItems.selectedFilteredAsSoftwareLists().setDisable(!has_selected_swlist);
 	}
 
 	void updateEMenuItemStates() {
 		final boolean has_selected_entity = tableEntity.getSelectionModel().getSelectedItem() != null;
-		mntmCopyCrc.setDisable(!has_selected_entity);
-		mntmCopySha1.setDisable(!has_selected_entity);
-		mntmCopyName.setDisable(!has_selected_entity);
-		mntmSearchWeb.setDisable(!has_selected_entity);
+		entityMenuItems.copyCrc().setDisable(!has_selected_entity);
+		entityMenuItems.copySha1().setDisable(!has_selected_entity);
+		entityMenuItems.copyName().setDisable(!has_selected_entity);
+		entityMenuItems.searchWeb().setDisable(!has_selected_entity);
 	}
 
 	void copyCrc() {

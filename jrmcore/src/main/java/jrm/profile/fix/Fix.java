@@ -57,7 +57,7 @@ public class Fix {
     public Fix(final Profile currProfile, final Scan currScan, final ProgressHandler progress) {
         this.currScan = currScan;
 
-        final var useParallelism = currProfile.getProperty(ProfileSettingsEnum.use_parallelism, Boolean.class); // $NON-NLS-1$
+        final boolean useParallelism = Boolean.TRUE.equals(currProfile.getProperty(ProfileSettingsEnum.use_parallelism, Boolean.class)); // $NON-NLS-1$
         final var nThreads = useParallelism ? currProfile.getSession().getUser().getSettings().getProperty(SettingsEnum.thread_count, Integer.class) : 1;
 
         final long start = System.currentTimeMillis();

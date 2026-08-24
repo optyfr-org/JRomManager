@@ -181,10 +181,12 @@ public class ProfilesListXMLResponse extends XMLResponse {
                 final var dst = resolveContainedFile(dir, operation.getData(FILE));
                 if (Files.isRegularFile(dst)) {
                     final var cache = resolveContainedFile(dir, operation.getData(FILE) + ".cache");
-                    if (Files.exists(cache) && !cache.toFile().delete())
-                        failure("Can't delete " + cache);
-                    else
+                    try {
+                        Files.deleteIfExists(cache);
                         success();
+                    } catch (IOException e) {
+                        failure("Can't delete " + cache);
+                    }
                 } else
                     failure("Can't find " + dst);
             } catch (SecurityException ex) {
