@@ -84,7 +84,7 @@ final class ProfileLoader {
 	private static boolean shouldLoadFromCache(final File cachefile, final ProfileNFO nfo, final Session session) {
 		return cachefile.lastModified() >= nfo.getFile().lastModified()
 			&& (!nfo.isJRM() || cachefile.lastModified() >= nfo.getMame().getFileroms().lastModified())
-			&& Boolean.TRUE.equals(!session.getUser().getSettings().getProperty(SettingsEnum.debug_nocache, Boolean.class));
+			&& !Boolean.TRUE.equals(session.getUser().getSettings().getProperty(SettingsEnum.debug_nocache, Boolean.class));
 	}
 
 	/**
