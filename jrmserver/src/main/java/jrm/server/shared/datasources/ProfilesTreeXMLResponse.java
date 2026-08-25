@@ -61,11 +61,8 @@ public class ProfilesTreeXMLResponse extends XMLResponse {
      */
     private int countNode(Node<Dir> node) {
         var count = 0;
-        for (final var child : node) {
-            count++;
-            if (child.getChildCount() > 0)
-                count += countNode(child);
-        }
+        for (final var child : node)
+            count += 1 + countNode(child);
         return count;
     }
 
