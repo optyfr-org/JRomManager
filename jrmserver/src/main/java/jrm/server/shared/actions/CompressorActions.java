@@ -13,6 +13,7 @@ import org.apache.commons.io.FilenameUtils;
 
 import com.eclipsesource.json.JsonObject;
 
+import jrm.aui.progress.ProgressHandler;
 import jrm.batch.Compressor;
 import jrm.batch.Compressor.FileResult;
 import jrm.batch.CompressorFormat;
@@ -82,8 +83,8 @@ public class CompressorActions {
 
     /**
      * Starts parallel compression using the provided session, format, force option, and number of threads. It initializes a
-     * list of file results from the cached compressor list, creates an atomic integer for tracking processed files, and sets up
-     * a {@link Compressor} instance. The method then starts a multi-threaded virtual environment to process the compression tasks.
+     * list of file results from the cached compressor list, and creates an atomic integer for tracking processed files.
+     * Each worker constructs its own {@link Compressor}. The method then starts a multi-threaded virtual environment to process the compression tasks.
      *
      * @param session The current {@link WebSession}.
      * @param format The target {@link CompressorFormat} for compression.
@@ -96,9 +97,10 @@ public class CompressorActions {
         for (int i = 0; i < values.size(); i++)
             rowMap.put(values.get(i), i);
         final var cnt = new AtomicInteger();
-        final var compressor = new Compressor(session, cnt, session.getCachedCompressorList().size(), session.getWorker().getProgress());
-        try (final var mt = new MultiThreadingVirtual<Compressor.FileResult>("compressor", session.getWorker().getProgress(), nThreads,
-                fr -> doCompress(session, format, force, cnt, compressor, rowMap, fr))) {
+        final var total = session.getCachedCompressorList().size();
+        final var progress = session.getWorker().getProgress();
+        try (final var mt = new MultiThreadingVirtual<Compressor.FileResult>("compressor", progress, nThreads,
+                fr -> doCompress(session, format, force, cnt, total, progress, rowMap, fr))) {
             mt.start(session.getCachedCompressorList().values().stream());
         }
     }
@@ -112,12 +114,13 @@ public class CompressorActions {
      * @param format The target {@link CompressorFormat} (SEVENZIP, ZIP, TZIP).
      * @param force Whether to force the compression even if the target format already matches.
      * @param cnt An {@link AtomicInteger} to track the number of processed files.
-     * @param compressor The {@link Compressor} instance performing the operations.
+     * @param total The total number of files in this compression batch.
+     * @param progress The progress handler for this worker.
      * @param rowMap Map from FileResult to its index in the list.
      * @param fr The specific {@link FileResult} representing the file to compress.
      */
-    private void doCompress(final WebSession session, final CompressorFormat format, final boolean force, final AtomicInteger cnt, final Compressor compressor,
-            Map<FileResult, Integer> rowMap, FileResult fr) {
+    private void doCompress(final WebSession session, final CompressorFormat format, final boolean force, final AtomicInteger cnt, final int total,
+            final ProgressHandler progress, Map<FileResult, Integer> rowMap, FileResult fr) {
         if (session.getWorker().getProgress().isCancel())
             return;
         try {
@@ -125,6 +128,7 @@ public class CompressorActions {
             var file = PathAbstractor.getAbsolutePath(session, fr.getFile().toString()).toFile();
             Compressor.UpdResultCallBack cb = txt -> updateResult(i, fr.applyResult(txt));
             Compressor.UpdSrcCallBack scb = src -> updateFile(i, fr.applyFile(PathAbstractor.getRelativePath(session, src.toPath())));
+            final var compressor = new Compressor(session, cnt, total, progress);
             switch (format) {
                 case SEVENZIP -> doCompress2SevenZip(force, compressor, file, cb, scb);
                 case ZIP -> doCompress2Zip(force, compressor, file, cb, scb);
