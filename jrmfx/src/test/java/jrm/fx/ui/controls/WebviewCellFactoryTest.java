@@ -252,6 +252,16 @@ class WebviewCellFactoryTest {
         assertThat(webView1).as("Each cell should have its own WebView instance").isNotSameAs(webView2);
     }
 
+    @Test
+    @DisplayName("Should reuse WebView when the same HTML is applied again")
+    void shouldReuseWebViewWhenSameHtmlIsAppliedAgain() {
+        TableCell<Object, String> cell = cellFactory.call(tableColumn);
+        invokeUpdateItem(cell, "<p>Same</p>", false);
+        final var first = cell.getGraphic();
+        invokeUpdateItem(cell, "<p>Same</p>", false);
+        assertThat(cell.getGraphic()).as("Same HTML should keep the existing WebView").isSameAs(first);
+    }
+
     /**
      * Verifies that an empty string item still creates a {@link WebView} graphic (empty string is non-null).
      */

@@ -10,8 +10,11 @@ package jrm.profile.scan;
 
 import java.io.File;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import jrm.profile.data.Archive;
@@ -39,6 +42,8 @@ import jrm.profile.scan.options.FormatOptions;
  * Extracted from Scan to reduce size and separate asset-specific logic.
  */
 final class SamplesScan {
+
+	private static final Set<FormatOptions.Ext> SAMPLE_EXTS = EnumSet.allOf(FormatOptions.Ext.class);
 
 	private final Scan scan;
 
@@ -84,13 +89,17 @@ final class SamplesScan {
 		reportSubject.setFound();
 
 		final var data = new ScanSamplesData(container);
+		final Map<String, Entry> containerByName = container.getEntriesByName();
+		Map<String, Entry> samplesByName = null;
 
 		for (final Sample sample : set) {
 			sample.setStatus(jrm.profile.data.EntityStatus.KO);
-			Entry foundEntry = scanSamplesEntries(container, sample);
+			Entry foundEntry = containerByName.get(sample.getNormalizedName());
 			if (foundEntry == null) {
 				scan.report.getStats().incMissingSamplesCnt();
-				foundEntry = searchSampleInAllScans(set, sample);
+				if (samplesByName == null)
+					samplesByName = indexSamplesInAllScans(set);
+				foundEntry = samplesByName.get(sample.getNormalizedName());
 				if (foundEntry != null) {
 					reportSubject.add(new EntryAdd(sample, foundEntry));
 					OpenContainer.getInstance(data.addSet, archive, scan.format, Long.MAX_VALUE).addAction(new AddEntry(sample, foundEntry));
@@ -122,15 +131,6 @@ final class SamplesScan {
 		}
 	}
 
-	@SuppressWarnings("unlikely-arg-type")
-	private Entry scanSamplesEntries(final Container container, final Sample sample) {
-		for (final Entry candidate_entry : container.getEntries()) {
-			if (candidate_entry.equals(sample)) // NOSONAR
-				return candidate_entry;
-		}
-		return null;
-	}
-
 	private void scanSamplesForMissingContainer(final Samples set, final Container archive, final SubjectSet reportSubject) {
 		for (final Sample sample : set)
 			sample.setStatus(jrm.profile.data.EntityStatus.KO);
@@ -139,9 +139,10 @@ final class SamplesScan {
 		int samplesFound = 0;
 		boolean partialSet = false;
 		final var createSet = new AtomicReference<CreateContainer>();
+		final Map<String, Entry> samplesByName = indexSamplesInAllScans(set);
 		for (final Sample sample : set) {
 			scan.report.getStats().incMissingSamplesCnt();
-			Entry entryFound = searchSampleInAllScans(set, sample);
+			Entry entryFound = samplesByName.get(sample.getNormalizedName());
 			if (null != entryFound) {
 				reportSubject.add(new EntryAdd(sample, entryFound));
 				CreateContainer.getInstance(createSet, archive, scan.format, Long.MAX_VALUE).addAction(new AddEntry(sample, entryFound));
@@ -159,18 +160,18 @@ final class SamplesScan {
 		}
 	}
 
-	private Entry searchSampleInAllScans(final Samples set, final Sample sample) {
+	private Map<String, Entry> indexSamplesInAllScans(final Samples set) {
+		final Map<String, Entry> byName = new HashMap<>();
+		final String setName = set.getName();
 		for (final DirScan dscan : scan.allScans) {
-			for (final FormatOptions.Ext ext : EnumSet.allOf(FormatOptions.Ext.class)) {
-				final Container foundContainer = dscan.getContainerByName(set.getName() + ext);
-				if (null != foundContainer) {
-					for (final Entry entry : foundContainer.getEntriesByFName().values()) {
-						if (entry.getName().equals(sample.getNormalizedName()))
-							return entry;
-					}
-				}
+			for (final FormatOptions.Ext ext : SAMPLE_EXTS) {
+				final Container foundContainer = dscan.getContainerByName(setName + ext);
+				if (foundContainer == null)
+					continue;
+				for (final Entry entry : foundContainer.getEntriesByFName().values())
+					byName.putIfAbsent(entry.getName(), entry);
 			}
 		}
-		return null;
+		return byName;
 	}
 }

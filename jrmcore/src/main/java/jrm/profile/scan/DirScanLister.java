@@ -60,12 +60,15 @@ final class DirScanLister {
 	 * Lists and filters all physical files on the filesystem prior to performing full verification.
 	 */
 	void listFiles(final File dir, final ProgressHandler h, final Path path, final ScanOptions options) {
-		handler.setProgress(String.format(Messages.getString("DirScan.ListingFiles"), ds.getRelativePath(dir.toPath())));
+		final var dirRel = ds.getRelativePath(dir.toPath());
+		final String listingMsg2 = Messages.getString("DirScan.ListingFiles2");
+		handler.setProgress(String.format(Messages.getString("DirScan.ListingFiles"), dirRel));
 
 		try {
 			final var i = new AtomicInteger();
 
-			Files.walkFileTree(path, Collections.singleton(FileVisitOption.FOLLOW_LINKS), options.isDest ? 1 : 100, listFilesVisitor(dir, h, path, options, i));
+			Files.walkFileTree(path, Collections.singleton(FileVisitOption.FOLLOW_LINKS), options.isDest ? 1 : 100,
+					listFilesVisitor(h, path, options, i, dirRel, listingMsg2));
 			containersByName.entrySet().removeIf(entry -> !entry.getValue().isUp2date());
 		} catch (IOException e) {
 			Log.err("IOException when listing", e); //$NON-NLS-1$
@@ -75,19 +78,20 @@ final class DirScanLister {
 
 	}
 
-	private SimpleFileVisitor<Path> listFilesVisitor(final File dir, final ProgressHandler h, final Path rootPath,
-			final ScanOptions options, final AtomicInteger i) {
+	private SimpleFileVisitor<Path> listFilesVisitor(final ProgressHandler h, final Path rootPath,
+			final ScanOptions options, final AtomicInteger i, final Path dirRel, final String listingMsg2) {
 		return new SimpleFileVisitor<Path>() {
 
 			@Override
 			public FileVisitResult visitFile(Path entryPath, BasicFileAttributes entryAttrs) throws IOException {
-				return doVisitFile(entryPath, entryAttrs, dir, h, rootPath, options, i);
+				return doVisitFile(entryPath, entryAttrs, h, rootPath, options, i, dirRel, listingMsg2);
 			}
 		};
 	}
 
-	private FileVisitResult doVisitFile(Path entryPath, BasicFileAttributes entryAttrs, final File dir,
-			final ProgressHandler h, final Path rootPath, final ScanOptions options, final AtomicInteger i) {
+	private FileVisitResult doVisitFile(Path entryPath, BasicFileAttributes entryAttrs, final ProgressHandler h,
+			final Path rootPath, final ScanOptions options, final AtomicInteger i, final Path dirRel,
+			final String listingMsg2) {
 		if (h.isCancel())
 			return FileVisitResult.TERMINATE;
 		if (rootPath.equals(entryPath))
@@ -100,14 +104,13 @@ final class DirScanLister {
 				listFilesDest(entryFile, entryAttrs);
 			} else
 				listFilesSrc(rootPath, entryPath, entryFile, entryAttrs, options);
-			updateVisitProgress(entryPath, rootPath, dir, i);
 		} catch (final IOException e) {
 			Log.err(e.getMessage(), e);
 		} catch (final BreakException _) {
 			h.doCancel();
 		}
 
-		updateVisitProgress(entryPath, rootPath, dir, i);
+		updateVisitProgress(entryPath, rootPath, dirRel, listingMsg2, i);
 		return FileVisitResult.CONTINUE;
 	}
 
@@ -121,10 +124,10 @@ final class DirScanLister {
 		});
 	}
 
-	private void updateVisitProgress(Path entryPath, final Path rootPath, final File dir, final AtomicInteger i) {
+	private void updateVisitProgress(Path entryPath, final Path rootPath, final Path dirRel, final String listingMsg2,
+			final AtomicInteger i) {
 		handler.setProgress(rootPath.relativize(entryPath).toString(), -1); // $NON-NLS-1$
-		handler.setProgress2(String.format(Messages.getString("DirScan.ListingFiles2"), //$NON-NLS-1$
-				ds.getRelativePath(dir.toPath()), i.incrementAndGet()), 0);
+		handler.setProgress2(String.format(listingMsg2, dirRel, i.incrementAndGet()), 0);
 	}
 
 	private void listFilesSrc(final Path rootPath, Path entryPath, final File entryFile, final BasicFileAttributes entryAttr, ScanOptions options) throws IOException {

@@ -32,26 +32,36 @@ public class WebviewCellFactory<S, T> implements Callback<TableColumn<S, T>, Tab
               */
             private WebView webview;
             private WebEngine engine;
+            private T lastItem;
 
             @Override
             protected void updateItem(T item, boolean empty) {
                 super.updateItem(item, empty);
                 if (item == null || empty) {
+                    lastItem = null;
                     setText(null);
                     setGraphic(null);
                     setStyle("");
-                } else {
-                    if (webview == null) {
-                        webview = new WebView();
-                        engine = webview.getEngine();
-                        webview.setPrefHeight(-1); // <- Absolute must at this position (before calling the Javascript)
-                        webview.setBlendMode(BlendMode.DARKEN);
-                        webview.setFontScale(0.75);
-                    }
-                    setGraphic(webview);
-                    engine.loadContent(
-                            "<body topmargin=0 leftmargin=0 style=\"background-color: transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis\">" + item + "</body>");
+                    return;
                 }
+                if (webview == null) {
+                    webview = newWebView();
+                    engine = webview.getEngine();
+                }
+                setGraphic(webview);
+                if (item.equals(lastItem))
+                    return;
+                lastItem = item;
+                engine.loadContent(
+                        "<body topmargin=0 leftmargin=0 style=\"background-color: transparent;white-space:nowrap;overflow:hidden;text-overflow:ellipsis\">" + item + "</body>");
+            }
+
+            private static WebView newWebView() {
+                final var view = new WebView();
+                view.setPrefHeight(-1);
+                view.setBlendMode(BlendMode.DARKEN);
+                view.setFontScale(0.75);
+                return view;
             }
         };
     }
