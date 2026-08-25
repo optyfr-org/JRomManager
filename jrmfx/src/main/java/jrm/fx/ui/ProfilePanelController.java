@@ -9,10 +9,12 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -744,35 +746,13 @@ public class ProfilePanelController implements Initializable {
         }
 
         /**
-         * Recursively searches for DAT files and MAME executables starting from the given file.
+         * Searches for DAT files and MAME executables starting from the given file.
          *
          * @param file the file or directory to start the search from
          * @return the accumulated list of matching files
          */
         private List<File> searchDats(File file) {
-            return searchDats(file, new ArrayList<>());
-        }
-
-        /**
-         * Recursively searches for DAT files and MAME executables starting from the given file,
-         * appending matches to the provided list.
-         *
-         * @param file the file or directory to start the search from
-         * @param files the list to append matching files to
-         * @return the same list reference passed in, with matches appended
-         */
-        private List<File> searchDats(File file, List<File> files) {
-            if (file.isFile()) {
-                if (FilenameUtils.isExtension(file.getName(), "xml", "dat") || MameExecutable.isLaunchable(file))
-                    files.add(file);
-            } else if (file.isDirectory()) {
-                try (final var stream = Files.newDirectoryStream(file.toPath())) {
-                    stream.forEach(p -> searchDats(p.toFile(), files));
-                } catch (IOException e) {
-                    Log.warn(e.getMessage());
-                }
-            }
-            return files;
+            return ProfilePanelController.searchDats(file, new ArrayList<>());
         }
 
         /**
@@ -1090,5 +1070,58 @@ public class ProfilePanelController implements Initializable {
         if (mame != null && mame.exists())
             return nfo.getMame().relocate(mame);
         return MameStatus.NOTFOUND;
+    }
+
+    /**
+     * Maximum directory nesting searched from the starting file. Deeper folders are omitted.
+     */
+    static final int MAX_DAT_SEARCH_DEPTH = 100;
+
+    /**
+     * Search for DAT files and MAME executables starting from the given file.
+     * Walks iteratively with a depth cap and canonical-path cycle detection.
+     *
+     * @param file the file or directory to start the search from
+     * @param files the list to append matching files to
+     * @return the same list reference passed in, with matches appended
+     */
+    static List<File> searchDats(File file, List<File> files) {
+        if (file == null || files == null)
+            return files;
+        final var pending = new ArrayDeque<PendingDat>();
+        pending.add(new PendingDat(file, 0));
+        final var visited = new HashSet<String>();
+        while (!pending.isEmpty()) {
+            final var current = pending.removeFirst();
+            final File currentFile = current.file();
+            if (currentFile == null)
+                continue;
+            if (currentFile.isFile()) {
+                if (FilenameUtils.isExtension(currentFile.getName(), "xml", "dat") || MameExecutable.isLaunchable(currentFile))
+                    files.add(currentFile);
+                continue;
+            }
+            if (current.depth() >= MAX_DAT_SEARCH_DEPTH || !currentFile.isDirectory())
+                continue;
+            final String canonical;
+            try {
+                canonical = currentFile.getCanonicalPath();
+            } catch (final IOException e) {
+                Log.warn(e.getMessage());
+                continue;
+            }
+            if (!visited.add(canonical))
+                continue;
+            try (final var stream = Files.newDirectoryStream(currentFile.toPath())) {
+                for (final var path : stream)
+                    pending.add(new PendingDat(path.toFile(), current.depth() + 1));
+            } catch (IOException e) {
+                Log.warn(e.getMessage());
+            }
+        }
+        return files;
+    }
+
+    private record PendingDat(File file, int depth) {
     }
 }
