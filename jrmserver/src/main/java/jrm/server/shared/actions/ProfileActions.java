@@ -421,7 +421,8 @@ public class ProfileActions extends PathAbstractor {
      * </ul>
      * <p>
      * <b>Automation:</b> If the profile's automation settings specify {@link ScanAutomation#hasFix()}, and the scan found actions
-     * to perform, this method automatically calls {@link #fix(JsonObject)} after the scan completes.
+     * to perform, this method automatically calls {@link #fix(JsonObject)} after the scan completes. The subsequent fix path never
+     * re-enters this method; verification uses {@link #runScanAndNotify()} instead.
      * </p>
      *
      * @param jso the JSON object containing scan parameters (currently unused)
@@ -445,7 +446,19 @@ public class ProfileActions extends PathAbstractor {
      * @throws ScanException if an error occurs during the scan operation
      */
     private void performScan(JsonObject jso, final boolean automate) {
-        WebSession session = ws.getSession();
+        final var session = runScanAndNotify();
+        final var automation = currentScanAutomation(session);
+        if (automate && session.getCurrScan() != null && hasPendingScanActions(session) && automation.hasFix())
+            fix(jso);
+    }
+
+    /**
+     * Runs a single scan on the current worker, notifies the client, and never starts a fix.
+     *
+     * @return the session that was scanned
+     */
+    private WebSession runScanAndNotify() {
+        final var session = ws.getSession();
         session.getWorker().setProgress(new ProgressActions(ws));
         try {
             session.setCurrScan(new Scan(session.getCurrProfile(), session.getWorker().getProgress()));
@@ -457,10 +470,16 @@ public class ProfileActions extends PathAbstractor {
         session.getWorker().getProgress().close();
         session.getWorker().setProgress(null);
         session.setLastAction(Instant.now());
-        final var automation = ScanAutomation.valueOf(session.getCurrProfile().getSettings().getProperty(ProfileSettingsEnum.automation_scan));
-        scanned(session.getCurrScan(), automation.hasReport());
-        if (automate && session.getCurrScan() != null && session.getCurrScan().actions.stream().mapToInt(Collection::size).sum() > 0 && automation.hasFix())
-            fix(jso);
+        scanned(session.getCurrScan(), currentScanAutomation(session).hasReport());
+        return session;
+    }
+
+    private static ScanAutomation currentScanAutomation(final WebSession session) {
+        return ScanAutomation.valueOf(session.getCurrProfile().getSettings().getProperty(ProfileSettingsEnum.automation_scan));
+    }
+
+    private static boolean hasPendingScanActions(final WebSession session) {
+        return session.getCurrScan().actions.stream().mapToInt(Collection::size).sum() > 0;
     }
 
     /**
@@ -502,29 +521,27 @@ public class ProfileActions extends PathAbstractor {
      * </ul>
      * <p>
      * <b>Automation:</b> If the profile's automation settings specify {@link ScanAutomation#hasScanAgain()}, this method
-     * automatically calls {@link #scan(JsonObject, boolean)} after the fix completes to verify the ROM collection state.
+     * runs a one-shot verification scan via {@link #runScanAndNotify()} after the fix completes. That path cannot start another
+     * fix, so the scan/fix pipeline cannot recurse.
      * </p>
      *
      * @param jso the JSON object containing fix parameters (currently unused)
      */
     public void fix(JsonObject jso) {
-        ws.getSession().setWorker(new Worker(() -> performFix(jso))).start();
+        ws.getSession().setWorker(new Worker(this::performFix)).start();
     }
 
     /**
      * Performs the actual fix operation in a background thread. It rescans the profile if necessary, creates a Fix instance to process the
      * scan's action list, and executes the fix operation. It also handles progress updates and notifications.
-     *
-     * @param jso the JSON object containing fix parameters (currently unused)
      */
-    private void performFix(final JsonObject jso) {
+    private void performFix() {
         final var session = ws.getSession();
         session.getWorker().setProgress(new ProgressActions(ws));
         try {
             if (session.getCurrProfile().hasPropsChanged()) {
                 session.setCurrScan(new Scan(session.getCurrProfile(), session.getWorker().getProgress()));
-                boolean needfix = session.getCurrScan().actions.stream().mapToInt(Collection::size).sum() > 0;
-                if (!needfix)
+                if (!hasPendingScanActions(session))
                     return;
             }
             final var fix = new Fix(session.getCurrProfile(), session.getCurrScan(), session.getWorker().getProgress());
@@ -532,12 +549,12 @@ public class ProfileActions extends PathAbstractor {
         } catch (ScanException ex) {
             session.getWorker().getProgress().addError(ex.getMessage());
         } finally {
-            final var automation = ScanAutomation.valueOf(session.getCurrProfile().getSettings().getProperty(ProfileSettingsEnum.automation_scan));
+            final var automation = currentScanAutomation(session);
             session.getWorker().getProgress().close();
             session.getWorker().setProgress(null);
             session.setLastAction(Instant.now());
             if (automation.hasScanAgain())
-                scan(jso, false);
+                session.setWorker(new Worker(this::runScanAndNotify)).start();
         }
     }
 
