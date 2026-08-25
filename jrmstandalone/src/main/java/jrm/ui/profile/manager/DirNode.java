@@ -9,7 +9,10 @@
 package jrm.ui.profile.manager;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.Enumeration;
+import java.util.HashSet;
 
 import javax.swing.tree.DefaultMutableTreeNode;
 
@@ -25,6 +28,11 @@ import jrm.profile.manager.Dir;
  * @author optyfr
  */
 public class DirNode extends DefaultMutableTreeNode {
+
+    /**
+     * Maximum directory nesting scanned from the root. Deeper folders are omitted.
+     */
+    static final int MAX_DIR_DEPTH = 100;
 
     /** The directory data associated with this node. */
     private transient Dir dir;
@@ -51,27 +59,50 @@ public class DirNode extends DefaultMutableTreeNode {
 
     /**
      * Builds the dir tree.
+     * Walks iteratively with a depth cap and canonical-path cycle detection.
      *
      * @param dir the dir
      * @param node the node
      */
     private void buildDirTree(final Dir dir, final DefaultMutableTreeNode node) {
-        if (dir == null)
+        if (dir == null || node == null)
             return;
-        File dirfile = dir.getFile();
-        if (dirfile != null && dirfile.isDirectory()) {
-            File[] listFiles = dirfile.listFiles();
-            if (listFiles != null) {
-                for (final File file : listFiles) {
-                    if (file != null && file.isDirectory()) {
-                        final DefaultMutableTreeNode newdir = new DirNode(new Dir(file));
-                        node.add(newdir);
-                        buildDirTree(new Dir(file), newdir);
-                    }
-
+        final var pending = new ArrayDeque<Pending>();
+        pending.add(new Pending(dir, node, 0));
+        final var visited = new HashSet<String>();
+        while (!pending.isEmpty()) {
+            final var current = pending.removeFirst();
+            if (current.depth() >= MAX_DIR_DEPTH)
+                continue;
+            final var currentDir = current.dir();
+            if (currentDir == null)
+                continue;
+            final var dirfile = currentDir.getFile();
+            if (dirfile == null || !dirfile.isDirectory())
+                continue;
+            final String canonical;
+            try {
+                canonical = dirfile.getCanonicalPath();
+            } catch (final IOException _) {
+                continue;
+            }
+            if (!visited.add(canonical))
+                continue;
+            final File[] listFiles = dirfile.listFiles();
+            if (listFiles == null)
+                continue;
+            for (final File file : listFiles) {
+                if (file != null && file.isDirectory()) {
+                    final var childDir = new Dir(file);
+                    final var child = new DirNode(childDir);
+                    current.node().add(child);
+                    pending.add(new Pending(childDir, child, current.depth() + 1));
                 }
             }
         }
+    }
+
+    private record Pending(Dir dir, DefaultMutableTreeNode node, int depth) {
     }
 
     /**
