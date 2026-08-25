@@ -23,6 +23,11 @@ import jrm.io.torrent.bencoding.types.IBencodable;
  */
 public class Reader {
     /**
+     * Maximum container nesting depth for lists and dictionaries.
+     */
+    static final int MAX_NESTING_DEPTH = 100;
+
+    /**
      * The raw byte buffer being parsed.
      */
     private final byte[] datablob;
@@ -52,26 +57,29 @@ public class Reader {
      * @throws TorrentException if the bencoded structure is corrupt or incomplete
      */
     public IBencodable read() throws TorrentException {
-        return readSingleType();
+        return readSingleType(0);
     }
 
     /**
      * Identifies and delegates decoding to the appropriate type-specific parser based on the prefix byte at the current index.
      *
+     * @param depth current container nesting depth
      * @return the decoded {@link IBencodable} object
      * 
-     * @throws TorrentException if an unsupported prefix byte is encountered
+     * @throws TorrentException if an unsupported prefix byte is encountered or nesting exceeds {@link #MAX_NESTING_DEPTH}
      */
-    private IBencodable readSingleType() throws TorrentException {
+    private IBencodable readSingleType(final int depth) throws TorrentException {
+        if (depth >= MAX_NESTING_DEPTH)
+            throw new TorrentException("Bencoding nesting exceeds maximum depth of " + MAX_NESTING_DEPTH); //$NON-NLS-1$
         final var currentByte = readCurrentByte();
 
         switch (currentByte) {
             case 'i':
                 return readInteger();
             case 'l':
-                return readList();
+                return readList(depth);
             case 'd':
-                return readDictionary();
+                return readDictionary(depth);
             default:
                 // Assume a byte string
                 if (currentByte >= 48 && currentByte <= 57)
@@ -117,11 +125,11 @@ public class Reader {
     /**
      * Parses a bencoded list from the current index. Format: {@code l<elements>e}
      *
+     * @param depth current container nesting depth
      * @return a {@link BList} containing the decoded elements
-     * 
-     * @throws TorrentException if the list does not end with 'e'
+     * @throws TorrentException if the list does not end with 'e' or nesting exceeds {@link #MAX_NESTING_DEPTH}
      */
-    private BList readList() throws TorrentException {
+    private BList readList(final int depth) throws TorrentException {
         // If we got here, the current byte is an 'l'.
         if (readCurrentByte() != 'l')
             throw new TorrentException("Error parsing list. Was expecting 'l' but got " + Character.toString((char) readCurrentByte())); //$NON-NLS-1$
@@ -129,7 +137,7 @@ public class Reader {
 
         final var list = new BList();
         while (readCurrentByte() != 'e')
-            list.add(readSingleType());
+            list.add(readSingleType(depth + 1));
         currentByteIndex++; // Skip the 'e'
 
         return list;
@@ -138,11 +146,11 @@ public class Reader {
     /**
      * Parses a bencoded dictionary from the current index. Format: {@code d<key><value>e} where keys must be byte strings.
      *
+     * @param depth current container nesting depth
      * @return a {@link BDictionary} representing the key-value map
-     * 
-     * @throws TorrentException if keys are not strings or the dictionary does not end with 'e'
+     * @throws TorrentException if keys are not strings, the dictionary does not end with 'e', or nesting exceeds {@link #MAX_NESTING_DEPTH}
      */
-    private BDictionary readDictionary() throws TorrentException {
+    private BDictionary readDictionary(final int depth) throws TorrentException {
         // If we got here, the current byte is a 'd'.
         if (readCurrentByte() != 'd')
             throw new TorrentException("Error parsing dictionary. Was expecting 'd' but got " + Character.toString((char) readCurrentByte())); //$NON-NLS-1$
@@ -151,8 +159,8 @@ public class Reader {
         final var dict = new BDictionary();
         while (readCurrentByte() != 'e') {
             // Each dictionary *must* map BByteStrings to any other value.
-            BByteString key = (BByteString) readSingleType();
-            IBencodable value = readSingleType();
+            BByteString key = (BByteString) readSingleType(depth + 1);
+            IBencodable value = readSingleType(depth + 1);
 
             dict.add(key, value);
         }
