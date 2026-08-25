@@ -17,7 +17,7 @@ public class DirTree extends Tree<Dir> {
     /**
      * Maximum directory nesting scanned from the root. Deeper folders are omitted.
      */
-    static final int MAX_DIR_DEPTH = 100;
+    public static final int MAX_DIR_DEPTH = 100;
 
     /**
      * Constructs a new directory tree with a specified root directory node without performing recursive scanning.

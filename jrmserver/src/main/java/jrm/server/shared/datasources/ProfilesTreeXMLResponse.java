@@ -3,6 +3,8 @@ package jrm.server.shared.datasources;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayDeque;
+import java.util.IdentityHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.xml.stream.XMLStreamException;
@@ -53,21 +55,38 @@ public class ProfilesTreeXMLResponse extends XMLResponse {
     }
 
     /**
-     * Recursively counts the total number of non-root nodes in the directory tree.
+     * Counts the total number of non-root nodes in the directory tree.
+     * Walks iteratively with a depth cap and identity cycle detection.
      *
      * @param node the current tree node to evaluate
      * 
      * @return the total count of descendant nodes under the given node
      */
     private int countNode(Node<Dir> node) {
+        if (node == null)
+            return 0;
         var count = 0;
-        for (final var child : node)
-            count += 1 + countNode(child);
+        final var pending = new ArrayDeque<CountPending>();
+        pending.add(new CountPending(node, 0));
+        final var seen = new IdentityHashMap<Node<Dir>, Boolean>();
+        while (!pending.isEmpty()) {
+            final var current = pending.removeFirst();
+            final var n = current.node();
+            if (n == null || seen.put(n, Boolean.TRUE) != null)
+                continue;
+            if (current.depth() > 0)
+                count++;
+            if (current.depth() >= DirTree.MAX_DIR_DEPTH)
+                continue;
+            for (final var child : n)
+                pending.add(new CountPending(child, current.depth() + 1));
+        }
         return count;
     }
 
     /**
-     * Recursively writes the XML representation of a directory tree node and its children.
+     * Writes the XML representation of a directory tree node and its children.
+     * Walks iteratively with a depth cap and identity cycle detection.
      *
      * @param writer the XML stream writer to output the data
      * @param node the current tree node to process
@@ -77,22 +96,37 @@ public class ProfilesTreeXMLResponse extends XMLResponse {
      * @throws XMLStreamException if an error occurs while writing to the XML stream
      */
     private void outputNode(XMLStreamWriter writer, Node<Dir> node, String parentID, AtomicInteger id) throws XMLStreamException {
-        var strID = id.toString();
-        if (id.get() > 0) {
-            request.getSession().putProfileList(id.get(), node.getData().getFile().toPath());
-            writer.writeStartElement(RECORD);
-            writer.writeAttribute("ID", id.toString());
-            writer.writeAttribute("Path", pathAbstractor.getRelativePath(node.getData().getFile().toPath()).toString());
-            writer.writeAttribute(TITLE, node.getData().getFile().getName());
-            writer.writeAttribute(IS_FOLDER, "true");
-            if (parentID != null)
-                writer.writeAttribute(PARENT_ID, parentID);
-            writer.writeEndElement();
-        } else
-            request.getSession().newProfileList();
-        id.incrementAndGet();
-        for (final var child : node)
-            outputNode(writer, child, strID, id);
+        if (node == null)
+            return;
+        final var pending = new ArrayDeque<OutputPending>();
+        pending.add(new OutputPending(node, parentID, 0));
+        final var seen = new IdentityHashMap<Node<Dir>, Boolean>();
+        while (!pending.isEmpty()) {
+            final var current = pending.removeFirst();
+            if (current.depth() > DirTree.MAX_DIR_DEPTH)
+                continue;
+            final var n = current.node();
+            if (n == null || seen.put(n, Boolean.TRUE) != null)
+                continue;
+            final var strID = id.toString();
+            if (id.get() > 0) {
+                request.getSession().putProfileList(id.get(), n.getData().getFile().toPath());
+                writer.writeStartElement(RECORD);
+                writer.writeAttribute("ID", id.toString());
+                writer.writeAttribute("Path", pathAbstractor.getRelativePath(n.getData().getFile().toPath()).toString());
+                writer.writeAttribute(TITLE, n.getData().getFile().getName());
+                writer.writeAttribute(IS_FOLDER, "true");
+                if (current.parentID() != null)
+                    writer.writeAttribute(PARENT_ID, current.parentID());
+                writer.writeEndElement();
+            } else
+                request.getSession().newProfileList();
+            id.incrementAndGet();
+            if (current.depth() >= DirTree.MAX_DIR_DEPTH)
+                continue;
+            for (final var child : n)
+                pending.add(new OutputPending(child, strID, current.depth() + 1));
+        }
     }
 
     /**
@@ -226,5 +260,11 @@ public class ProfilesTreeXMLResponse extends XMLResponse {
         writer.writeEndElement();
         writer.writeEndElement();
         writer.writeEndElement();
+    }
+
+    private record CountPending(Node<Dir> node, int depth) {
+    }
+
+    private record OutputPending(Node<Dir> node, String parentID, int depth) {
     }
 }
