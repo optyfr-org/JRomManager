@@ -14,12 +14,12 @@ import java.net.URI;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayDeque;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
-import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.stream.Stream;
 
 import jrm.aui.progress.ProgressHandler;
 import jrm.compressors.SevenZipArchive;
@@ -186,53 +186,102 @@ public class OpenContainer extends ContainerAction {
     }
 
     /**
-     * Delete recursively folders only if they are empty
-     * 
+     * Maximum directory nesting inspected from the starting folder. Deeper folders are left in place.
+     */
+    static final int MAX_FOLDER_DEPTH = 100;
+
+    /**
+     * Delete empty folders under {@code baseFolder}.
+     * Walks iteratively with a depth cap and canonical-path cycle detection.
+     *
      * @param baseFolder the base folder as a {@link File} (may also be deleted if nothing left)
-     * 
+     *
      * @return the number of bytes left in folders, 0 mean all folders were deleted
      */
     public long deleteEmptyFolders(final File baseFolder) {
-        final var totalSize = new AtomicLong();
-        if (baseFolder != null) {
-            Optional.ofNullable(baseFolder.listFiles()).ifPresent(folders -> Stream.of(folders).forEach(folder -> {
-                if (folder.isDirectory())
-                    totalSize.addAndGet(deleteEmptyFolders(folder));
-                else
-                    totalSize.addAndGet(folder.length());
-            }));
-            if (totalSize.get() == 0)
-                try {
-                    Files.deleteIfExists(baseFolder.toPath());
-                } catch (IOException e) {
-                    Log.err(e.getMessage(), e);
-                }
-        }
-        return totalSize.get();
+        return baseFolder == null ? 0L : deleteEmptyFolders(baseFolder.toPath());
     }
 
     /**
-     * Delete recursively folders only if they are empty
-     * 
+     * Delete empty folders under {@code baseFolder}.
+     * Walks iteratively with a depth cap and canonical-path cycle detection.
+     *
      * @param baseFolder the base folder as a {@link Path} (may also be deleted if nothing left)
-     * 
+     *
      * @return the number of bytes left in folders, 0 mean all folders were deleted
      */
     public long deleteEmptyFolders(final Path baseFolder) {
-        long filescnt = 0;
         if (baseFolder == null)
-            return filescnt;
-        try {
-            try (final var stream = Files.list(baseFolder)) {
-                for (final Path folder : stream.toList())
-                    filescnt += Files.isDirectory(folder) ? deleteEmptyFolders(folder) : Files.size(folder);
+            return 0L;
+        final var stack = new ArrayDeque<FolderFrame>();
+        final var visited = new HashSet<String>();
+        stack.push(new FolderFrame(baseFolder, 0));
+        long leftover = 0L;
+        while (!stack.isEmpty()) {
+            final var frame = stack.peek();
+            if (!frame.entered) {
+                enterFolder(frame, stack, visited);
+                continue;
             }
-            if (filescnt == 0)
-                Files.deleteIfExists(baseFolder);
+            stack.pop();
+            if (frame.size == 0L) {
+                try {
+                    Files.deleteIfExists(frame.dir);
+                } catch (final Exception e) {
+                    Log.err(e.getMessage(), e);
+                }
+            }
+            if (stack.isEmpty())
+                leftover = frame.size;
+            else
+                stack.peek().size += frame.size;
+        }
+        return leftover;
+    }
+
+    private static void enterFolder(final FolderFrame frame, final ArrayDeque<FolderFrame> stack, final Set<String> visited) {
+        frame.entered = true;
+        try {
+            if (!visited.add(folderKey(frame.dir))) {
+                frame.size = 1L;
+                return;
+            }
+            try (final var stream = Files.list(frame.dir)) {
+                for (final Path child : stream.toList()) {
+                    if (Files.isDirectory(child)) {
+                        if (frame.depth + 1 >= MAX_FOLDER_DEPTH)
+                            frame.size += 1L;
+                        else
+                            stack.push(new FolderFrame(child, frame.depth + 1));
+                    } else
+                        frame.size += Files.size(child);
+                }
+            }
         } catch (final Exception e) {
             Log.err(e.getMessage(), e);
+            if (frame.size == 0L)
+                frame.size = 1L;
         }
-        return filescnt;
+    }
+
+    private static String folderKey(final Path dir) {
+        try {
+            return dir.toRealPath().toString();
+        } catch (final IOException _) {
+            return dir.toAbsolutePath().normalize().toString();
+        }
+    }
+
+    private static final class FolderFrame {
+        private final Path dir;
+        private final int depth;
+        private long size;
+        private boolean entered;
+
+        private FolderFrame(final Path dir, final int depth) {
+            this.dir = dir;
+            this.depth = depth;
+        }
     }
 
     @Override
