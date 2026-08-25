@@ -374,7 +374,7 @@ public class BatchDirUpd8rPanel extends JPanel {
             final List<File> srcDirs = StreamEx.of(listBatchToolsDat2DirSrc.getModel().elements()).map(f -> PathAbstractor.getAbsolutePath(session, f.toString()).toFile()).toList();
             if (sdrl.stream().filter(sdr -> !session.getUser().getSettings().getProfileSettingsFile(PathAbstractor.getAbsolutePath(session, sdr.getSrc()).toFile()).exists())
                     .count() > 0)
-                JOptionPane.showMessageDialog(SwingUtilities.getWindowAncestor(this), Messages.getString("MainFrame.AllDatsPresetsAssigned"));
+                JOptionPane.showMessageDialog(SwingUtilities.getWindowAncestor(this), Messages.getString("MainFrame.AllDatsMustHavePreset"));
             else {
                 new SwingWorkerProgress<DirUpdater, Void>(SwingUtilities.getWindowAncestor(this)) {
                     @Override
