@@ -1,6 +1,9 @@
 package jrm.fx.ui.profile.manager;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.ArrayDeque;
+import java.util.HashSet;
 
 import javafx.scene.control.TreeItem;
 import javafx.scene.image.ImageView;
@@ -16,6 +19,11 @@ import jrm.profile.manager.Dir;
  * @since 2.5
  */
 public class DirItem extends TreeItem<Dir> {
+
+    /**
+     * Maximum directory nesting scanned from the root. Deeper folders are omitted.
+     */
+    static final int MAX_DIR_DEPTH = 100;
 
     /**
      * Constructs a directory item from a file.
@@ -46,29 +54,52 @@ public class DirItem extends TreeItem<Dir> {
     }
 
     /**
-     * Recursively builds the directory tree by iterating over the given directory's
+     * Builds the directory tree by iterating over the given directory's
      * subdirectories and adding child {@link DirItem} nodes.
+     * Walks iteratively with a depth cap and canonical-path cycle detection.
      *
      * @param dir  the current directory node to explore
      * @param node the parent tree node to which children are added
      */
     private void buildDirTree(final Dir dir, final DirItem node) {
-        if (dir == null)
+        if (dir == null || node == null)
             return;
-        File dirfile = dir.getFile();
-        if (dirfile != null && dirfile.isDirectory()) {
-            File[] listFiles = dirfile.listFiles();
-            if (listFiles != null) {
-                for (final File file : listFiles) {
-                    if (file != null && file.isDirectory()) {
-                        final var newdir = new DirItem(new Dir(file));
-                        node.getChildren().add(newdir);
-                        buildDirTree(new Dir(file), newdir);
-                    }
-
+        final var pending = new ArrayDeque<Pending>();
+        pending.add(new Pending(dir, node, 0));
+        final var visited = new HashSet<String>();
+        while (!pending.isEmpty()) {
+            final var current = pending.removeFirst();
+            if (current.depth() >= MAX_DIR_DEPTH)
+                continue;
+            final var currentDir = current.dir();
+            if (currentDir == null)
+                continue;
+            final var dirfile = currentDir.getFile();
+            if (dirfile == null || !dirfile.isDirectory())
+                continue;
+            final String canonical;
+            try {
+                canonical = dirfile.getCanonicalPath();
+            } catch (final IOException _) {
+                continue;
+            }
+            if (!visited.add(canonical))
+                continue;
+            final File[] listFiles = dirfile.listFiles();
+            if (listFiles == null)
+                continue;
+            for (final File file : listFiles) {
+                if (file != null && file.isDirectory()) {
+                    final var childDir = new Dir(file);
+                    final var child = new DirItem(childDir);
+                    current.node().getChildren().add(child);
+                    pending.add(new Pending(childDir, child, current.depth() + 1));
                 }
             }
         }
+    }
+
+    private record Pending(Dir dir, DirItem node, int depth) {
     }
 
     /**

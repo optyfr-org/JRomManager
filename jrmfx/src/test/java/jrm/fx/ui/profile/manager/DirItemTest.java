@@ -1,6 +1,7 @@
 package jrm.fx.ui.profile.manager;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatCode;
 
 import io.gitlab.fxlabs.testfx.junit.jupiter.TestFxApplication;
 import io.gitlab.fxlabs.testfx.junit.jupiter.TestFxRecordedStage;
@@ -270,5 +271,37 @@ class DirItemTest {
         item.reload();
 
         assertThat(item.getValue()).as("Dir value should be preserved after reload").isEqualTo(originalDir);
+    }
+
+    @Test
+    @DisplayName("Should include directories up to the maximum depth")
+    void shouldIncludeDirectoriesUpToMaxDepth() throws IOException {
+        createNestedDirectories(DirItem.MAX_DIR_DEPTH);
+
+        assertThat(maxDepth(new DirItem(testDir))).isEqualTo(DirItem.MAX_DIR_DEPTH);
+    }
+
+    @Test
+    @DisplayName("Should stop scanning past the maximum depth")
+    void shouldStopScanningPastMaxDepth() throws IOException {
+        createNestedDirectories(DirItem.MAX_DIR_DEPTH + 5);
+
+        assertThatCode(() -> new DirItem(testDir)).doesNotThrowAnyException();
+        assertThat(maxDepth(new DirItem(testDir))).isEqualTo(DirItem.MAX_DIR_DEPTH);
+    }
+
+    private void createNestedDirectories(final int depth) throws IOException {
+        var current = tempDir;
+        for (var i = 0; i < depth; i++) {
+            current = current.resolve("d" + i);
+            Files.createDirectory(current);
+        }
+    }
+
+    private static int maxDepth(final DirItem node) {
+        var deepest = 0;
+        for (final var child : node.getChildren())
+            deepest = Math.max(deepest, 1 + maxDepth((DirItem) child));
+        return deepest;
     }
 }
