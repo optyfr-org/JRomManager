@@ -4,10 +4,8 @@ import java.awt.HeadlessException;
 import java.awt.Window;
 import java.beans.PropertyChangeEvent;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
@@ -40,8 +38,8 @@ public abstract class SwingWorkerProgress<T, V> extends SwingWorker<T, V> implem
     /** The progress dialog displaying operation status. */
     private final Progress progress;
 
-    /** List of error messages collected during execution. Thread-safe because errors are added from background threads and read on the EDT when closing. */
-    private final List<String> errors = Collections.synchronizedList(new ArrayList<>());
+    /** Error messages collected from worker threads and read on the EDT at close. */
+    private final List<String> errors = new CopyOnWriteArrayList<>();
 
     /** Number of threads used for parallel operations. */
     private int threadCnt;
@@ -99,10 +97,7 @@ public abstract class SwingWorkerProgress<T, V> extends SwingWorker<T, V> implem
                 break;
             case "close":
                 progress.close();
-                final String errorMessage;
-                synchronized (errors) {
-                    errorMessage = errors.isEmpty() ? null : errors.stream().collect(Collectors.joining("\n"));
-                }
+                final String errorMessage = errors.isEmpty() ? null : String.join("\n", errors);
                 if (errorMessage != null)
                     JOptionPane.showMessageDialog(owner, errorMessage, "Error", JOptionPane.ERROR_MESSAGE);
                 break;
