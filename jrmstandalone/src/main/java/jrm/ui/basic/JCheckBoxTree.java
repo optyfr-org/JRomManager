@@ -13,8 +13,11 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.ArrayDeque;
+import java.util.Collections;
 import java.util.EventListener;
 import java.util.EventObject;
+import java.util.IdentityHashMap;
 
 import javax.swing.JPanel;
 import javax.swing.JTree;
@@ -285,38 +288,67 @@ public class JCheckBoxTree extends JTree {
     }
 
     /**
+     * Maximum ancestor hops and descendant depth inspected from the starting path.
+     * Deeper or cyclic nodes are left unchanged.
+     */
+    static final int MAX_TREE_DEPTH = 100;
+
+    /**
      * Updates the selection state of all ancestor nodes based on their children's selection.
      * <p>
-     * Recursively walks up the tree from the given path, setting each parent node's selection
-     * state based on whether any of its children are selected.
+     * Walks up the tree iteratively from the given path, setting each parent node's selection
+     * state based on whether any of its children are selected. Stops at {@link #MAX_TREE_DEPTH}
+     * or if a cyclic parent chain is detected.
      * </p>
      *
      * @param tp the {@link TreePath} to start updating from
      */
     protected void updatePredecessorsWithCheckMode(final TreePath tp) {
-        final TreePath parentPath = tp.getParentPath();
-        if (parentPath == null)
+        if (tp == null)
             return;
-        final NGTreeNode parentNode = (NGTreeNode) parentPath.getLastPathComponent();
-        parentNode.setSelected(false);
-        for (int i = 0; i < parentNode.getChildCount(); i++) {
-            if (((NGTreeNode) parentNode.getChildAt(i)).isSelected())
-                parentNode.setSelected(true);
+        final var seen = Collections.newSetFromMap(new IdentityHashMap<NGTreeNode, Boolean>());
+        TreePath parentPath = tp.getParentPath();
+        int depth = 0;
+        while (parentPath != null && depth < MAX_TREE_DEPTH) {
+            final NGTreeNode parentNode = (NGTreeNode) parentPath.getLastPathComponent();
+            if (parentNode == null || !seen.add(parentNode))
+                return;
+            parentNode.setSelected(false);
+            for (int i = 0; i < parentNode.getChildCount(); i++) {
+                if (((NGTreeNode) parentNode.getChildAt(i)).isSelected())
+                    parentNode.setSelected(true);
+            }
+            parentPath = parentPath.getParentPath();
+            depth++;
         }
-        updatePredecessorsWithCheckMode(parentPath);
     }
 
     /**
-     * Recursively sets the selection state of all nodes in the subtree rooted at the given path.
+     * Sets the selection state of all nodes in the subtree rooted at the given path.
+     * Walks iteratively with a depth cap and identity cycle detection.
      *
      * @param tp the {@link TreePath} to the root of the subtree
      * @param check {@code true} to select all nodes, {@code false} to deselect all nodes
      */
     protected void checkSubTree(final TreePath tp, final boolean check) {
-        final NGTreeNode node = (NGTreeNode) tp.getLastPathComponent();
-        node.setSelected(check);
-        for (int i = 0; i < node.getChildCount(); i++)
-            checkSubTree(tp.pathByAddingChild(node.getChildAt(i)), check);
+        if (tp == null)
+            return;
+        final var stack = new ArrayDeque<CheckFrame>();
+        final var seen = Collections.newSetFromMap(new IdentityHashMap<NGTreeNode, Boolean>());
+        stack.push(new CheckFrame((NGTreeNode) tp.getLastPathComponent(), 0));
+        while (!stack.isEmpty()) {
+            final var frame = stack.pop();
+            if (frame.node == null || !seen.add(frame.node))
+                continue;
+            frame.node.setSelected(check);
+            if (frame.depth + 1 >= MAX_TREE_DEPTH)
+                continue;
+            for (int i = frame.node.getChildCount() - 1; i >= 0; i--)
+                stack.push(new CheckFrame((NGTreeNode) frame.node.getChildAt(i), frame.depth + 1));
+        }
+    }
+
+    private record CheckFrame(NGTreeNode node, int depth) {
     }
 
 }
