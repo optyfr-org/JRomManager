@@ -11,6 +11,7 @@ package jrm.profile.data;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,11 @@ import one.util.streamex.StreamEx;
  * @since 1.0
  */
 public abstract class Anyware extends AnywareBase implements Systm {
+
+    /**
+     * Maximum parent-chain length walked by {@link #containsInParent}.
+     */
+    static final int MAX_PARENT_DEPTH = 64;
 
     /**
      * The active execution profile configuration containing settings and filter rules.
@@ -412,7 +418,8 @@ public abstract class Anyware extends AnywareBase implements Systm {
     }
 
     /**
-     * Recursively evaluates whether a {@link Rom} is declared in the parent lineages of this system.
+     * Evaluates whether a {@link Rom} is declared in the parent lineages of this system.
+     * Walks the parent chain iteratively with a depth cap and cycle detection.
      * 
      * @param ware the start system to check against
      * @param r the ROM entity to locate
@@ -421,17 +428,26 @@ public abstract class Anyware extends AnywareBase implements Systm {
      * @return {@code true} if the ROM exists in parent lines, {@code false} otherwise
      */
     public boolean containsInParent(final Anyware ware, final Rom r, final boolean onlyBios) {
-        if ((r.merge != null || profile.getSettings().getImplicitMerge()) && ware.getParent() != null
-                && ware.getParent().isSelected()) {
-            if ((!onlyBios || ware.getParent().isBios()) && ware.getParent().roms.contains(r))
+        if (r.merge == null && !profile.getSettings().getImplicitMerge())
+            return false;
+        Anyware current = ware;
+        final var seen = new IdentityHashMap<Anyware, Boolean>();
+        for (var depth = 0; depth < MAX_PARENT_DEPTH; depth++) {
+            if (seen.put(current, Boolean.TRUE) != null)
+                return false;
+            final var parent = current.getParent();
+            if (parent == null || !parent.isSelected())
+                return false;
+            if ((!onlyBios || parent.isBios()) && parent.roms.contains(r))
                 return true;
-            return containsInParent(ware.getParent(), r, onlyBios);
+            current = parent;
         }
         return false;
     }
 
     /**
-     * Recursively evaluates whether a {@link Disk} is declared in the parent lineages of this system.
+     * Evaluates whether a {@link Disk} is declared in the parent lineages of this system.
+     * Walks the parent chain iteratively with a depth cap and cycle detection.
      * 
      * @param ware the start system to check against
      * @param d the Disk entity to locate
@@ -439,11 +455,19 @@ public abstract class Anyware extends AnywareBase implements Systm {
      * @return {@code true} if the Disk exists in parent lines, {@code false} otherwise
      */
     public boolean containsInParent(final Anyware ware, final Disk d) {
-        if ((d.merge != null || profile.getSettings().getImplicitMerge()) && ware.getParent() != null
-                && ware.getParent().isSelected()) {
-            if (ware.getParent().disks.contains(d))
+        if (d.merge == null && !profile.getSettings().getImplicitMerge())
+            return false;
+        Anyware current = ware;
+        final var seen = new IdentityHashMap<Anyware, Boolean>();
+        for (var depth = 0; depth < MAX_PARENT_DEPTH; depth++) {
+            if (seen.put(current, Boolean.TRUE) != null)
+                return false;
+            final var parent = current.getParent();
+            if (parent == null || !parent.isSelected())
+                return false;
+            if (parent.disks.contains(d))
                 return true;
-            return containsInParent(ware.getParent(), d);
+            current = parent;
         }
         return false;
     }
