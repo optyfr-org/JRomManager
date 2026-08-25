@@ -50,10 +50,10 @@ public final @UtilityClass class Sessions {
      * 
      * @return the globally active session instance
      * 
-     * @throws AssertionError if {@link #singleMode} is false
+     * @throws IllegalStateException if {@link #singleMode} is false
      */
     public static Session getSession(boolean multiuser, boolean noupdate) {
-        assert singleMode;
+        requireSingleMode();
         if (singleSession == null)
             singleSession = new Session(multiuser, noupdate);
         return singleSession;
@@ -67,10 +67,10 @@ public final @UtilityClass class Sessions {
      * 
      * @return the associated {@link Session} context, or {@code null} if no such session is registered
      * 
-     * @throws AssertionError if {@link #singleMode} is true
+     * @throws IllegalStateException if {@link #singleMode} is true
      */
     public static Session getSession(String session) {
-        assert !singleMode;
+        requireMultiMode();
         return sessionsMap.get(session);
     }
 
@@ -80,10 +80,20 @@ public final @UtilityClass class Sessions {
      *
      * @param session the unique session identifier to register
      * 
-     * @throws AssertionError if {@link #singleMode} is true
+     * @throws IllegalStateException if {@link #singleMode} is true
      */
     public static void setSession(String session) {
-        assert !singleMode;
+        requireMultiMode();
         sessionsMap.putIfAbsent(session, new Session(session));
+    }
+
+    private static void requireSingleMode() {
+        if (!singleMode)
+            throw new IllegalStateException("single-session mode is required");
+    }
+
+    private static void requireMultiMode() {
+        if (singleMode)
+            throw new IllegalStateException("multi-session mode is required");
     }
 }

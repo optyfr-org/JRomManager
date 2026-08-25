@@ -154,6 +154,7 @@ public class JRomManagerCLI {
     public JRomManagerCLI(final CLIArgs cmd) throws IOException {
 
         /* Set the session object */
+        Sessions.setSingleMode(true);
         setSession(Sessions.getSession(true, false));
 
         /* Set the current working directory and root directory */

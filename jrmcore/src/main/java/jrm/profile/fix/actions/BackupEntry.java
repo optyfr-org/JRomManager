@@ -45,12 +45,12 @@ public class BackupEntry extends EntryAction {
 
     @Override
     public boolean doAction(final Session session, Archive archive, ProgressHandler handler, int i, int max) {
-        return false;
+        throw new UnsupportedOperationException("Backup to Archive is not supported: " + archive);
     }
 
     @Override
     public boolean doAction(final Session session, Path target, ProgressHandler handler, int i, int max) {
-        return false;
+        throw new UnsupportedOperationException("Backup to Path is not supported: " + target);
     }
 
     @Override
