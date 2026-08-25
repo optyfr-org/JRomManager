@@ -30,6 +30,7 @@ import org.apache.commons.io.FilenameUtils;
 import jrm.aui.basic.AbstractSrcDstResult;
 import jrm.aui.basic.ResultColUpdater;
 import jrm.aui.progress.ProgressHandler;
+import jrm.aui.progress.SynchronizedProgressHandler;
 import jrm.aui.status.StatusRendererFactory;
 import jrm.batch.TrntChkReport.Child;
 import jrm.batch.TrntChkReport.Status;
@@ -102,6 +103,7 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
         this.mode = mode;
         progress.setInfos(Math.min(Runtime.getRuntime().availableProcessors(), (int) sdrl.stream().filter(AbstractSrcDstResult::isSelected).count()), true);
         progress.setProgress2("", 0, 1); //$NON-NLS-1$
+        final ProgressHandler safeProgress = new SynchronizedProgressHandler(progress);
         final var updateLock = new Object();
         final ResultColUpdater safeUpdater = new ResultColUpdater() {
             @Override
@@ -124,15 +126,15 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
         sdrl.stream().filter(AbstractSrcDstResult::isSelected).forEach(sdr -> safeUpdater.updateResult(rowMap.get(sdr), ""));
         final var use_parallelism = session.getUser().getSettings().getProperty(SettingsEnum.use_parallelism, Boolean.class);
         final var nThreads = Boolean.TRUE.equals(use_parallelism) ? session.getUser().getSettings().getProperty(SettingsEnum.thread_count, Integer.class) : 1;
-        try (final var mt = new MultiThreadingVirtual<T>("torrent-checker", progress, nThreads, sdr -> {
-            if (progress.isCancel())
+        try (final var mt = new MultiThreadingVirtual<T>("torrent-checker", safeProgress, nThreads, sdr -> {
+            if (safeProgress.isCancel())
                 return;
             try {
                 final int row = rowMap.get(sdr);
                 safeUpdater.updateResult(row, "In progress...");
-                final String result = check(progress, sdr);
+                final String result = check(safeProgress, sdr);
                 safeUpdater.updateResult(row, result);
-                progress.setProgress(null, -1, null, "");
+                safeProgress.setProgress(null, -1, null, "");
             } catch (IOException | TorrentException e) {
                 Log.err(e.getMessage(), e);
             }
