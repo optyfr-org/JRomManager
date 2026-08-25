@@ -34,10 +34,6 @@ import javax.swing.filechooser.FileFilter;
 
 import org.apache.commons.io.FilenameUtils;
 
-import com.eclipsesource.json.Json;
-import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonValue;
-
 import jrm.aui.basic.AbstractSrcDstResult;
 import jrm.aui.basic.ResultColUpdater;
 import jrm.aui.basic.SDRList;
@@ -97,55 +93,49 @@ public class BatchTrrntChkPanel extends JPanel {
         gbcScrollPane.gridy = 0;
         this.add(scrollPane, gbcScrollPane);
 
-        BatchTableModel model = new BatchTableModel(new String[] { Messages.getString("MainFrame.TorrentFiles"), Messages.getString("MainFrame.DstDirs"),
+        initTable(session, scrollPane);
+        initPopupMenu();
+        initControls(session);
+    }
+
+    private void initTable(final Session session, final JScrollPane scrollPane) {
+        final BatchTableModel model = new BatchTableModel(new String[] { Messages.getString("MainFrame.TorrentFiles"), Messages.getString("MainFrame.DstDirs"),
                 Messages.getString("MainFrame.Result"), "Details", "Selected" });
         tableTrntChk = new JSDRDropTable(model, files -> session.getUser().getSettings().setProperty(SettingsEnum.trntchk_sdr, AbstractSrcDstResult.toJSON(files)));
         model.setButtonHandler((row, _) -> new BatchTrrntChkResultsDialog(SwingUtilities.getWindowAncestor(BatchTrrntChkPanel.this),
                 TrntChkReport.load(session, PathAbstractor.getAbsolutePath(session, model.getData().get(row).getSrc()).toFile())));
         tableTrntChk.addMouseListener(getTableTrntChkMouseListener());
         ((BatchTableModel) tableTrntChk.getModel()).applyColumnsWidths(tableTrntChk);
-        final SDRList<SrcDstResult> sdrl2 = new SDRList<>();
-        if (session != null) {
-            for (final JsonValue arrv : Json.parse(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_sdr)).asArray()) // $NON-NLS-1$
-                                                                                                                                     // //$NON-NLS-2$
-            {
-                final SrcDstResult sdr = new SrcDstResult();
-                final JsonObject jso = arrv.asObject();
-                final JsonValue src = jso.get("src"); //$NON-NLS-1$
-                if (src != null && src != Json.NULL)
-                    sdr.setSrc(src.asString());
-                final JsonValue dst = jso.get("dst"); //$NON-NLS-1$
-                if (dst != null && dst != Json.NULL)
-                    sdr.setDst(dst.asString());
-                final JsonValue result = jso.get("result"); //$NON-NLS-1$
-                if (result != null && result != Json.NULL)
-                    sdr.setResult(result.asString());
-                sdr.setSelected(jso.getBoolean("selected", true)); //$NON-NLS-1$
-                sdrl2.add(sdr);
-            }
-        }
-        tableTrntChk.getSDRModel().setData(sdrl2);
+        tableTrntChk.getSDRModel().setData(SrcDstResult.fromJSON(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_sdr)));
         tableTrntChk.setCellSelectionEnabled(false);
         tableTrntChk.setRowSelectionAllowed(true);
-        tableTrntChk.getSDRModel().setSrcFilter(file -> {
-            final List<String> exts = Arrays.asList("torrent"); //$NON-NLS-1$
-            if (file.isFile())
-                return exts.contains(FilenameUtils.getExtension(file.getName()));
-            return false;
-        });
+        tableTrntChk.getSDRModel().setSrcFilter(this::isTorrentFile);
         tableTrntChk.getSDRModel().setDstFilter(File::isDirectory);
         tableTrntChk.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
         tableTrntChk.setFillsViewportHeight(true);
         scrollPane.setViewportView(tableTrntChk);
+    }
 
+    private boolean isTorrentFile(final File file) {
+        return file.isFile() && Arrays.asList("torrent").contains(FilenameUtils.getExtension(file.getName()));
+    }
+
+    private void initPopupMenu() {
         final JPopupMenu pmTrntChk = new JPopupMenu();
         Popup.addPopup(tableTrntChk, pmTrntChk);
 
         final JMenuItem mntmAddTorrent = new JMenuItem(Messages.getString("BatchToolsTrrntChkPanel.mntmAddTorrent.text"));
         mntmAddTorrent.addActionListener(_ -> addTorrent());
         pmTrntChk.add(mntmAddTorrent);
+        pmTrntChk.addPopupMenuListener(addTorrentPopupListener(mntmAddTorrent));
 
-        pmTrntChk.addPopupMenuListener(new PopupMenuListener() {
+        final JMenuItem mntmDelTorrent = new JMenuItem(Messages.getString("BatchToolsTrrntChkPanel.mntmDelTorrent.text"));
+        mntmDelTorrent.addActionListener(_ -> tableTrntChk.del(tableTrntChk.getSelectedValuesList()));
+        pmTrntChk.add(mntmDelTorrent);
+    }
+
+    private PopupMenuListener addTorrentPopupListener(final JMenuItem mntmAddTorrent) {
+        return new PopupMenuListener() {
             @Override
             public void popupMenuCanceled(PopupMenuEvent e) {
                 // do nothing
@@ -160,78 +150,52 @@ public class BatchTrrntChkPanel extends JPanel {
             public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
                 mntmAddTorrent.setEnabled(tableTrntChk.columnAtPoint(popupPoint) <= 1);
             }
-        });
+        };
+    }
 
-        final JMenuItem mntmDelTorrent = new JMenuItem(Messages.getString("BatchToolsTrrntChkPanel.mntmDelTorrent.text")); //$NON-NLS-1$
-        mntmDelTorrent.addActionListener(_ -> tableTrntChk.del(tableTrntChk.getSelectedValuesList()));
-        pmTrntChk.add(mntmDelTorrent);
-
-        final JLabel lblCheckMode = new JLabel(Messages.getString("BatchToolsTrrntChkPanel.lblCheckMode.text")); //$NON-NLS-1$
-        final GridBagConstraints gbcLblCheckMode = new GridBagConstraints();
-        gbcLblCheckMode.insets = new Insets(0, 0, 0, 5);
-        gbcLblCheckMode.anchor = GridBagConstraints.EAST;
-        gbcLblCheckMode.gridx = 0;
-        gbcLblCheckMode.gridy = 1;
-        this.add(lblCheckMode, gbcLblCheckMode);
+    private void initControls(final Session session) {
+        final JLabel lblCheckMode = new JLabel(Messages.getString("BatchToolsTrrntChkPanel.lblCheckMode.text"));
+        this.add(lblCheckMode, gbc(0, 1, GridBagConstraints.EAST, new Insets(0, 0, 0, 5)));
 
         cbbxTrntChk = new JComboBox<>();
         cbbxTrntChk.setModel(new DefaultComboBoxModel<>(TrntChkMode.values()));
-        if (session != null)
-            cbbxTrntChk.setSelectedItem(TrntChkMode.valueOf(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_mode))); // $NON-NLS-1$
+        cbbxTrntChk.setSelectedItem(TrntChkMode.valueOf(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_mode)));
         cbbxTrntChk.addActionListener(_ -> {
             session.getUser().getSettings().setProperty(SettingsEnum.trntchk_mode, cbbxTrntChk.getSelectedItem().toString());
             cbRemoveWrongSizedFiles.setEnabled(cbbxTrntChk.getSelectedItem() != TrntChkMode.FILENAME);
         });
-        final GridBagConstraints gbcCbbxTrntChk = new GridBagConstraints();
-        gbcCbbxTrntChk.anchor = GridBagConstraints.EAST;
-        gbcCbbxTrntChk.insets = new Insets(0, 0, 0, 5);
-        gbcCbbxTrntChk.gridx = 1;
-        gbcCbbxTrntChk.gridy = 1;
-        this.add(cbbxTrntChk, gbcCbbxTrntChk);
+        this.add(cbbxTrntChk, gbc(1, 1, GridBagConstraints.EAST, new Insets(0, 0, 0, 5)));
 
-        final JButton btnBatchToolsTrntChkStart = new JButton(Messages.getString("BatchToolsTrrntChkPanel.TrntCheckStart.text")); //$NON-NLS-1$
+        chckbxDetectArchivedFolder = settingCheckBox(session, "BatchTrrntChkPanel.chckbxDetectArchivedFolder.text", SettingsEnum.trntchk_detect_archived_folders);
+        add(chckbxDetectArchivedFolder, gbc(2, 1, GridBagConstraints.CENTER, new Insets(0, 0, 0, 5)));
+
+        cbRemoveUnknownFiles = settingCheckBox(session, "BatchToolsTrrntChkPanel.chckbxRemoveUnknownFiles.text", SettingsEnum.trntchk_remove_unknown_files);
+        add(cbRemoveUnknownFiles, gbc(3, 1, GridBagConstraints.CENTER, new Insets(0, 0, 0, 5)));
+
+        cbRemoveWrongSizedFiles = settingCheckBox(session, "BatchToolsTrrntChkPanel.chckbxRemoveWrongSized.text", SettingsEnum.trntchk_remove_wrong_sized_files);
+        cbRemoveWrongSizedFiles.setEnabled(cbbxTrntChk.getSelectedItem() != TrntChkMode.FILENAME);
+        add(cbRemoveWrongSizedFiles, gbc(4, 1, GridBagConstraints.WEST, new Insets(0, 0, 0, 5)));
+
+        final JButton btnBatchToolsTrntChkStart = new JButton(Messages.getString("BatchToolsTrrntChkPanel.TrntCheckStart.text"));
         btnBatchToolsTrntChkStart.setIcon(MainFrame.getIcon("/jrm/resicons/icons/bullet_go.png"));
         btnBatchToolsTrntChkStart.addActionListener(_ -> trrntChk(session));
+        this.add(btnBatchToolsTrntChkStart, gbc(5, 1, GridBagConstraints.EAST, new Insets(0, 0, 0, 0)));
+    }
 
-        chckbxDetectArchivedFolder = new JCheckBox(Messages.getString("BatchTrrntChkPanel.chckbxDetectArchivedFolder.text")); //$NON-NLS-1$
-        chckbxDetectArchivedFolder
-                .addActionListener(_ -> session.getUser().getSettings().setProperty(SettingsEnum.trntchk_detect_archived_folders, chckbxDetectArchivedFolder.isSelected()));
-        if (session != null)
-            chckbxDetectArchivedFolder.setSelected(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_detect_archived_folders, Boolean.class)); // $NON-NLS-1$
-        GridBagConstraints gbcChckbxDetectArchivedFolder = new GridBagConstraints();
-        gbcChckbxDetectArchivedFolder.insets = new Insets(0, 0, 0, 5);
-        gbcChckbxDetectArchivedFolder.gridx = 2;
-        gbcChckbxDetectArchivedFolder.gridy = 1;
-        add(chckbxDetectArchivedFolder, gbcChckbxDetectArchivedFolder);
+    private static JCheckBox settingCheckBox(final Session session, final String messageKey, final SettingsEnum setting) {
+        final var box = new JCheckBox(Messages.getString(messageKey));
+        box.addActionListener(_ -> session.getUser().getSettings().setProperty(setting, box.isSelected()));
+        box.setSelected(session.getUser().getSettings().getProperty(setting, Boolean.class));
+        return box;
+    }
 
-        cbRemoveUnknownFiles = new JCheckBox(Messages.getString("BatchToolsTrrntChkPanel.chckbxRemoveUnknownFiles.text")); //$NON-NLS-1$
-        cbRemoveUnknownFiles.addActionListener(_ -> session.getUser().getSettings().setProperty(SettingsEnum.trntchk_remove_unknown_files, cbRemoveUnknownFiles.isSelected()));
-        if (session != null)
-            cbRemoveUnknownFiles.setSelected(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_remove_unknown_files, Boolean.class)); // $NON-NLS-1$
-        GridBagConstraints gbcCbRemoveUnknownFiles = new GridBagConstraints();
-        gbcCbRemoveUnknownFiles.insets = new Insets(0, 0, 0, 5);
-        gbcCbRemoveUnknownFiles.gridx = 3;
-        gbcCbRemoveUnknownFiles.gridy = 1;
-        add(cbRemoveUnknownFiles, gbcCbRemoveUnknownFiles);
-
-        cbRemoveWrongSizedFiles = new JCheckBox(Messages.getString("BatchToolsTrrntChkPanel.chckbxRemoveWrongSized.text")); //$NON-NLS-1$
-        cbRemoveWrongSizedFiles
-                .addActionListener(_ -> session.getUser().getSettings().setProperty(SettingsEnum.trntchk_remove_wrong_sized_files, cbRemoveWrongSizedFiles.isSelected()));
-        if (session != null)
-            cbRemoveWrongSizedFiles.setSelected(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_remove_wrong_sized_files, Boolean.class)); // $NON-NLS-1$
-        cbRemoveWrongSizedFiles.setEnabled(cbbxTrntChk.getSelectedItem() != TrntChkMode.FILENAME);
-        GridBagConstraints gbcCbRemoveWrongSizedFiles = new GridBagConstraints();
-        gbcCbRemoveWrongSizedFiles.anchor = GridBagConstraints.WEST;
-        gbcCbRemoveWrongSizedFiles.insets = new Insets(0, 0, 0, 5);
-        gbcCbRemoveWrongSizedFiles.gridx = 4;
-        gbcCbRemoveWrongSizedFiles.gridy = 1;
-        add(cbRemoveWrongSizedFiles, gbcCbRemoveWrongSizedFiles);
-        final GridBagConstraints gbcBtnBatchToolsTrntChkStart = new GridBagConstraints();
-        gbcBtnBatchToolsTrntChkStart.anchor = GridBagConstraints.EAST;
-        gbcBtnBatchToolsTrntChkStart.gridx = 5;
-        gbcBtnBatchToolsTrntChkStart.gridy = 1;
-        this.add(btnBatchToolsTrntChkStart, gbcBtnBatchToolsTrntChkStart);
-
+    private static GridBagConstraints gbc(final int x, final int y, final int anchor, final Insets insets) {
+        final var constraints = new GridBagConstraints();
+        constraints.gridx = x;
+        constraints.gridy = y;
+        constraints.anchor = anchor;
+        constraints.insets = insets;
+        return constraints;
     }
 
     /**
@@ -331,8 +295,8 @@ public class BatchTrrntChkPanel extends JPanel {
     }
 
     private void trrntChk(final Session session) {
-        // Snapshot the row list on the EDT; table updates are marshalled back to the EDT.
-        final SDRList<SrcDstResult> sdrl = new SDRList<>(((SDRTableModel) tableTrntChk.getModel()).getData());
+        // Deep-copy rows on the EDT so the worker does not share mutable table state.
+        final SDRList<SrcDstResult> sdrl = snapshotRows(((SDRTableModel) tableTrntChk.getModel()).getData());
         final TrntChkMode mode = (TrntChkMode) cbbxTrntChk.getSelectedItem();
         final ResultColUpdater updater = edtUpdater(tableTrntChk);
         final var opts = EnumSet.noneOf(TorrentChecker.Options.class);
@@ -356,6 +320,17 @@ public class BatchTrrntChkPanel extends JPanel {
         }.execute();
     }
 
+    private static SDRList<SrcDstResult> snapshotRows(List<SrcDstResult> data) {
+        final SDRList<SrcDstResult> copy = new SDRList<>();
+        for (final SrcDstResult row : data) {
+            final SrcDstResult snap = new SrcDstResult(row.getSrc(), row.getDst());
+            snap.setResult(row.getResult());
+            snap.setSelected(row.isSelected());
+            copy.add(snap);
+        }
+        return copy;
+    }
+
     private static ResultColUpdater edtUpdater(ResultColUpdater delegate) {
         return new ResultColUpdater() {
             @Override
@@ -377,7 +352,7 @@ public class BatchTrrntChkPanel extends JPanel {
         }
         try {
             SwingUtilities.invokeAndWait(action);
-        } catch (InterruptedException e) {
+        } catch (InterruptedException _) {
             Thread.currentThread().interrupt();
         } catch (InvocationTargetException e) {
             final var cause = e.getCause();
