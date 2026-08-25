@@ -170,7 +170,7 @@ public class Dat2DirActions {
             if (srcdirs.length > 0) {
                 SDRList<SrcDstResult> sdrl = SrcDstResult.fromJSON(session.getUser().getSettings().getProperty(SettingsEnum.dat2dir_sdr));
                 if (countMissingProfiles(session, sdrl) > 0)
-                    new GlobalActions(ws).warn(ws.getSession().getMsgs().getString("MainFrame.AllDatsPresetsAssigned")); //$NON-NLS-1$
+                    new GlobalActions(ws).warn(ws.getSession().getMsgs().getString("MainFrame.AllDatsMustHavePreset")); //$NON-NLS-1$
                 else {
                     new DirUpdater(session, sdrl, session.getWorker().getProgress(), toSrcDirFileList(session, srcdirs), createResultColUpdater(session, sdrl), dryrun);
                 }
