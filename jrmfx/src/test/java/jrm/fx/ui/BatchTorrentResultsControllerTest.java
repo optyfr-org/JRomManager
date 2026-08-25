@@ -344,6 +344,62 @@ class BatchTorrentResultsControllerTest {
     }
 
     @Test
+    @DisplayName("Should build a chain up to the maximum tree depth")
+    void shouldBuildTreeUpToMaximumDepth() throws Exception {
+        runOnFxThread(() -> {
+            final var report = mock(TrntChkReport.class);
+            when(report.filter(any())).thenReturn(List.of(nestedChildren(BatchTorrentResultsController.MAX_TREE_DEPTH)));
+            TestApp.controller.setResult(report);
+            assertThat(treeDepth(TestApp.controller.getTreeview().getRoot())).isEqualTo(BatchTorrentResultsController.MAX_TREE_DEPTH);
+        });
+    }
+
+    @Test
+    @DisplayName("Should stop building past the maximum tree depth")
+    void shouldStopBuildingPastMaximumDepth() throws Exception {
+        runOnFxThread(() -> {
+            final var report = mock(TrntChkReport.class);
+            when(report.filter(any())).thenReturn(List.of(nestedChildren(BatchTorrentResultsController.MAX_TREE_DEPTH + 5)));
+            TestApp.controller.setResult(report);
+            assertThat(treeDepth(TestApp.controller.getTreeview().getRoot())).isEqualTo(BatchTorrentResultsController.MAX_TREE_DEPTH);
+        });
+    }
+
+    @Test
+    @DisplayName("Should ignore cyclic child graphs when building the tree")
+    void shouldIgnoreCyclicChildGraphs() throws Exception {
+        runOnFxThread(() -> {
+            final var first = newReport().new Child();
+            final var second = newReport().new Child();
+            setChildren(first, List.of(second));
+            setChildren(second, List.of(first));
+            final var report = mock(TrntChkReport.class);
+            when(report.filter(any())).thenReturn(List.of(first));
+            TestApp.controller.setResult(report);
+            assertThat(treeDepth(TestApp.controller.getTreeview().getRoot())).isEqualTo(2);
+        });
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    @DisplayName("Should expand a deep tree without overflowing")
+    void shouldExpandDeepTreeWithoutOverflowing() throws Exception {
+        runOnFxThread(() -> {
+            try {
+                final var root = deepTreeItems(BatchTorrentResultsController.MAX_TREE_DEPTH + 5);
+                TestApp.controller.getTreeview().setRoot(root);
+                final var openAllNodesMethod = BatchTorrentResultsController.class.getDeclaredMethod("openAllNodes", ActionEvent.class);
+                openAllNodesMethod.setAccessible(true);
+                openAllNodesMethod.invoke(TestApp.controller, new ActionEvent());
+                assertThat(root.isExpanded()).isTrue();
+                assertThat(root.getChildren().get(0).isExpanded()).isTrue();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
+
+    @Test
     @DisplayName("Should close window on OK action")
     void shouldCloseWindowOnOkAction() throws Exception {
         runOnFxThread(() -> {
@@ -357,5 +413,52 @@ class BatchTorrentResultsControllerTest {
                 throw new RuntimeException(e);
             }
         });
+    }
+
+    private static TrntChkReport newReport() {
+        return new TrntChkReport(new java.io.File("dummy"));
+    }
+
+    private static Child nestedChildren(final int depth) {
+        final var report = newReport();
+        Child root = report.new Child();
+        Child current = root;
+        for (var i = 1; i < depth; i++) {
+            final var next = report.new Child();
+            setChildren(current, List.of(next));
+            current = next;
+        }
+        return root;
+    }
+
+    private static void setChildren(final Child node, final List<Child> children) {
+        try {
+            final var field = Child.class.getDeclaredField("children");
+            field.setAccessible(true);
+            field.set(node, children);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private static int treeDepth(final TreeItem<?> node) {
+        var depth = 0;
+        var current = node;
+        while (current != null && !current.getChildren().isEmpty()) {
+            current = current.getChildren().get(0);
+            depth++;
+        }
+        return depth;
+    }
+
+    private static TreeItem<Child> deepTreeItems(final int depth) {
+        final var root = new TreeItem<Child>();
+        var current = root;
+        for (var i = 0; i < depth; i++) {
+            final var child = new TreeItem<Child>();
+            current.getChildren().add(child);
+            current = child;
+        }
+        return root;
     }
 }

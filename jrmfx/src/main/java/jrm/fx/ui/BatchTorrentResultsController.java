@@ -1,7 +1,9 @@
 package jrm.fx.ui;
 
 import java.net.URL;
+import java.util.ArrayDeque;
 import java.util.EnumSet;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -60,6 +62,11 @@ public class BatchTorrentResultsController implements Initializable {
 
     /** The torrent check report. */
     private TrntChkReport report;
+
+    /**
+     * Maximum report-tree nesting built or expanded. Deeper nodes are omitted.
+     */
+    static final int MAX_TREE_DEPTH = 100;
 
     /**
      * Initializes the controller.
@@ -138,18 +145,35 @@ public class BatchTorrentResultsController implements Initializable {
     }
 
     /**
-     * Recursively builds a tree structure from the given children list.
+     * Builds a tree structure from the given children list.
+     * Walks iteratively with a depth cap and identity cycle detection.
      *
      * @param parent the parent tree item, or {@code null} to create a new root
      * @param children the list of child items
      * @return the built tree item
      */
     private TreeItem<Child> buildTree(TreeItem<Child> parent, List<Child> children) {
-        final var p = parent == null ? new TreeItem<Child>() : parent;
-        if (children != null)
-            for (final var c : children)
-                p.getChildren().add(buildTree(new TreeItem<>(c), c.getChildren()));
-        return p;
+        final var root = parent == null ? new TreeItem<Child>() : parent;
+        if (children == null || children.isEmpty())
+            return root;
+        final var pending = new ArrayDeque<BuildPending>();
+        pending.add(new BuildPending(root, children, 0));
+        final var seen = new IdentityHashMap<Child, Boolean>();
+        while (!pending.isEmpty()) {
+            final var current = pending.removeFirst();
+            if (current.depth() >= MAX_TREE_DEPTH)
+                continue;
+            for (final var child : current.children()) {
+                if (child == null || seen.put(child, Boolean.TRUE) != null)
+                    continue;
+                final var item = new TreeItem<>(child);
+                current.parent().getChildren().add(item);
+                final var next = child.getChildren();
+                if (next != null && !next.isEmpty())
+                    pending.add(new BuildPending(item, next, current.depth() + 1));
+            }
+        }
+        return root;
     }
 
     /**
@@ -207,17 +231,35 @@ public class BatchTorrentResultsController implements Initializable {
     }
 
     /**
-     * Recursively sets the expanded state of all non-leaf descendants.
+     * Sets the expanded state of all non-leaf descendants.
+     * Walks iteratively with a depth cap and identity cycle detection.
      *
      * @param item the tree item to start from
      * @param expanded the expanded state to apply
      */
     private static void setExpandedAll(TreeItem<?> item, boolean expanded) {
-        if (item.isLeaf())
+        if (item == null)
             return;
-        item.setExpanded(expanded);
-        for (TreeItem<?> child : item.getChildren())
-            setExpandedAll(child, expanded);
+        final var pending = new ArrayDeque<ExpandPending>();
+        pending.add(new ExpandPending(item, 0));
+        final var seen = new IdentityHashMap<TreeItem<?>, Boolean>();
+        while (!pending.isEmpty()) {
+            final var current = pending.removeFirst();
+            if (current.depth() >= MAX_TREE_DEPTH)
+                continue;
+            final var node = current.item();
+            if (node == null || seen.put(node, Boolean.TRUE) != null || node.isLeaf())
+                continue;
+            node.setExpanded(expanded);
+            for (final var child : node.getChildren())
+                pending.add(new ExpandPending(child, current.depth() + 1));
+        }
+    }
+
+    private record BuildPending(TreeItem<Child> parent, List<Child> children, int depth) {
+    }
+
+    private record ExpandPending(TreeItem<?> item, int depth) {
     }
 
 }
