@@ -971,7 +971,7 @@ public class BatchToolsPanelController extends BaseController {
             final List<SrcDstResult> sdrl = tvBatchToolsDat2DirDst.getItems();
             if (sdrl.stream().filter(sdr -> !session.getUser().getSettings().getProfileSettingsFile(PathAbstractor.getAbsolutePath(session, sdr.getSrc()).toFile()).exists())
                     .count() > 0)
-                Dialogs.showAlert(Messages.getString("MainFrame.AllDatsPresetsAssigned"));
+                Dialogs.showAlert(Messages.getString("MainFrame.AllDatsMustHavePreset"));
             else {
                 try {
                     Thread.startVirtualThread(buildDir2DatTask(sdrl, createResultColUpdater()));
