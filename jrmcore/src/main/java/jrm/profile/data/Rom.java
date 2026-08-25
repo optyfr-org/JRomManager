@@ -8,6 +8,7 @@
  */
 package jrm.profile.data;
 
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -332,7 +333,8 @@ public class Rom extends Entity {
     }
 
     /**
-     * Tries to find the ROM status recursively across parents and also in clones (if in merged mode).
+     * Tries to find the ROM status across parents and also in clones (if in merged mode).
+     * Walks the parent chain iteratively with a depth cap and cycle detection.
      * 
      * @param parent the Anyware parent of the ROM
      * @param rom the Rom whose status is to be resolved
@@ -340,24 +342,30 @@ public class Rom extends Entity {
      * @return the resolved EntityStatus, or null if not found
      */
     private EntityStatus findRomStatus(final Anyware parent, final Rom rom) {
-        final EntityStatus matchStatus = findMatchingRomStatus(parent, rom);
-        if (matchStatus != null)
-            return matchStatus;
-        if (parent.parent == null) {
-            if (parent.isRomOf() && rom.merge != null)
-                return EntityStatus.OK;
-            return null;
+        Anyware current = parent;
+        final var seen = new IdentityHashMap<Anyware, Boolean>();
+        for (var depth = 0; depth < Anyware.MAX_PARENT_DEPTH; depth++) {
+            if (seen.put(current, Boolean.TRUE) != null)
+                return null;
+            final EntityStatus matchStatus = findMatchingRomStatus(current, rom);
+            if (matchStatus != null)
+                return matchStatus;
+            if (current.parent == null) {
+                if (current.isRomOf() && rom.merge != null)
+                    return EntityStatus.OK;
+                return null;
+            }
+            final var status = findRomStatusMerge(current, rom);
+            if (status != null)
+                return status;
+            for (final Rom r : current.getParent().getRoms()) {
+                if (r != rom && rom.equals(r))
+                    return r.getStatus();
+            }
+            if (current.parent.parent == null)
+                return null;
+            current = current.getParent();
         }
-        // find same rom in parent clone (if any and recursively)
-        final var status = findRomStatusMerge(parent, rom);
-        if (status != null)
-            return status;
-        for (final Rom r : parent.getParent().getRoms()) {
-            if (rom.equals(r))
-                return r.getStatus();
-        }
-        if (parent.parent.parent != null)
-            return findRomStatus(parent.getParent(), rom);
         return null;
     }
 

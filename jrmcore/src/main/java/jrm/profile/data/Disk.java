@@ -8,6 +8,7 @@
  */
 package jrm.profile.data;
 
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -156,7 +157,8 @@ public class Disk extends Entity {
     }
 
     /**
-     * Tries to find the disk status recursively across parent clones and systems (valid in merged mode).
+     * Tries to find the disk status across parent clones and systems (valid in merged mode).
+     * Walks the parent chain iteratively with a depth cap and cycle detection.
      *
      * @param parent the parent machine or software
      * @param disk the disk to search for
@@ -164,23 +166,29 @@ public class Disk extends Entity {
      * @return the matched {@link EntityStatus} or {@code null} if not found
      */
     private static EntityStatus findDiskStatus(final Anyware parent, final Disk disk) {
-        if (parent.parent == null) {
-            if (parent.isRomOf() && disk.merge != null)
-                return EntityStatus.OK;
-            return null;
+        Anyware current = parent;
+        final var seen = new IdentityHashMap<Anyware, Boolean>();
+        for (var depth = 0; depth < Anyware.MAX_PARENT_DEPTH; depth++) {
+            if (seen.put(current, Boolean.TRUE) != null)
+                return null;
+            if (current.parent == null) {
+                if (current.isRomOf() && disk.merge != null)
+                    return EntityStatus.OK;
+                return null;
+            }
+            if (current.profile.getSettings().getMergeMode().isMerge()) {
+                final var status = findDiskStatusInClones(current, disk);
+                if (status != null)
+                    return status;
+            }
+            for (final Disk d : current.getParent().getDisks()) {
+                if (d != disk && disk.equals(d))
+                    return d.getStatus();
+            }
+            if (current.parent.parent == null)
+                return null;
+            current = current.getParent();
         }
-        // find same disk in parent clone (if any and recursively)
-        if (parent.profile.getSettings().getMergeMode().isMerge()) {
-            final var status = findDiskStatusInClones(parent, disk);
-            if (status != null)
-                return status;
-        }
-        for (final Disk d : parent.getParent().getDisks()) {
-            if (disk.equals(d))
-                return d.getStatus();
-        }
-        if (parent.parent.parent != null)
-            return findDiskStatus(parent.getParent(), disk);
         return null;
     }
 
