@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Properties;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -31,6 +32,11 @@ public class DefaultEnvironmentProperties {
      * {@code $...}.
      */
     private static final Pattern REPLACEMENT_PATTERN = Pattern.compile("([$][$])|([$]\\{.*\\})|([$]\\w+)");
+
+    /**
+     * Maximum nested placeholder expansion depth.
+     */
+    static final int MAX_REPLACEMENT_DEPTH = 32;
 
     /**
      * Constructs a new {@code DefaultEnvironmentProperties} instance by reading from the specified {@link InputStream}.
@@ -214,19 +220,24 @@ public class DefaultEnvironmentProperties {
      * @return the resolved string value
      */
     private static String replaceValue(final String value, final Map<String, String> mapin) {
+        return replaceValue(value, mapin, 0);
+    }
+
+    private static String replaceValue(final String value, final Map<String, String> mapin, final int depth) {
+        if (value == null || depth >= MAX_REPLACEMENT_DEPTH)
+            return value;
         return REPLACEMENT_PATTERN.matcher(value).replaceAll(mr -> {
             String ret = null;
             String item = mr.group();
             if ("$$".equals(item))
-                ret = "\\$";
-            else if (item.startsWith("${") && item.endsWith("}"))
+                return "\\$";
+            if (item.startsWith("${") && item.endsWith("}"))
                 ret = mapin.get(item.substring(2, item.length() - 1));
             else if (item.length() > 1)
                 ret = mapin.get(item.substring(1));
             if (ret == null)
-                return mr.group();
-            ret = replaceValue(ret, mapin);
-            return ret;
+                return Matcher.quoteReplacement(mr.group());
+            return Matcher.quoteReplacement(replaceValue(ret, mapin, depth + 1));
         });
     }
 
