@@ -52,17 +52,15 @@ public class DeleteEntry extends EntryAction {
             Files.deleteIfExists(path);
             return true;
         } catch (final Exception _) {
-            Log.err(String.format(DELETE_S_AT_S_FAILED, parent.container.getFile().getName(), path)); // $NON-NLS-1$ //$NON-NLS-2$
-                                                                                                      // //$NON-NLS-3$
+            Log.err(String.format(DELETE_S_AT_S_FAILED, parent.container.getFile().getName(), path != null ? path : entry.getRelFile())); // $NON-NLS-1$ //$NON-NLS-2$
+                                                                                                                                          // //$NON-NLS-3$
         }
         return false;
     }
 
     @Override
     public boolean doAction(Session session, ZipFile zipf, ZipParameters zipp, ProgressHandler handler, int i, int max) {
-        Path path = null;
         try {
-            path = Path.of(entry.getFile());
             handler.setProgress(null, null, null, progress(i, max, String.format(session.getMsgs().getString(DELETE_ENTRY_DELETING), entry.getRelFile()))); // $NON-NLS-1$
             Log.info(() -> "remove " + entry.getFile() + " from " + zipf.getFile());
             final var ziphdr = zipf.getFileHeader(ZipTools.toZipEntry(entry.getFile()));
@@ -75,8 +73,8 @@ public class DeleteEntry extends EntryAction {
             return true;
         } catch (final Exception e) {
             Log.err(e.getMessage(), e);
-            Log.err(String.format(DELETE_S_AT_S_FAILED, parent.container.getFile().getName(), path)); // $NON-NLS-1$ //$NON-NLS-2$
-                                                                                                      // //$NON-NLS-3$
+            Log.err(String.format(DELETE_S_AT_S_FAILED, parent.container.getFile().getName(), entry.getRelFile())); // $NON-NLS-1$ //$NON-NLS-2$
+                                                                                                                    // //$NON-NLS-3$
         }
         return false;
     }
@@ -90,8 +88,8 @@ public class DeleteEntry extends EntryAction {
             Files.deleteIfExists(path);
             return true;
         } catch (final Exception _) {
-            Log.err(String.format(DELETE_S_AT_S_FAILED, parent.container.getFile().getName(), path)); // $NON-NLS-1$ //$NON-NLS-2$
-                                                                                                      // //$NON-NLS-3$
+            Log.err(String.format(DELETE_S_AT_S_FAILED, parent.container.getFile().getName(), path != null ? path : entry.getRelFile())); // $NON-NLS-1$ //$NON-NLS-2$
+                                                                                                                                          // //$NON-NLS-3$
         }
         return false;
     }
