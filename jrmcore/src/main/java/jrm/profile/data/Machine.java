@@ -9,6 +9,7 @@
 package jrm.profile.data;
 
 import java.io.Serializable;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -594,7 +595,13 @@ public class Machine extends Anyware {
     }
 
     /**
-     * Build the list of associated machine devices recursively.
+     * Maximum device-graph nesting collected from the starting machine. Deeper devices are omitted.
+     */
+    static final int MAX_DEVICE_DEPTH = 100;
+
+    /**
+     * Build the list of associated machine devices.
+     * Walks iteratively with a depth cap; the {@code machines} set also prevents cycles.
      *
      * @param machines the set of machine to fill up with
      * @param excludeBios exclude any bios devices
@@ -602,17 +609,30 @@ public class Machine extends Anyware {
      * @param recurse also get devices of devices and so on
      */
     protected void getDevices(HashSet<Machine> machines, boolean excludeBios, boolean partial, boolean recurse) {
-        if (!machines.contains(this)) {
+        if (machines.contains(this))
+            return;
+        if (!recurse) {
             machines.add(this);
-            if (!isBios() || !excludeBios) {
-                getDevices(partial).forEach(m -> {
-                    if (!recurse)
-                        machines.add(m);
-                    else
-                        m.getDevices(machines, excludeBios, partial, recurse);
-                });
-            }
+            if (!isBios() || !excludeBios)
+                getDevices(partial).forEach(machines::add);
+            return;
         }
+        final var pending = new ArrayDeque<PendingDevice>();
+        pending.add(new PendingDevice(this, 0));
+        while (!pending.isEmpty()) {
+            final var current = pending.removeFirst();
+            final Machine machine = current.machine();
+            if (machine == null || !machines.add(machine))
+                continue;
+            if (current.depth() >= MAX_DEVICE_DEPTH)
+                continue;
+            if (machine.isBios() && excludeBios)
+                continue;
+            machine.getDevices(partial).forEach(device -> pending.add(new PendingDevice(device, current.depth() + 1)));
+        }
+    }
+
+    private record PendingDevice(Machine machine, int depth) {
     }
 
     /**
