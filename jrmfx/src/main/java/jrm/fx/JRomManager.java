@@ -5,7 +5,6 @@ import java.nio.channels.FileChannel;
 import java.nio.file.StandardOpenOption;
 import java.util.logging.Level;
 
-import org.apache.commons.io.FilenameUtils;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
@@ -78,7 +77,7 @@ public class JRomManager {
         Log.init(session.getUser().getSettings().getLogPath() + "/JRM.%g.log", jArgs.debug, 1024 * 1024, 5);
         if (!jArgs.debug)
             Log.setLevel(Level.parse(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.debug_level)));
-        if (JRomManager.lockInstance(session, FilenameUtils.removeExtension(JRomManager.class.getSimpleName()) + ".lock")) //$NON-NLS-1$
+        if (JRomManager.lockInstance(session, JRomManager.class.getSimpleName() + ".lock")) //$NON-NLS-1$
         {
             // Launch FX Application
             MainFrame.launch();

@@ -10,7 +10,6 @@ package jrm.profile.scan;
 
 import java.util.HashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 import jrm.profile.data.Anyware;
@@ -62,9 +61,8 @@ final class RomsScan {
 		for (final Rom rom : roms) {
 			rom.setStatus(jrm.profile.data.EntityStatus.KO);
 
-			Entry foundEntry = Optional.ofNullable(findEntriesByHash(scanData, rom))
-					.map(entries -> scanRomsEntries(archive, reportSubject, estimatedRomsSize, scanData, rom, entries))
-					.orElse(null);
+			final var entries = findEntriesByHash(scanData, rom);
+			Entry foundEntry = entries != null ? scanRomsEntries(archive, reportSubject, estimatedRomsSize, scanData, rom, entries) : null;
 
 			final Entry wrongHash = foundEntry == null ? checkWrongHash(scanData, rom) : null;
 

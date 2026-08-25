@@ -47,10 +47,7 @@ public class SDRList<T> extends ArrayList<T> {
      */
     @Override
     public boolean equals(Object o) {
-        if (o instanceof SDRList) {
-            return super.equals(o);
-        }
-        return false;
+        return o instanceof SDRList && super.equals(o);
     }
     
     @Override

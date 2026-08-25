@@ -65,14 +65,4 @@ public class TZipContainer extends ContainerAction {
     public long estimatedSize() {
         return dataSize < Long.MAX_VALUE ? dataSize : 0;
     }
-
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
 }

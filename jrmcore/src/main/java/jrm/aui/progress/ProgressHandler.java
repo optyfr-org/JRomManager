@@ -19,7 +19,7 @@ public interface ProgressHandler {
      * enabling lazy updates or other features that may affect how progress is tracked and displayed. The specific options available
      * may depend on the implementation of the ProgressHandler interface.
      */
-    public enum Option {
+    enum Option {
         /**
          * Enables lazy updates for the progress handler, which may improve performance by reducing the frequency of progress
          * updates. When this option is enabled, the progress handler may choose to update the progress display less frequently,

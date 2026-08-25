@@ -120,18 +120,6 @@ public abstract class Note implements StatusRendererFactory, Serializable {
     }
 
     /**
-     * Compares this note with another object for equality.
-     *
-     * @param obj the reference object with which to compare
-     * 
-     * @return {@code true} if this object is equal to the obj argument; {@code false} otherwise
-     */
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    /**
      * Formats a diagnostic text block summarizing the expected attributes of the target entity.
      *
      * @param entity the expected entity definition

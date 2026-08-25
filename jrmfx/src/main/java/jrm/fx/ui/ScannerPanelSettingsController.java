@@ -2,7 +2,6 @@ package jrm.fx.ui;
 
 import java.net.URL;
 import java.util.ResourceBundle;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.commons.lang3.StringUtils;
@@ -309,7 +308,7 @@ public class ScannerPanelSettingsController implements Initializable {
      * Saves the current glob patterns to the profile settings as a pipe-delimited string.
      */
     private void saveGlob() {
-        settings.setProperty(ProfileSettingsEnum.exclusion_glob_list, dstExcludeGlob.getItems().stream().collect(Collectors.joining("|")));
+        settings.setProperty(ProfileSettingsEnum.exclusion_glob_list, String.join("|", dstExcludeGlob.getItems()));
     }
 
     /**

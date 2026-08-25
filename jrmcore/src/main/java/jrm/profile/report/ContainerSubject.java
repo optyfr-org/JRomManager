@@ -43,16 +43,6 @@ abstract class ContainerSubject extends Subject {
         return toString();
     }
 
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
     /**
      * Updates parent statistics. Physical filesystem containers do not increment database romset counts.
      */

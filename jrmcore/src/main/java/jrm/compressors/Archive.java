@@ -26,7 +26,7 @@ public interface Archive extends Closeable {
      * 
      * @throws IOException in case of IO error, can happen if no suitable temp directory is found
      */
-    public File getTempDir() throws IOException;
+    File getTempDir() throws IOException;
 
     /**
      * Extract all files from Archive

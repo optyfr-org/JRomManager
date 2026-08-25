@@ -220,9 +220,9 @@ public class TorrentParser {
      */
     private static List<String> parseAnnounceList(BDictionary dictionary) {
         final var announceUrls = new LinkedList<String>();
-        if (null != dictionary.find(new BByteString("announce-list"))) //$NON-NLS-1$
-        {
-            BList announceList = (BList) dictionary.find(new BByteString("announce-list")); //$NON-NLS-1$
+        final var announceListValue = dictionary.find(new BByteString("announce-list")); //$NON-NLS-1$
+        if (announceListValue != null) {
+            BList announceList = (BList) announceListValue;
             Iterator<IBencodable> subLists = announceList.getIterator();
             while (subLists.hasNext()) {
                 final var subList = (BList) subLists.next();

@@ -166,7 +166,7 @@ public abstract class Keywords {
                 if (matcher.groupCount() > 1 && matcher.group(2) != null) {
                     final var matcherParenthesis = patternParenthesis.matcher(matcher.group(2));
                     while (matcherParenthesis.find()) {
-                        Arrays.asList(patternSplit.split(matcherParenthesis.group(1))).stream().map(s -> s.trim().toLowerCase()).filter(patternAlpha.asPredicate())
+                    Arrays.stream(patternSplit.split(matcherParenthesis.group(1))).map(s -> s.trim().toLowerCase()).filter(patternAlpha.asPredicate())
                                 .forEach(keywordSet::add);
                     }
                 }

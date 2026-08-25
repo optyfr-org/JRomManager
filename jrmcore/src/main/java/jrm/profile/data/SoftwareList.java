@@ -183,7 +183,7 @@ public final class SoftwareList extends AnywareList<Software> implements Systm {
             if (!options.filterIncludeClones && t.isClone())
                 return false;
             // Exclude software with disks if disks are not included
-            if (!options.filterIncludeDisks && t.getDisks().size() > 0)
+            if (!options.filterIncludeDisks && !t.getDisks().isEmpty())
                 return false;
             // Exclude software whose software list is not selected in the profile
             return t.getSystem().isSelected(profile);

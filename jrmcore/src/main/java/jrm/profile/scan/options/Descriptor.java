@@ -22,5 +22,5 @@ public interface Descriptor {
      * 
      * @return a {@link String} containing the text description of this component.
      */
-    public String getDesc();
+    String getDesc();
 }

@@ -191,26 +191,4 @@ public abstract class Entity extends EntityBase {
         return getParent(Anyware.class);
     }
 
-    /**
-     * Indicates whether some other object is "equal to" this one.
-     *
-     * @param obj the reference object with which to compare
-     * 
-     * @return {@code true} if this object is equal to the obj argument; {@code false} otherwise
-     */
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    /**
-     * Returns a hash code value for the entity.
-     *
-     * @return a hash code value for this entity
-     */
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
 }

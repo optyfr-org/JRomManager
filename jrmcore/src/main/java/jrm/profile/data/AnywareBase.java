@@ -92,28 +92,6 @@ public abstract class AnywareBase extends NameBase {
     public abstract Profile getProfile();
 
     /**
-     * Compares the specified object with this object for equality.
-     * 
-     * @param obj the object to compare with
-     * 
-     * @return {@code true} if the objects are equal, {@code false} otherwise
-     */
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    /**
-     * Returns the hash code value for this object.
-     * 
-     * @return the hash code value of this object
-     */
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
-    /**
      * Constructs a new AnywareBase object with default values.
      */
     protected AnywareBase() {

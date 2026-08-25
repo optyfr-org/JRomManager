@@ -16,7 +16,7 @@ public interface Closeables {
      * 
      * @return a list of Closeable instances representing the closeable resources managed by this collection
      */
-    public List<Closeable> getCloseables();
+    List<Closeable> getCloseables();
 
     /**
      * Adds a new closeable resource to the collection. This method allows for adding a Closeable instance to the list of resources

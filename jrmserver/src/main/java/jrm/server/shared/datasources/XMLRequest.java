@@ -659,13 +659,7 @@ public class XMLRequest {
                 currentRequest.getOperationType().append(ch, start, length);
             else if (inOperationId)
                 currentRequest.getOperationId().append(ch, start, length);
-            else if (inStartRow || inEndRow)
-                datavalue.append(ch, start, length);
-            else if (inSortBy)
-                datavalue.append(ch, start, length);
-            else if (inData)
-                datavalue.append(ch, start, length);
-            else if (inOldValues)
+            else if (inStartRow || inEndRow || inSortBy || inData || inOldValues)
                 datavalue.append(ch, start, length);
         }
     }

@@ -1171,14 +1171,4 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
         return "Report";
     }
 
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
 }

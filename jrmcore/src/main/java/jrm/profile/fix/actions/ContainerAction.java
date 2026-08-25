@@ -153,28 +153,6 @@ public abstract class ContainerAction implements StatusRendererFactory, Comparab
     }
 
     /**
-     * Compares this container action for object equality.
-     * 
-     * @param obj the reference object with which to compare
-     * 
-     * @return {@code true} if this object is equal to the obj argument, otherwise {@code false}
-     */
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    /**
-     * Returns a hash code value for this container action.
-     * 
-     * @return the hash code value
-     */
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
-    /**
      * Returns a standard ascending priority sorting comparator.
      * 
      * @return a {@link Comparator} for sorting container actions

@@ -13,10 +13,8 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.attribute.BasicFileAttributeView;
 import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Collections;
 import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.zip.ZipEntry;
@@ -631,42 +629,6 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
     }
 
     /**
-     * Adapter class to convert an Enumeration to an Iterator.
-     *
-     * @param <T> the type of elements returned by this iterator
-     */
-    private static class EnumerationToIterator<T> implements Iterator<T> {
-        /** The underlying enumeration being wrapped. */
-        Enumeration<T> enumeration;
-
-        /**
-         * Constructs an iterator backed by the given enumeration.
-         *
-         * @param enmueration the enumeration to wrap
-         */
-        public EnumerationToIterator(Enumeration<T> enmueration) {
-            this.enumeration = enmueration;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return enumeration.hasMoreElements();
-        }
-
-        @Override
-        public T next() {
-            if (!enumeration.hasMoreElements())
-                throw new NoSuchElementException();
-            return enumeration.nextElement();
-        }
-
-        @Override
-        public void remove() {
-            throw new UnsupportedOperationException();
-        }
-    }
-
-    /**
      * Extracts the contents of a ZIP file to a specified output directory.
      *
      * @param zipfile the path to the ZIP file to extract
@@ -675,7 +637,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
     private void unzip(Path zipfile, Path outputPath) {
         try (var zf = new ZipFile(zipfile.toFile())) {
             Path normalizedOutputPath = outputPath.toAbsolutePath().normalize();
-            new EnumerationToIterator<>(zf.entries()).forEachRemaining(entry -> extractZipEntry(zf, entry, normalizedOutputPath));
+            Collections.list(zf.entries()).forEach(entry -> extractZipEntry(zf, entry, normalizedOutputPath));
         } catch (IOException e) {
             Log.err(e.getMessage(), e);
         }

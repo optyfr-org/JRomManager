@@ -19,7 +19,7 @@ public interface ReportTreeHandler<T> {
      * report based on the current filter options. It is typically called after the filter options have been updated to ensure that
      * the filtered report reflects the new criteria.
      */
-    public void initClone();
+    void initClone();
 
     /**
      * Filter the report tree based on the specified filter options. This method takes a variable number of filter options as input

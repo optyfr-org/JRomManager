@@ -150,26 +150,4 @@ public final class Samples extends AnywareBase implements Iterable<Sample> {
     public Profile getProfile() {
         return null;
     }
-
-    /**
-     * Compares the specified object with this samples set for equality.
-     * 
-     * @param obj the reference object to compare with
-     * 
-     * @return true if equivalent, false otherwise
-     */
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    /**
-     * Returns the hash code value for this samples set.
-     * 
-     * @return the hash code
-     */
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
 }

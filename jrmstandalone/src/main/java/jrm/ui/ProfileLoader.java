@@ -16,5 +16,5 @@ interface ProfileLoader {
      * @param session the current user session
      * @param profile the profile metadata to load
      */
-    public void loadProfile(final Session session, final ProfileNFO profile);
+    void loadProfile(final Session session, final ProfileNFO profile);
 }

@@ -50,7 +50,7 @@ public enum CMD_TRNTCHK implements CommandNames {
      */
     @Override
     public String toString() {
-        return names.stream().findFirst().orElse(super.toString());
+        return names.isEmpty() ? super.toString() : names.getFirst();
     }
 
     /**

@@ -3,14 +3,11 @@ package jrm.fx.ui.profile.filter;
 import java.net.URL;
 import java.util.ResourceBundle;
 
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Scene;
-import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.input.DragEvent;
@@ -150,9 +147,5 @@ public class KeywordsController implements Initializable {
     void initKeywords(String[] keywords) {
         listAvailKW.setItems(FXCollections.observableArrayList(keywords));
     }
-
-    /** Placeholder property for drag source tracking; drag origin is handled within the event-handler lambdas. */
-    @SuppressWarnings("unused")
-    private final ObjectProperty<ListCell<String>> dragSource = new SimpleObjectProperty<>();
 
 }

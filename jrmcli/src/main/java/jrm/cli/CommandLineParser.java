@@ -28,7 +28,7 @@ public class CommandLineParser {
             im.appendTail(sb);
             list.add(sb.toString());
         }
-        return list.stream().toArray(String[]::new);
+        return list.toArray(String[]::new);
     }
 
     Optional<String> getEnv(final String name) {

@@ -132,7 +132,7 @@ public @UtilityClass class Utils {
      * @return the lowercase hexadecimal string representation
      */
     private static String byteArray2Hex(final byte[] bytes) {
-        try (final var formatter = new Formatter();) {
+        try (final var formatter = new Formatter()) {
             for (byte b : bytes) {
                 formatter.format("%02x", b); //$NON-NLS-1$
             }

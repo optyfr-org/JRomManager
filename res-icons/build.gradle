@@ -3,8 +3,6 @@ sourceSets {
         java {
             srcDirs = ["src/main/java"]
         }
-    }
-    main {
         resources {
             srcDirs = ["src/main/java"]
         }

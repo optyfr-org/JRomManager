@@ -252,7 +252,6 @@ public class ScannerAdvFilterPanel extends JPanel {
      * @param session
      */
     private void listNPlayersClear(final Session session) {
-        session.getCurrProfile().saveSettings();
         session.getCurrProfile().setNplayers(null);
         session.getCurrProfile().saveSettings();
         tfNPlayers.setText(null);

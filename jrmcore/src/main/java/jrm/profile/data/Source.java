@@ -1,7 +1,5 @@
 package jrm.profile.data;
 
-import java.util.Optional;
-
 import lombok.Getter;
 
 /**
@@ -39,7 +37,8 @@ public final class Source implements PropertyStub {
      */
     public Source(String name) {
         this.name = name;
-        this.propname = "filter.sources." + name.replace('/', '_').substring(0, Optional.of(name.lastIndexOf('.')).filter(idx -> idx > 0).orElse(name.length()));
+        final int lastDot = name.lastIndexOf('.');
+        this.propname = "filter.sources." + name.replace('/', '_').substring(0, lastDot > 0 ? lastDot : name.length());
     }
 
     /**

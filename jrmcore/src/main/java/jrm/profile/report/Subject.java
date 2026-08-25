@@ -170,18 +170,6 @@ public abstract class Subject extends AbstractList<Note> implements StatusRender
     }
 
     /**
-     * Compares this subject with another object for equality.
-     *
-     * @param o the reference object with which to compare
-     * 
-     * @return {@code true} if this object is equal to the specified argument; {@code false} otherwise
-     */
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
-    }
-
-    /**
      * Returns a comparator for sorting subjects alphabetically by their associated ware name case-insensitively.
      *
      * @return the subject sorting comparator

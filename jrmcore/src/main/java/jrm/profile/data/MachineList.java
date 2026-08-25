@@ -363,14 +363,4 @@ public final class MachineList extends AnywareList<Machine> {
         return mFilteredByName.get(name);
     }
 
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
 }

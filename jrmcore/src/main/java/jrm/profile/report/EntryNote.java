@@ -95,14 +95,4 @@ abstract class EntryNote extends Note {
         }
         return null;
     }
-
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
 }

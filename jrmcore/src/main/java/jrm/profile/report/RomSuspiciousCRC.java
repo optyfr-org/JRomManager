@@ -85,14 +85,4 @@ public class RomSuspiciousCRC extends Subject {
     public void updateStats() {
         // do nothing
     }
-
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
 }

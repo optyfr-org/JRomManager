@@ -12,8 +12,6 @@ import java.nio.channels.FileChannel;
 import java.nio.file.StandardOpenOption;
 import java.util.logging.Level;
 
-import org.apache.commons.io.FilenameUtils;
-
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
@@ -30,10 +28,13 @@ import lombok.Getter;
 /**
  * Main entry point for the JRomManager application.
  * <p>
- * This class initializes the application, parses command-line arguments, sets up logging,
- * creates a file lock to prevent multiple instances, and launches the main GUI window.
+ * This class initializes the application, parses command-line arguments, sets
+ * up logging,
+ * creates a file lock to prevent multiple instances, and launches the main GUI
+ * window.
  * <p>
- * JRomManager is a retro-gaming ROM management tool that helps users organize, validate,
+ * JRomManager is a retro-gaming ROM management tool that helps users organize,
+ * validate,
  * and manage ROM collections for various emulators including MAME and others.
  *
  * @author optyfr
@@ -43,6 +44,7 @@ import lombok.Getter;
 public final class JRomManager {
     /**
      * The main application window instance.
+     * 
      * @return the main application window
      */
     private static @Getter MainFrame mainFrame;
@@ -68,12 +70,16 @@ public final class JRomManager {
     /**
      * Application entry point.
      * <p>
-     * Initializes the application by setting up UTF-8 encoding, configuring single-user mode,
-     * parsing command-line arguments, initializing logging, acquiring a file lock to prevent
+     * Initializes the application by setting up UTF-8 encoding, configuring
+     * single-user mode,
+     * parsing command-line arguments, initializing logging, acquiring a file lock
+     * to prevent
      * multiple instances, and displaying the main window.
      *
-     * @param args command-line arguments; supports {@code -m/--multiuser} for multi-user mode,
-     *             {@code -n/--noupdate} to skip update checks, and {@code -d/--debug} for debug mode
+     * @param args command-line arguments; supports {@code -m/--multiuser} for
+     *             multi-user mode,
+     *             {@code -n/--noupdate} to skip update checks, and
+     *             {@code -d/--debug} for debug mode
      */
     public static void main(final String[] args) {
         System.setProperty("file.encoding", "UTF-8");
@@ -92,7 +98,7 @@ public final class JRomManager {
         Log.init(session.getUser().getSettings().getLogPath() + "/JRM.%g.log", jArgs.debug, 1024 * 1024, 5);
         if (!jArgs.debug)
             Log.setLevel(Level.parse(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.debug_level)));
-        if (JRomManager.lockInstance(session, FilenameUtils.removeExtension(JRomManager.class.getSimpleName()) + ".lock")) //$NON-NLS-1$
+        if (JRomManager.lockInstance(session, JRomManager.class.getSimpleName() + ".lock")) //$NON-NLS-1$
         {
             // Open main window
             mainFrame = new MainFrame(session);
@@ -103,18 +109,22 @@ public final class JRomManager {
     /**
      * Acquires an exclusive file lock to prevent multiple application instances.
      * <p>
-     * Creates a lock file in the user's work directory and attempts to acquire an exclusive lock.
-     * The lock is held for the duration of the application and released via a shutdown hook.
+     * Creates a lock file in the user's work directory and attempts to acquire an
+     * exclusive lock.
+     * The lock is held for the duration of the application and released via a
+     * shutdown hook.
      * The lock file is automatically deleted on close.
      *
-     * @param session the current user session containing settings and paths
-     * @param lockFile the name of the lock file to create (typically {@code "JRomManager.lock"})
-     * @return {@code true} if the lock was successfully acquired, {@code false} if another instance is already running
+     * @param session  the current user session containing settings and paths
+     * @param lockFile the name of the lock file to create (typically
+     *                 {@code "JRomManager.lock"})
+     * @return {@code true} if the lock was successfully acquired, {@code false} if
+     *         another instance is already running
      */
     private static boolean lockInstance(final Session session, final String lockFile) {
-        try {
-            final var fc = FileChannel.open(session.getUser().getSettings().getWorkPath().resolve(lockFile), StandardOpenOption.CREATE, StandardOpenOption.READ,
-                    StandardOpenOption.WRITE, StandardOpenOption.DELETE_ON_CLOSE);
+        try (final var fc = FileChannel.open(session.getUser().getSettings().getWorkPath().resolve(lockFile),
+                StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE,
+                StandardOpenOption.DELETE_ON_CLOSE)) {
             final var fl = fc.tryLock();
             if (fl != null) {
                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -128,7 +138,6 @@ public final class JRomManager {
                 }));
                 return true;
             }
-            fc.close();
         } catch (final Exception e) {
             Log.err("Unable to create and/or lock file: " + lockFile, e); //$NON-NLS-1$
         }

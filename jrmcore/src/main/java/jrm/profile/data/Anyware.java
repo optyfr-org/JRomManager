@@ -654,7 +654,7 @@ public abstract class Anyware extends AnywareBase implements Systm {
     EntityStatus getCloneRomStatus(Rom rom) {
         if (clonesRomsStatus == null) {
             clonesRomsStatus = new HashMap<>();
-            if (clones.size() > 0) {
+            if (!clones.isEmpty()) {
                 clones.values().stream().flatMap(aw -> aw.roms.stream()).filter(r -> r.ownStatus != EntityStatus.UNKNOWN)
                         .forEach(r -> clonesRomsStatus.put(r.hashString(), r.ownStatus));
             }
@@ -679,7 +679,7 @@ public abstract class Anyware extends AnywareBase implements Systm {
      */
     @Override
     public int hashCode() {
-        return super.hashCode();
+        return name.hashCode();
     }
 
     /**

@@ -8,7 +8,6 @@
  */
 package jrm.io.torrent.bencoding.types;
 
-import java.util.ArrayList;
 
 import jrm.io.torrent.bencoding.Utils;
 
@@ -52,21 +51,10 @@ public class BInt implements IBencodable {
      */
     public byte[] bencode() {
         final byte[] sizeInAsciiBytes = Utils.stringToAsciiBytes(value.toString());
-
-        final var bytes = new ArrayList<Byte>();
-
-        bytes.add((byte) 'i');
-
-        for (byte sizeByte : sizeInAsciiBytes)
-            bytes.add(sizeByte);
-
-        bytes.add((byte) 'e');
-
-        final var bencoded = new byte[bytes.size()];
-
-        for (var i = 0; i < bytes.size(); i++)
-            bencoded[i] = bytes.get(i);
-
+        final var bencoded = new byte[sizeInAsciiBytes.length + 2];
+        bencoded[0] = (byte) 'i';
+        System.arraycopy(sizeInAsciiBytes, 0, bencoded, 1, sizeInAsciiBytes.length);
+        bencoded[bencoded.length - 1] = (byte) 'e';
         return bencoded;
     }
 

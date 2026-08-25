@@ -471,7 +471,7 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
                 return (f.isFile() && !Arrays.asList("cache", "properties", "nfo", "jrm1", "jrm2").contains(FilenameUtils.getExtension(name))); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
             });
             if (files != null) {
-                Arrays.asList(files).stream().map(f -> ProfileNFO.load(session, f)).forEach(rows::add);
+                Arrays.stream(files).map(f -> ProfileNFO.load(session, f)).forEach(rows::add);
             }
         }
         return rows;

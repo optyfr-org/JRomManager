@@ -30,7 +30,7 @@ public @UtilityClass class OSValidator {
      * @return {@code true} if running on Windows, {@code false} otherwise
      */
     public static boolean isWindows() {
-        return (OSValidator.os.indexOf("win") >= 0); //$NON-NLS-1$
+        return OSValidator.os.contains("win"); //$NON-NLS-1$
     }
 
     /**
@@ -39,7 +39,7 @@ public @UtilityClass class OSValidator {
      * @return {@code true} if running on macOS, {@code false} otherwise
      */
     public static boolean isMac() {
-        return (OSValidator.os.indexOf("mac") >= 0); //$NON-NLS-1$
+        return OSValidator.os.contains("mac"); //$NON-NLS-1$
     }
 
     /**
@@ -48,7 +48,7 @@ public @UtilityClass class OSValidator {
      * @return {@code true} if running on a Unix-like platform, {@code false} otherwise
      */
     public static boolean isUnix() {
-        return (OSValidator.os.indexOf("nix") >= 0 || OSValidator.os.indexOf("nux") >= 0 || OSValidator.os.indexOf("aix") >= 0); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+        return OSValidator.os.contains("nix") || OSValidator.os.contains("nux") || OSValidator.os.contains("aix"); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
     }
 
     /**
@@ -57,6 +57,6 @@ public @UtilityClass class OSValidator {
      * @return {@code true} if running on Solaris, {@code false} otherwise
      */
     public static boolean isSolaris() {
-        return (OSValidator.os.indexOf("sunos") >= 0); //$NON-NLS-1$
+        return OSValidator.os.contains("sunos"); //$NON-NLS-1$
     }
 }

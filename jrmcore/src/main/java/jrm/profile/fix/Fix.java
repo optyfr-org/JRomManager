@@ -142,9 +142,7 @@ public class Fix {
      * @return the number of pending actions, or 0 if all were processed successfully
      */
     public int getActionsRemain() {
-        final var actionsRemain = new AtomicInteger(0);
-        currScan.actions.forEach(actions -> actionsRemain.addAndGet(actions.size()));
-        return actionsRemain.get();
+        return currScan.actions.stream().mapToInt(java.util.Collection::size).sum();
     }
 
 }

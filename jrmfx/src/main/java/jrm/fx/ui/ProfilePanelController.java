@@ -168,7 +168,7 @@ public class ProfilePanelController implements Initializable {
     /** Comparator for {@link HaveNTotal} values based on their have counts. */
     private static Comparator<HaveNTotal> haveNTotalComparator = Comparator
             .comparing(HaveNTotal::getHave, nullSafeLongComparator)
-            .thenComparing(HaveNTotal::getHave, nullSafeLongComparator);
+            .thenComparing(HaveNTotal::getTotal, nullSafeLongComparator);
 
     /**
      * Initializes the controller: wires up button and menu icons, configures the

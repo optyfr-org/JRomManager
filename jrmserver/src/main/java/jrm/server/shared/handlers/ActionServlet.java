@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
@@ -293,7 +292,7 @@ public class ActionServlet extends HttpServlet {
     String encapsulate(final ArrayList<String> msgs) {
         String msg;
         if (msgs.size() > 1)
-            msg = "{\"cmd\":\"Global.multiCMD\",\"params\":[" + msgs.stream().collect(Collectors.joining(",")) + "]}";
+            msg = "{\"cmd\":\"Global.multiCMD\",\"params\":[" + String.join(",", msgs) + "]}";
         else
             msg = msgs.get(0);
         return msg;

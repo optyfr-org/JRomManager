@@ -297,28 +297,6 @@ public class Container implements Serializable, Comparable<Container> {
     }
 
     /**
-     * Indicates whether some other object is "equal to" this one.
-     *
-     * @param obj the reference object with which to compare
-     * 
-     * @return {@code true} if this object is the same as the obj argument; {@code false} otherwise
-     */
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    /**
-     * Returns a hash code value for the container.
-     *
-     * @return a hash code value for this container
-     */
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
-    /**
      * Creates and returns a standard comparator comparing containers by size.
      *
      * @return a {@link Comparator} for Container sorting

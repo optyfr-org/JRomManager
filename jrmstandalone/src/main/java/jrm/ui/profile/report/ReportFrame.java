@@ -56,8 +56,7 @@ public class ReportFrame extends JDialog implements StatusHandler {
      * @throws HeadlessException if the environment does not support a display
      */
     public ReportFrame(final Session session, final Window owner) throws HeadlessException {
-        super(); // $NON-NLS-1$
-        setTitle(Messages.getString("ReportFrame.Title")); //$NON-NLS-1$
+        super();
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(final WindowEvent e) {

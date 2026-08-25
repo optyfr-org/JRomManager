@@ -92,14 +92,4 @@ abstract class EntryExtNote extends EntryNote {
             return super.getSha1();
         return entry.getSha1();
     }
-
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
 }

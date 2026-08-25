@@ -167,7 +167,7 @@ public class SubjectSet extends Subject {
      * @return {@code true} if there is at least one non-OK validation note; {@code false} otherwise
      */
     public boolean hasNotes() {
-        return getNotes().stream().filter(n -> !(n instanceof EntryOK)).count() > 0;
+        return getNotes().stream().anyMatch(n -> !(n instanceof EntryOK));
     }
 
     /**
@@ -178,7 +178,7 @@ public class SubjectSet extends Subject {
      * @return {@code true} if the romset is fully repairable; {@code false} otherwise
      */
     public boolean isFixable() {
-        return getNotes().stream().filter(n -> (n instanceof EntryMissing || n instanceof EntryWrongHash)).count() == 0;
+        return getNotes().stream().noneMatch(n -> n instanceof EntryMissing || n instanceof EntryWrongHash);
     }
 
     /**
@@ -187,7 +187,7 @@ public class SubjectSet extends Subject {
      * @return {@code true} if there are repairable discrepancies; {@code false} otherwise
      */
     public boolean hasFix() {
-        return getNotes().stream().filter(n -> !(n instanceof EntryOK || n instanceof EntryMissing || n instanceof EntryWrongHash)).count() > 0;
+        return getNotes().stream().anyMatch(n -> !(n instanceof EntryOK || n instanceof EntryMissing || n instanceof EntryWrongHash));
     }
 
     /**
@@ -312,13 +312,4 @@ public class SubjectSet extends Subject {
         }
     }
 
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
-    }
-
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
 }

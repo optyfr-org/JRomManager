@@ -56,28 +56,6 @@ public class SlotOption extends NameBase {
     }
 
     /**
-     * Compares the specified object with this slot option for equality.
-     * 
-     * @param obj the reference object to compare with
-     * 
-     * @return true if the objects are equal, false otherwise
-     */
-    @Override
-    public boolean equals(Object obj) {
-        return super.equals(obj);
-    }
-
-    /**
-     * Returns the hash code value for this slot option.
-     * 
-     * @return the hash code value
-     */
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
-    /**
      * Constructs a new SlotOption with default values.
      */
     public SlotOption() {

@@ -40,8 +40,6 @@ public class Progress extends Stage {
         initOwner(parent);
         initModality(Modality.WINDOW_MODAL);
         getIcons().add(parent.getIcons().get(0));
-        setOnShowing(_ -> {
-        });
         setOnCloseRequest(_ -> hide());
         final var loader = new FXMLLoader(getClass().getResource("Progress.fxml").toURI().toURL(), Messages.getBundle());
         final var root = loader.<GridPane>load();

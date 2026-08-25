@@ -422,19 +422,7 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
      */
     @Override
     public void setProgress2(String msg, Integer val, Integer max) {
-        synchronized (this) {
-            if (msg != null && val != null) {
-                if (!data.pb2.visibility)
-                    data.pb2.visibility = true;
-                data.pb2.stringPainted = true/* msg != null || val > 0 */;
-                data.pb2.msg = msg;
-                data.pb2.indeterminate = val == 0;
-                computeProgress(data.pb2, val, max, false);
-                showDuration(data.pb2, val);
-            } else if (data.pb2.visibility)
-                data.pb2.visibility = false;
-        }
-        publish();
+        updateSecondaryProgress(data.pb2, msg, val, max);
     }
 
     /**
@@ -446,17 +434,20 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
      */
     @Override
     public void setProgress3(String msg, Integer val, Integer max) {
+        updateSecondaryProgress(data.pb3, msg, val, max);
+    }
+
+    private void updateSecondaryProgress(PData.PB pb, String msg, Integer val, Integer max) {
         synchronized (this) {
             if (msg != null && val != null) {
-                if (!data.pb3.visibility)
-                    data.pb3.visibility = true;
-                data.pb3.stringPainted = true/* msg != null || val > 0 */;
-                data.pb3.msg = msg;
-                data.pb3.indeterminate = val == 0;
-                computeProgress(data.pb3, val, max, false);
-                showDuration(data.pb3, val);
-            } else if (data.pb3.visibility)
-                data.pb3.visibility = false;
+                pb.visibility = true;
+                pb.stringPainted = true;
+                pb.msg = msg;
+                pb.indeterminate = val == 0;
+                computeProgress(pb, val, max, false);
+                showDuration(pb, val);
+            } else if (pb.visibility)
+                pb.visibility = false;
         }
         publish();
     }

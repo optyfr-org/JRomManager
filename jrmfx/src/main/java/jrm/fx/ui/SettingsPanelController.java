@@ -427,11 +427,7 @@ public class SettingsPanelController extends BaseController {
          */
         @Override
         public boolean equals(Object obj) {
-            if (obj == null)
-                return false;
-            if (obj instanceof ThreadCnt tc)
-                return this.cnt == tc.cnt;
-            return super.equals(obj);
+            return obj instanceof ThreadCnt tc && this.cnt == tc.cnt;
         }
 
         /**

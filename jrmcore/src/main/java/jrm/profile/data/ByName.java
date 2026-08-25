@@ -67,5 +67,5 @@ public interface ByName<T extends NameBase> extends Serializable {
      * 
      * @return the previous entity of type {@code T} associated with the name, or {@code null} if there was no mapping
      */
-    public abstract T putByName(T t);
+    T putByName(T t);
 }

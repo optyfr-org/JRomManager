@@ -91,8 +91,6 @@ public class PathAbstractor {
         final String normalized = strpath.replace('\\', '/');
         if (normalized.startsWith(WORK) || normalized.startsWith(PRESETS))
             return true;
-        if (normalized.startsWith(SHARED) || isUnderSharedRoot(session, strpath))
-            return session.getUser().isAdmin();
         return session.getUser().isAdmin();
     }
 
@@ -160,17 +158,6 @@ public class PathAbstractor {
      */
     public Path getWritableAbsolutePath(final String strpath) throws SecurityException {
         return getWritableAbsolutePath(session, strpath);
-    }
-
-    private static boolean isUnderSharedRoot(Session session, String strpath) {
-        try {
-            final Path path = Paths.get(strpath).toAbsolutePath().normalize();
-            final Path sharedRoot = session.getUser().getSettings().getBasePath().resolve(USERS).resolve(SHARED2).toAbsolutePath()
-                    .normalize();
-            return path.startsWith(sharedRoot);
-        } catch (Exception _) {
-            return false;
-        }
     }
 
     /**

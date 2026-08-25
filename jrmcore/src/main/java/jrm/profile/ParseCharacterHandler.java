@@ -8,8 +8,6 @@
  */
 package jrm.profile;
 
-import java.util.Optional;
-
 import org.xml.sax.Attributes;
 
 /**
@@ -26,8 +24,11 @@ class ParseCharacterHandler {
 
 	void characters(final char[] ch, final int start, final int length) {
 		final var value = new String(ch, start, length);
-		if (!value.isBlank())
-			Optional.ofNullable(getCharacterTarget()).ifPresent(target -> target.append(value));
+		if (!value.isBlank()) {
+			final var target = getCharacterTarget();
+			if (target != null)
+				target.append(value);
+		}
 	}
 
 	private StringBuilder getCharacterTarget() {

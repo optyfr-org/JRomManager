@@ -725,10 +725,7 @@ public final class EnhancedXMLStreamWriter implements XMLStreamWriter {
     public void write(String code, Object value) throws XMLStreamException {
         if (value == null)
             return;
-        if (value instanceof String str)
-            writer.writeAttribute(code, str);
-        else
-            writer.writeAttribute(code, value.toString());
+        writer.writeAttribute(code, value.toString());
     }
 
 }

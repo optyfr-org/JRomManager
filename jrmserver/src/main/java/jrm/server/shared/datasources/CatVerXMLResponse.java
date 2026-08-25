@@ -98,11 +98,9 @@ public class CatVerXMLResponse extends XMLResponse {
         var count = 0;
         if (catver != null) {
             count++;
-            for (var i = 0; i < catver.getListCategories().size(); i++) {
+            for (final var cat : catver.getListCategories()) {
                 count++;
-                final var cat = catver.getListCategories().get(i);
-                for (var j = 0; j < cat.getListSubCategories().size(); j++)
-                    count++;
+                count += cat.getListSubCategories().size();
             }
         }
         return count;

@@ -12,12 +12,12 @@ public interface OffsetProvider {
      * 
      * @return the unique 0-based offset index, or {@code -1} if no offset is allocated
      */
-    public int getOffset();
+    int getOffset();
 
     /**
      * Returns an array containing all currently unassigned and recycled logical offset indexes.
      * 
      * @return an array of available offset indexes
      */
-    public int[] freeOffsets();
+    int[] freeOffsets();
 }

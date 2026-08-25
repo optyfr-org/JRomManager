@@ -352,7 +352,7 @@ class SevenZUpdateEntries implements Closeable {
 	 * @throws IOException if reading operations fail
 	 */
 	private void computeHashes(final Map<Integer, Entry> entries) throws IOException {
-		if (entries.size() > 0) {
+		if (!entries.isEmpty()) {
 			getArchive().getNative7Zip().getIInArchive().extract(IntStreamEx.of(entries.keySet()).toArray(), false, new ComputeHashes7ZipCallback(entries));
 		}
 	}

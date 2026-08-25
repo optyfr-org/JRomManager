@@ -73,9 +73,7 @@ public class PlainTextRenderer implements StatusRenderer {
      */
     @Override
     public String progress(int width, int i, int max, String msg) {
-        if (msg == null)
-            return toDocument("");
-        return toDocument(escape(msg));
+        return toDocument(msg == null ? "" : escape(msg));
     }
 
     /**

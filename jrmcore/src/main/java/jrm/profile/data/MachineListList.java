@@ -161,12 +161,8 @@ public final class MachineListList extends AnywareListList<MachineList> {
      * @return the best matched {@link Machine}, or {@code null} if none is found
      */
     public Machine findMachine(final String softwarelist, final String compatibility) {
-        if (softwareListDefs.containsKey(softwarelist)) {
-            final var list = getSortedMachines(softwarelist, compatibility);
-            if (list != null)
-                return list.stream().findFirst().orElse(null);
-        }
-        return null;
+        final var list = getSortedMachines(softwarelist, compatibility);
+        return list.isEmpty() ? null : list.getFirst();
     }
 
     /**

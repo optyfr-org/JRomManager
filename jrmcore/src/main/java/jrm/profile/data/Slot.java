@@ -30,31 +30,4 @@ public class Slot extends ArrayList<SlotOption> {
      * @return the slot name
      */
     private @Setter @Getter String name;
-
-    /**
-     * Compares the specified object with this slot for equality.
-     * 
-     * @param o the reference object to compare with
-     * 
-     * @return true if the objects are equal, false otherwise
-     */
-    @Override
-    public boolean equals(Object o) {
-        return super.equals(o);
-    }
-
-    /**
-     * Returns the hash code value for this slot.
-     * 
-     * @return the hash code value
-     */
-    @Override
-    public int hashCode() {
-        return super.hashCode();
-    }
-
-    /** Constructs a new Slot with no options and an empty name. */
-    public Slot() {
-        super();
-    }
 }

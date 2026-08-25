@@ -40,7 +40,7 @@ public class CLIRunner {
         cli.printer = new CLIPrinter(cli.out);
         /* Start processing commands from the input file or standard input */
         final Reader reader = cmd.file != null ? new FileReader(cmd.file) : new InputStreamReader(System.in);
-        try (final var in = new BufferedReader(reader);) {
+        try (final var in = new BufferedReader(reader)) {
             String line;
             while (null != (line = in.readLine())) {
                 if (line.startsWith("#")) //$NON-NLS-1$

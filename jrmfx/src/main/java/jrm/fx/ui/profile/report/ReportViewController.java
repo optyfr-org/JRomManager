@@ -1,7 +1,6 @@
 package jrm.fx.ui.profile.report;
 
 import java.awt.Desktop;
-import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -168,7 +167,8 @@ public class ReportViewController implements Initializable {
                 s.stream(filterOptions).forEach(n -> sitem.getChildren().add(new TreeItem<>(n)));
                 root.getChildren().add(sitem);
             });
-            download.setDisable(!Optional.ofNullable(report.getReportFile()).map(File::exists).orElse(false));
+            final var reportFile = report.getReportFile();
+            download.setDisable(reportFile == null || !reportFile.exists());
             exportAs.setDisable(report.getProfile() == null);
             if (createFixDat != null)
                 createFixDat.setDisable(report.getProfile() == null);

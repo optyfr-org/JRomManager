@@ -50,11 +50,4 @@ public final class Systms implements Serializable, Iterable<Systm> {
     public Iterator<Systm> iterator() {
         return systems.iterator();
     }
-
-    /**
-     * Constructs an empty Systms object.
-     */
-    public Systms() {
-        super();
-    }
 }

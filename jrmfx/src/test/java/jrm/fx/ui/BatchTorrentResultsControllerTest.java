@@ -380,7 +380,6 @@ class BatchTorrentResultsControllerTest {
         });
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     @DisplayName("Should expand a deep tree without overflowing")
     void shouldExpandDeepTreeWithoutOverflowing() throws Exception {

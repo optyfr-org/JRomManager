@@ -80,7 +80,7 @@ public final class SoftwareListRenderer {
         public Component getTableCellRendererComponent(final JTable table, final Object value, final boolean isSelected, final boolean hasFocus, final int row, final int column) {
             if (value instanceof Software sw) {
                 super.getTableCellRendererComponent(table, withName ? sw.getBaseName() : "", isSelected, hasFocus, row, column); //$NON-NLS-1$
-                switch (((Software) value).getStatus()) {
+                switch (sw.getStatus()) {
                     case COMPLETE:
                         setIcon(folder_closed_green);
                         break;

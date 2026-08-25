@@ -370,7 +370,7 @@ public class Machine extends Anyware {
      * @return {@code true} if it's a software machine
      */
     public boolean isSoftMachine() {
-        return swlists.size() > 0 || (isClone() && getParent().swlists.size() > 0);
+        return !swlists.isEmpty() || (isClone() && !getParent().swlists.isEmpty());
     }
 
     /**

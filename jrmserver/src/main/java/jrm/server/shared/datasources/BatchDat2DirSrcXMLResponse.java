@@ -1,9 +1,9 @@
 package jrm.server.shared.datasources;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import javax.xml.stream.XMLStreamException;
 
@@ -81,7 +81,7 @@ public class BatchDat2DirSrcXMLResponse extends XMLResponse {
         if (operation.hasData("name")) {
             final List<String> names;
             synchronized (request.getSession().getUser().getSettings()) {
-                final List<String> lsrcdirs = Stream.of(getSrcDirs()).collect(Collectors.toList());
+                final List<String> lsrcdirs = new ArrayList<>(Arrays.asList(getSrcDirs()));
                 names = operation.getDatas("name").stream().filter(n -> !lsrcdirs.contains(n)).toList();
                 if (!names.isEmpty()) {
                     lsrcdirs.addAll(names);
@@ -119,7 +119,7 @@ public class BatchDat2DirSrcXMLResponse extends XMLResponse {
      * @param lsrcdirs the updated list of source directory paths
      */
     private void save(final List<String> lsrcdirs) {
-        request.getSession().getUser().getSettings().setProperty(SettingsEnum.dat2dir_srcdirs, lsrcdirs.stream().collect(Collectors.joining("|")));
+        request.getSession().getUser().getSettings().setProperty(SettingsEnum.dat2dir_srcdirs, String.join("|", lsrcdirs));
         request.getSession().getUser().getSettings().saveSettings();
     }
 
@@ -146,7 +146,7 @@ public class BatchDat2DirSrcXMLResponse extends XMLResponse {
         if (operation.hasData("name")) {
             final List<String> names;
             synchronized (request.getSession().getUser().getSettings()) {
-                final List<String> lsrcdirs = Stream.of(getSrcDirs()).collect(Collectors.toList());
+                final List<String> lsrcdirs = new ArrayList<>(Arrays.asList(getSrcDirs()));
                 names = operation.getDatas("name").stream().filter(lsrcdirs::contains).toList();
                 if (!names.isEmpty()) {
                     lsrcdirs.removeAll(names);

@@ -183,7 +183,7 @@ public class ProgressController implements Initializable {
      * @param multipleSubInfos whether to show multiple sub-info panels
      */
     void setInfos(int threadCnt, Boolean multipleSubInfos) {
-        final var lblSubInfoCnt = Optional.ofNullable(multipleSubInfos).map(multSubNfo -> multSubNfo.booleanValue() ? threadCnt : 1).orElse(0);
+        final var lblSubInfoCnt = multipleSubInfos == null ? 0 : (multipleSubInfos ? threadCnt : 1);
 
         if (lblInfo != null && lblInfo.length == threadCnt && lblSubInfo != null && lblSubInfo.length == lblSubInfoCnt) {
             lastMultipleSubInfos = multipleSubInfos;
