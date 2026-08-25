@@ -8,7 +8,10 @@
  */
 package jrm.ui.basic;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
+import java.util.IdentityHashMap;
 
 import javax.swing.tree.TreeNode;
 
@@ -49,32 +52,32 @@ public abstract class AbstractNGTreeNode implements NGTreeNode {
     }
 
     /**
+     * Maximum parent hops collected from the starting node. Deeper ancestors are omitted.
+     */
+    static final int MAX_PATH_DEPTH = 100;
+
+    /**
      * Builds the parents of node up to and including the root node, where the original node is the last element in the returned
      * array. The length of the returned array gives the node's depth in the tree.
+     * Walks iteratively with a depth cap and identity cycle detection.
      *
      * @param aNode the TreeNode to get the path for
-     * @param depth an int giving the number of steps already taken towards the root (on recursive calls), used to size the returned
-     *        array
-     * 
+     * @param depth unused; kept for signature compatibility
+     *
      * @return an array of TreeNodes giving the path from the root to the specified node
      */
     protected TreeNode[] getPathToRoot(final TreeNode aNode, int depth) {
-        TreeNode[] retNodes;
-
-        /*
-         * Check for null, in case someone passed in a null node, or they passed in an element that isn't rooted at root.
-         */
-        if (aNode == null) {
-            if (depth == 0)
-                return new TreeNode[0];
-            else
-                retNodes = new TreeNode[depth];
-        } else {
-            depth++;
-            retNodes = getPathToRoot(aNode.getParent(), depth);
-            retNodes[retNodes.length - depth] = aNode;
+        if (aNode == null)
+            return new TreeNode[0];
+        final var chain = new ArrayList<TreeNode>();
+        final var seen = Collections.newSetFromMap(new IdentityHashMap<TreeNode, Boolean>());
+        TreeNode current = aNode;
+        while (current != null && chain.size() < MAX_PATH_DEPTH && seen.add(current)) {
+            chain.add(current);
+            current = current.getParent();
         }
-        return retNodes;
+        Collections.reverse(chain);
+        return chain.toArray(TreeNode[]::new);
     }
 
     /**
