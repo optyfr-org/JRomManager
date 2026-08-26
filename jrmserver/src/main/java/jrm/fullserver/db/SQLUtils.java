@@ -4,13 +4,9 @@ import java.sql.Connection;
 import java.sql.JDBCType;
 import java.sql.SQLException;
 import java.util.Collection;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-
 import org.apache.commons.lang3.math.NumberUtils;
 
 /**
@@ -27,183 +23,16 @@ import org.apache.commons.lang3.math.NumberUtils;
  * 
  * @since 2024-06
  */
-public interface SQLUtils {
+public interface SQLUtils extends SqlIdentifiers {
 
-    /**
-     * Validates a SQL identifier (table, schema, or column name). Only unquoted-safe characters are allowed so identifiers
-     * cannot be used for SQL injection when embedded in statements. Null is accepted (callers may treat it as optional).
-     *
-     * @param name the identifier to validate
-     *
-     * @return the same name when valid, or null when input is null
-     *
-     * @throws IllegalArgumentException if the name is blank or contains characters other than letters, digits, and underscore
-     */
-    default String requireSqlIdentifier(String name) {
-        if (name == null)
-            return null;
-        if (name.isBlank())
-            throw new IllegalArgumentException("SQL identifier must not be blank");
-        final int len = name.length();
-        for (var i = 0; i < len; i++) {
-            final char c = name.charAt(i);
-            if (c == '_' || (c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z'))
-                continue;
-            throw new IllegalArgumentException("Invalid SQL identifier: " + name);
-        }
-        if (name.charAt(0) >= '0' && name.charAt(0) <= '9')
-            throw new IllegalArgumentException("Invalid SQL identifier: " + name);
-        return name;
-    }
-
-    /**
-     * Backquotes a name for use in SQL statements after validating it as a safe identifier. Adds backticks around the name to
-     * prevent conflicts with reserved keywords. If the name is null, it returns null.
-     * 
-     * @param name The name to be backquoted.
-     * 
-     * @return The backquoted name, or null if the input name is null.
-     * 
-     * @throws IllegalArgumentException if the name is not a valid SQL identifier
-     */
-    default String backquote(String name) {
-        name = requireSqlIdentifier(name);
-        if (name == null)
-            return null;
-        return "`" + name + "`";
-    }
-
-    /**
-     * Ensures a SQL fragment used as a count subquery is a single SELECT statement. Rejects multi-statement input and
-     * non-SELECT statements so untrusted strings cannot be concatenated into {@code count}.
-     *
-     * @param select the SQL SELECT fragment (bind parameters via {@code ?} only)
-     *
-     * @return the trimmed select statement
-     *
-     * @throws IllegalArgumentException if the fragment is null, blank, not a SELECT, or contains a statement separator
-     */
-    default String requireSelectStatement(String select) {
-        if (select == null || select.isBlank())
-            throw new IllegalArgumentException("SQL select must not be blank");
-        final String trimmed = select.strip();
-        if (trimmed.indexOf(';') >= 0)
-            throw new IllegalArgumentException("SQL select must be a single statement");
-        final int len = trimmed.length();
-        var i = 0;
-        if (len >= 2 && trimmed.charAt(0) == '(') {
-            // allow optional outer parentheses around the select
-            while (i < len && (trimmed.charAt(i) == '(' || Character.isWhitespace(trimmed.charAt(i))))
-                i++;
-        }
-        if (len - i < 6 || !trimmed.regionMatches(true, i, "SELECT", 0, 6))
-            throw new IllegalArgumentException("SQL select must start with SELECT");
-        final char after = i + 6 < len ? trimmed.charAt(i + 6) : ' ';
-        if (!Character.isWhitespace(after) && after != '(' && after != '*')
-            throw new IllegalArgumentException("SQL select must start with SELECT");
-        return trimmed;
-    }
-
-    /**
-     * Appends a value to a StringBuilder with a specified separator. If the value to append is not empty, it checks if the
-     * StringBuilder already has content and appends the separator if necessary before appending the value.
-     * 
-     * @param str The StringBuilder to which the value will be appended.
-     * @param separator The separator to use between values.
-     * @param toAppend The value to append to the StringBuilder.
-     */
-    default void append(StringBuilder str, final String separator, CharSequence toAppend) {
-        if (!toAppend.isEmpty()) {
-            if (!str.isEmpty())
-                str.append(separator);
-            str.append(toAppend);
-        }
-    }
-
-    /**
-     * Appends a value to a StringBuilder with a comma separator. If the value to append is not empty, it checks if the
-     * StringBuilder already has content and appends a comma if necessary before appending the value.
-     * 
-     * @param str The StringBuilder to which the value will be appended.
-     * @param toAppend The value to append to the StringBuilder.
-     */
-    default void appendComma(StringBuilder str, CharSequence toAppend) {
-        if (!str.isEmpty())
-            str.append(", ");
-        str.append(toAppend);
-    }
-
-    /**
-     * Prepends a value to a StringBuilder with a comma separator. If the StringBuilder already has content, it prepends a comma
-     * before the value. This method is useful for constructing SQL statements where values need to be added at the beginning of the
-     * statement.
-     * 
-     * @param str The StringBuilder to which the value will be prepended.
-     * @param toPrepend The value to prepend to the StringBuilder.
-     */
-    default void prependComma(StringBuilder str, CharSequence toPrepend) {
-        if (!str.isEmpty())
-            str.insert(0, ", ");
-        str.insert(0, toPrepend);
-    }
-
-    /**
-     * Appends a specified number of parameter placeholders ("?") to a StringBuilder, separated by commas. If the StringBuilder is
-     * null, it creates a new StringBuilder before appending the placeholders. This method is useful for constructing SQL statements
-     * with variable numbers of parameters.
-     * 
-     * @param str The StringBuilder to which the parameter placeholders will be appended. If null, a new StringBuilder will be
-     *        created.
-     * @param count The number of parameter placeholders to append.
-     * 
-     * @return The StringBuilder containing the appended parameter placeholders.
-     */
-    default CharSequence appendParam(StringBuilder str, int count) {
-        if (str == null)
-            str = new StringBuilder();
-        for (var i = 0; i < count; i++)
-            appendComma(str, "?");
-        return str;
-    }
-
-    /**
-     * Appends a specified number of parameter placeholders ("?") to a new StringBuilder, separated by commas. This method is a
-     * convenience overload of the appendParam method that defaults the StringBuilder to null, allowing for quick creation of a
-     * StringBuilder with the desired number of parameter placeholders.
-     * 
-     * @param count The number of parameter placeholders to append.
-     * 
-     * @return A StringBuilder containing the appended parameter placeholders.
-     */
-    default CharSequence appendParam(int count) {
-        return appendParam(null, count);
-    }
-
-    /**
-     * Constructs a comma-separated list of backquoted column names from a collection of column names. If the withParenthesis
-     * parameter is true and there are multiple columns, the resulting string will be enclosed in parentheses. This method is useful
-     * for constructing SQL statements that require a list of column names, such as SELECT or INSERT statements.
-     * 
-     * @param cols The collection of column names to be backquoted and included in the resulting string.
-     * @param withParenthesis Whether to enclose the resulting string in parentheses if there are multiple columns.
-     * 
-     * @return A CharSequence containing the comma-separated list of backquoted column names, optionally enclosed in parentheses.
-     */
-    default CharSequence makeCols(Collection<String> cols, boolean withParenthesis) {
-        final var set = new StringBuilder();
-        cols.forEach(col -> appendComma(set, backquote(col)));
-        if (withParenthesis && cols.size() > 1)
-            set.insert(0, '(').append(')');
-        return set;
-    }
 
     /**
      * Converts a collection of items into an Iterable. This method allows for easy iteration over the items in the collection using
      * a for-each loop or other iteration constructs. It returns an Iterable that provides an iterator over the elements in the
      * collection.
      * 
-     * @param coll The collection of items to be converted into an Iterable.
      * @param <T> The type of elements in the collection.
+     * @param coll The collection of items to be converted into an Iterable.
      * 
      * @return An Iterable that provides an iterator over the elements in the collection.
      */
@@ -225,85 +54,6 @@ public interface SQLUtils {
         return () -> new LinkedList<>(coll).descendingIterator();
     }
 
-    /**
-     * Constructs a comma-separated list of backquoted column names from an Iterable of column names. This method is useful for
-     * constructing SQL statements that require a list of column names, such as SELECT or INSERT statements. It returns a
-     * CharSequence containing the comma-separated list of backquoted column names.
-     * 
-     * @param cols The Iterable of column names to be backquoted and included in the resulting string.
-     * 
-     * @return A CharSequence containing the comma-separated list of backquoted column names.
-     */
-    default CharSequence makeCols(Iterable<String> cols) {
-        final var set = new StringBuilder();
-        for (final var col : cols)
-            appendComma(set, backquote(col));
-        return set;
-    }
-
-    /**
-     * Constructs a comma-separated list of backquoted column names from a collection of column names. This method is a convenience
-     * overload of the makeCols method that defaults the withParenthesis parameter to false, meaning that the resulting string will
-     * not be enclosed in parentheses even if there are multiple columns.
-     * 
-     * @param cols The collection of column names to be backquoted and included in the resulting string.
-     * 
-     * @return A CharSequence containing the comma-separated list of backquoted column names.
-     */
-    default CharSequence makeCols(Collection<String> cols) {
-        return makeCols(cols, false);
-    }
-
-    /**
-     * Constructs a comma-separated list of backquoted column names with parameter placeholders from a collection of column names.
-     * This method is useful for constructing SQL statements that require a list of column names and corresponding parameter
-     * placeholders, such as UPDATE statements. It returns a CharSequence containing the comma-separated list of backquoted column
-     * names followed by "=?", indicating that each column will be updated with a parameter value.
-     * 
-     * @param cols The collection of column names to be backquoted and included in the resulting string.
-     * 
-     * @return A CharSequence containing the comma-separated list of backquoted column names followed by "=?", indicating that each
-     *         column will be updated with a parameter value.
-     */
-    default CharSequence makeSet(Collection<String> cols) {
-        final var set = new StringBuilder();
-        cols.forEach(col -> appendComma(set, backquote(col) + "=?"));
-        return set;
-    }
-
-    /**
-     * Constructs a comma-separated list of backquoted column names with parameter placeholders from a LinkedHashMap of column names
-     * and values. This method is useful for constructing SQL statements that require a list of column names and corresponding
-     * parameter placeholders, such as UPDATE statements. It returns a CharSequence containing the comma-separated list of
-     * backquoted column names followed by "=?", indicating that each column will be updated with a parameter value.
-     * 
-     * @param map The LinkedHashMap containing column names as keys and their corresponding values.
-     * 
-     * @return A CharSequence containing the comma-separated list of backquoted column names followed by "=?", indicating that each
-     *         column will be updated with a parameter value.
-     */
-    default CharSequence makeSet(LinkedHashMap<String, Object> map) {
-        final var set = new StringBuilder();
-        map.forEach((col, _) -> appendComma(set, backquote(col) + "=?"));
-        return set;
-    }
-
-    /**
-     * Constructs a comma-separated list of backquoted column names with parameter placeholders from a Set of Map.Entry objects
-     * containing column names and values. This method is useful for constructing SQL statements that require a list of column names
-     * and corresponding parameter placeholders, such as UPDATE statements. It returns a CharSequence containing the comma-separated
-     * list of backquoted column names followed by "=?", indicating that each column will be updated with a parameter value.
-     * 
-     * @param map The Set of Map.Entry objects containing column names as keys and their corresponding values.
-     * 
-     * @return A CharSequence containing the comma-separated list of backquoted column names followed by "=?", indicating that each
-     *         column will be updated with a parameter value.
-     */
-    default CharSequence makeSet(Set<Entry<String, Object>> map) {
-        final var set = new StringBuilder();
-        map.forEach(entry -> appendComma(set, backquote(entry.getKey()) + "=?"));
-        return set;
-    }
 
     /**
      * Returns a string indicating whether a column is nullable or not based on the provided boolean value. If the required

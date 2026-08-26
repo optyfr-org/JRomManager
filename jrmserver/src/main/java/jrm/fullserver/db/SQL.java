@@ -4,7 +4,6 @@ import java.beans.IntrospectionException;
 import java.beans.Introspector;
 import java.beans.PropertyDescriptor;
 import java.io.Closeable;
-import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -14,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -68,7 +66,14 @@ public abstract class SQL implements SQLUtils, Closeable {
      */
     protected QueryRunner qryRunner = new QueryRunner();
 
-    private static final Pattern ANY_PARAM = Pattern.compile("=\\s*?ANY\\(\\?\\)");
+    private SqlDialect dialect;
+
+    private SqlDialect dialect() {
+        if (dialect == null || db != null) {
+            dialect = new SqlDialect(db);
+        }
+        return dialect;
+    }
 
     /**
      * Constructs a new SQL object with the specified shouldClose flag and SystemSettings. The database connection is initialized to
@@ -81,6 +86,7 @@ public abstract class SQL implements SQLUtils, Closeable {
         this.db = null;
         this.shouldClose = shouldClose;
         this.settings = settings;
+        this.dialect = new SqlDialect(null);
     }
 
     /**
@@ -94,6 +100,7 @@ public abstract class SQL implements SQLUtils, Closeable {
         this.db = db;
         this.shouldClose = shouldClose;
         this.settings = settings;
+        this.dialect = new SqlDialect(db);
     }
 
     /**
@@ -364,10 +371,10 @@ public abstract class SQL implements SQLUtils, Closeable {
             for (final var prop : Introspector.getBeanInfo(bean.getClass()).getPropertyDescriptors()) {
                 if (columns != null) {
                     if (columns.contains(prop.getName()))
-                        set.put(prop.getName(), prop.getReadMethod().invoke(bean, (Object[]) new Object[0]));
+                        set.put(prop.getName(), prop.getReadMethod().invoke(bean));
                 } else {
                     if (prop.getWriteMethod() != null)
-                        set.put(prop.getName(), prop.getReadMethod().invoke(bean, (Object[]) new Object[0]));
+                        set.put(prop.getName(), prop.getReadMethod().invoke(bean));
                 }
             }
         } catch (IntrospectionException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
@@ -575,12 +582,8 @@ public abstract class SQL implements SQLUtils, Closeable {
      * 
      * @throws NullPointerException if the args parameter is null
      */
-    int findArrayParam(Object[] args) {
-        if (args != null)
-            for (var i = 0; i < args.length; i++)
-                if (args[i] != null && args[i].getClass().isArray())
-                    return i;
-        return -1;
+     int findArrayParam(Object[] args) {
+        return dialect().findArrayParam(args);
     }
 
     /**
@@ -593,23 +596,7 @@ public abstract class SQL implements SQLUtils, Closeable {
      * @param argsRef a reference to the array of arguments that may contain array parameters
      */
     void convertArrayParams(AtomicReference<String> queryRef, AtomicReference<Object[]> argsRef) {
-        Object[] args = argsRef.get();
-        String query = queryRef.get();
-        int pos;
-        if (args != null)
-            while (-1 != (pos = findArrayParam(args))) {
-                final var arrlen = Array.getLength(args[pos]);
-                final var newargs = new Object[args.length - 1 + arrlen];
-                System.arraycopy(args, 0, newargs, 0, pos);
-                for (var i = 0; i < arrlen; i++)
-                    newargs[i + pos] = Array.get(args[pos], i);
-                for (var i = pos + 1; i < args.length; i++)
-                    newargs[i - 1 + arrlen] = args[i];
-                query = ANY_PARAM.matcher(query).replaceFirst(" IN(" + appendParam(arrlen) + ")");
-                args = newargs;
-            }
-        argsRef.set(args);
-        queryRef.set(query);
+        dialect().convertArrayParams(queryRef, argsRef);
     }
 
     /**
@@ -658,7 +645,7 @@ public abstract class SQL implements SQLUtils, Closeable {
      * @throws SQLException if there is an error accessing the database metadata
      */
     public boolean supportsNullsFirst() throws SQLException {
-        return db.getMetaData().getDatabaseProductName().equals("H2");
+        return dialect().supportsNullsFirst();
     }
 
     /**
@@ -687,7 +674,7 @@ public abstract class SQL implements SQLUtils, Closeable {
      * @throws SQLException if there is an error accessing the database metadata
      */
     public boolean supportsMultipleTablesUpdate() throws SQLException {
-        return !db.getMetaData().getDatabaseProductName().equals("H2");
+        return dialect().supportsMultipleTablesUpdate();
     }
 
     /**
@@ -702,7 +689,7 @@ public abstract class SQL implements SQLUtils, Closeable {
      * @throws SQLException if there is an error accessing the database metadata
      */
     public boolean supportsReplace() throws SQLException {
-        return !db.getMetaData().getDatabaseProductName().equals("H2");
+        return dialect().supportsReplace();
     }
 
     /**
@@ -717,7 +704,7 @@ public abstract class SQL implements SQLUtils, Closeable {
      * @throws SQLException if there is an error accessing the database metadata
      */
     public boolean supportsDump() throws SQLException {
-        return db.getMetaData().getDatabaseProductName().equals("H2");
+        return dialect().supportsDump();
     }
 
     /**
@@ -732,7 +719,7 @@ public abstract class SQL implements SQLUtils, Closeable {
      * @throws SQLException if there is an error accessing the database metadata
      */
     public boolean supportsArrayParams() throws SQLException {
-        return db.getMetaData().getDatabaseProductName().equals("H2");
+        return dialect().supportsArrayParams();
     }
 
     /**
@@ -747,6 +734,6 @@ public abstract class SQL implements SQLUtils, Closeable {
      * @throws SQLException if there is an error accessing the database metadata
      */
     public boolean supportsInsertIgnore() throws SQLException {
-        return !db.getMetaData().getDatabaseProductName().equals("H2");
+        return dialect().supportsInsertIgnore();
     }
 }
