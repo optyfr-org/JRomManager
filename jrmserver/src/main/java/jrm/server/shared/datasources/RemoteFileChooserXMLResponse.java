@@ -120,14 +120,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
         }
     }
 
-    /**
-     * Utility class for finding files or directories on the filesystem ignoring case sensitivity.
-     */
-    public static class CaseInsensitiveFileFinder {
 
-        private CaseInsensitiveFileFinder() {
-            throw new IllegalStateException("Utility class");
-        }
 
         /**
          * Finds a directory by name, ignoring case.
@@ -219,11 +212,6 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
          * 
          * @return an Optional containing the matched File, or empty if not found
          */
-        public static Optional<File> findFileIgnoreCase(final String parentDir, final String fileName) {
-            return findFileIgnoreCase(Paths.get(parentDir), fileName).map(Path::toFile);
-        }
-    }
-
     /**
      * Constructs a new RemoteFileChooserXMLResponse.
      *
@@ -274,7 +262,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
                 cnt++;
             }
             final var initialPath = operation.hasData(INITIAL_PATH) ? CaseInsensitiveFileFinder.findFileIgnoreCase(pathAbstractor.getAbsolutePath(operation.getData(INITIAL_PATH)))
-                    : Optional.empty();
+                    : Optional.<Path>empty();
             for (Path entry : stream) {
                 BasicFileAttributeView view = Files.getFileAttributeView(entry, BasicFileAttributeView.class, LinkOption.NOFOLLOW_LINKS);
                 BasicFileAttributes attr = view.readAttributes();

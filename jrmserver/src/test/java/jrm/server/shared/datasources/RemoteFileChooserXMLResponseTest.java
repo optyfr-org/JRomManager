@@ -160,7 +160,7 @@ class RemoteFileChooserXMLResponseTest {
             final Path file = workPath.resolve("FiLe.TxT");
             Files.createFile(file);
 
-            final Optional<Path> result = RemoteFileChooserXMLResponse.CaseInsensitiveFileFinder.findFileIgnoreCase(workPath, "file.txt");
+            final Optional<Path> result = CaseInsensitiveFileFinder.findFileIgnoreCase(workPath, "file.txt");
 
             assertThat(result).isPresent().hasValue(file);
         }
@@ -168,7 +168,7 @@ class RemoteFileChooserXMLResponseTest {
         @Test
         @DisplayName("returns empty when file does not exist")
         void returnsEmptyWhenMissing() {
-            final Optional<Path> result = RemoteFileChooserXMLResponse.CaseInsensitiveFileFinder.findFileIgnoreCase(workPath, "missing.txt");
+            final Optional<Path> result = CaseInsensitiveFileFinder.findFileIgnoreCase(workPath, "missing.txt");
             assertThat(result).isEmpty();
         }
 
@@ -178,7 +178,7 @@ class RemoteFileChooserXMLResponseTest {
             final Path file = workPath.resolve("MiXeD.dat");
             Files.createFile(file);
 
-            final Optional<java.io.File> result = RemoteFileChooserXMLResponse.CaseInsensitiveFileFinder.findFileIgnoreCase(file.toString().toLowerCase());
+            final Optional<java.io.File> result = CaseInsensitiveFileFinder.findFileIgnoreCase(file.toString().toLowerCase());
 
             assertThat(result).isPresent().hasValue(file.toFile());
         }
