@@ -9,16 +9,10 @@
 package jrm.profile.report;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.Serializable;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.AbstractList;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -31,15 +25,11 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.eclipsesource.json.Json;
-
 import jrm.aui.profile.report.ReportTreeDefaultHandler;
 import jrm.aui.profile.report.ReportTreeHandler;
 import jrm.aui.progress.StatusHandler;
 import jrm.aui.status.StatusRendererFactory;
 import jrm.locale.Messages;
-import jrm.misc.Log;
-import jrm.misc.SettingsEnum;
 import jrm.profile.Profile;
 import jrm.profile.data.Anyware;
 import jrm.security.Session;
@@ -69,7 +59,7 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
      * @return the Profile instance
      */
     @Getter
-    private transient Profile profile = null;
+    transient Profile profile = null;
 
     /**
      * The physical file location of the original profile catalog.
@@ -87,14 +77,14 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
      * @return the report log File
      */
     @Getter
-    private File reportFile = null;
+    File reportFile = null;
 
     /**
      * The logical collection of scanned report subjects managed by this report.
      *
      * @return the list of Subject instances
      */
-    private @Getter List<Subject> subjects;
+    @Getter List<Subject> subjects;
 
     /**
      * Map indexing scanned report subjects by their case-insensitive full names for fast retrieval.
@@ -121,7 +111,7 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
      *
      * @return the compiled Stats metrics
      */
-    private @Getter Stats stats;
+    @Getter Stats stats;
 
     /**
      * The linked UI presentation tree handler responsible for notifying components of structural changes.
@@ -704,253 +694,8 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
     /**
      * Enumerates active output components and diagnostic groupings supported during text report exporting.
      */
-    enum ReportMode {
-        /** Include active configuration parameters. */
-        SETTINGS,
-        /** Output general audit and validation summary statistics. */
-        STATS,
-        /** Include perfectly matching items. */
-        OK,
-        /** Include items containing fixable structural issues. */
-        FIXABLE,
-        /** Include elements that are completely missing. */
-        MISSING,
-        /** Include non-standard categories (e.g., unknown files). */
-        OTHERS,
-        /** Render using a tab-delimited flat line presentation. */
-        COMPACT,
-        /** Restrict subjects listing, omitting child entry notes. */
-        NO_ENTRIES,
-        /** Group exported diagnostics by status codes. */
-        GROUP_BY_TYPE_AND_STATUS
-    }
-
-    /**
-     * Formats and writes diagnostic validation logs to the user's workspace reports folder.
-     *
-     * @param session the user session containing workspace context and active profile settings
-     */
     public void write(final Session session) {
-        final var modes = parseReportModes(session);
-        final File reportdir = createReportDirectory(session);
-        reportFile = createReportFile(reportdir);
-
-        try (PrintWriter reportWriter = new PrintWriter(reportFile)) {
-            writeReportHeader(reportWriter);
-            writeReportSettings(reportWriter, modes);
-            writeReportStatistics(reportWriter, modes);
-            writeReportBody(reportWriter, modes);
-            reportWriter.println();
-        } catch (final IOException e) {
-            Log.err(e.getMessage(), e);
-        }
-    }
-
-    private EnumSet<ReportMode> parseReportModes(final Session session) {
-        final var jsondata = session.getUser().getSettings().getProperty(SettingsEnum.report_settings);
-        final var jsonarray = Json.parse(jsondata);
-        final var modes = EnumSet.noneOf(ReportMode.class);
-        if (jsonarray.isArray())
-            for (final var jsonvalue : jsonarray.asArray())
-                if (jsonvalue.isString())
-                    modes.add(ReportMode.valueOf(jsonvalue.asString()));
-        return modes;
-    }
-
-    private File createReportDirectory(final Session session) {
-        final File workdir = session.getUser().getSettings().getWorkPath().toFile();
-        final File reportdir = new File(workdir, "reports");
-        reportdir.mkdirs();
-        return reportdir;
-    }
-
-    private File createReportFile(final File reportdir) {
-        return new File(reportdir, "report-" + DateTimeFormatter.ofPattern("yyyyMMddHHmmssSSS").format(LocalDateTime.now(ZoneId.systemDefault())) + ".log");
-    }
-
-    private void writeReportHeader(PrintWriter reportWriter) {
-        reportWriter.println("=== Scanned Profile ===");
-        reportWriter.println(profile.getNfo().getFile());
-        reportWriter.println();
-    }
-
-    private void writeReportSettings(PrintWriter reportWriter, EnumSet<ReportMode> modes) throws IOException {
-        if (!modes.contains(ReportMode.SETTINGS))
-            return;
-        reportWriter.println("=== Used Profile Properties ===");
-        profile.getSettings().getProperties().store(reportWriter, null);
-        reportWriter.println();
-    }
-
-    private void writeReportStatistics(PrintWriter reportWriter, EnumSet<ReportMode> modes) {
-        if (!modes.contains(ReportMode.STATS))
-            return;
-        reportWriter.println("=== Statistics ===");
-        reportWriter.println(String.format(Messages.getString("Report.MissingRoms"),
-                stats.missingRomsCnt, stats.missingRomsCnt - stats.fixableRomsCnt, profile.getRomsCnt()));
-        reportWriter.println(String.format(Messages.getString("Report.MissingDisks"),
-                stats.missingDisksCnt, stats.missingDisksCnt - stats.fixableDisksCnt, profile.getDisksCnt()));
-        reportWriter.println(String.format(Messages.getString("Report.MissingSets"),
-                profile.getMachinesCnt() - stats.setFoundOk,
-                profile.getMachinesCnt() - stats.setFoundOk - stats.setFoundFixComplete,
-                profile.getMachinesCnt()));
-        reportWriter.println();
-    }
-
-    private void writeReportBody(PrintWriter reportWriter, EnumSet<ReportMode> modes) {
-        reportWriter.println("=== Scanner Report ===");
-        if (modes.contains(ReportMode.GROUP_BY_TYPE_AND_STATUS))
-            writeGroupedReport(reportWriter, modes);
-        else
-            subjects.stream().filter(new ReportSubjectFilter(modes)).sorted(Subject.getComparator())
-                    .forEachOrdered(subject -> writeReport(reportWriter, subject, modes));
-    }
-
-    private void writeGroupedReport(PrintWriter reportWriter, EnumSet<ReportMode> modes) {
-        if (modes.contains(ReportMode.NO_ENTRIES))
-            writeGroupedSubjects(reportWriter, modes);
-        else
-            writeGroupedNotes(reportWriter, modes);
-    }
-
-    private void writeGroupedSubjects(PrintWriter reportWriter, EnumSet<ReportMode> modes) {
-        final Map<ReportMode, List<Subject>> grouped = subjects.stream()
-                .collect(Collectors.groupingBy(this::classifySubject));
-        grouped.forEach((mode, list) -> {
-            reportWriter.println();
-            reportWriter.println("== %s ==".formatted(mode));
-            list.stream().sorted(Subject.getComparator()).forEachOrdered(n -> writeReport(reportWriter, n, modes));
-            reportWriter.println();
-        });
-    }
-
-    private ReportMode classifySubject(Subject s) {
-        if (s instanceof SubjectSet ss) {
-            if (ss.isFixable())
-                return ReportMode.FIXABLE;
-            if (ss.isMissing())
-                return ReportMode.MISSING;
-            return ReportMode.OK;
-        }
-        return ReportMode.OTHERS;
-    }
-
-    private void writeGroupedNotes(PrintWriter reportWriter, EnumSet<ReportMode> modes) {
-        final Map<String, List<Note>> grouped = subjects.stream().flatMap(s -> s.stream())
-                .collect(Collectors.groupingBy(Note::getAbbrv));
-        grouped.forEach((abbrv, list) -> {
-            reportWriter.println();
-            reportWriter.println("== %s ==".formatted(abbrv));
-            list.stream().sorted(this::compareNotes).forEachOrdered(n -> writeReport(reportWriter, n, modes));
-            reportWriter.println();
-        });
-    }
-
-    private int compareNotes(Note n1, Note n2) {
-        int ret = n1.parent != null && n2.parent != null ? Subject.getComparator().compare(n1.parent, n2.parent) : 0;
-        if (ret == 0)
-            return n1.getName().compareToIgnoreCase(n2.getName());
-        return ret;
-    }
-
-    /**
-     * Filters subjects matching selected export modes during file writing.
-     */
-    class ReportSubjectFilter implements Predicate<Subject> {
-        private final Set<ReportMode> modes;
-
-        /**
-         * Constructs a filter with active export modes.
-         *
-         * @param modes the configuration modes
-         */
-        public ReportSubjectFilter(Set<ReportMode> modes) {
-            this.modes = modes;
-        }
-
-        @Override
-        public boolean test(Subject subject) {
-            if (subject instanceof SubjectSet ss) {
-                if (ss.isOK() && modes.contains(ReportMode.OK))
-                    return true;
-                if (ss.isFixable() && modes.contains(ReportMode.FIXABLE))
-                    return true;
-                // Mapped by default
-                if (ss.isMissing()) //NOSONAR
-                    return true;
-                return false;
-            } else if (modes.contains(ReportMode.OTHERS))
-                return true;
-            return false;
-        }
-
-    }
-
-    /**
-     * Formats and outputs structural subject notes to a text print writer.
-     *
-     * @param reportWriter the target writer
-     * @param subject the subject context
-     * @param modes the active configuration options
-     */
-    private void writeReport(PrintWriter reportWriter, Subject subject, final EnumSet<ReportMode> modes) {
-        if (modes.contains(ReportMode.NO_ENTRIES))
-            reportWriter.println(subject);
-        else {
-            if (!modes.contains(ReportMode.COMPACT))
-                reportWriter.println(subject);
-            subject.getNotes().stream().filter(new ReportNoteFilter(modes)).forEach(note -> writeReport(reportWriter, note, modes));
-        }
-    }
-
-    /**
-     * Filters individual notes matching chosen report configuration modes.
-     */
-    class ReportNoteFilter implements Predicate<Note> {
-        private final Set<ReportMode> modes;
-
-        /**
-         * Constructs a note filter using the provided modes.
-         *
-         * @param modes the configuration modes
-         */
-        public ReportNoteFilter(Set<ReportMode> modes) {
-            this.modes = modes;
-        }
-
-        @Override
-        public boolean test(Note note) {
-            if (modes.contains(ReportMode.OK) && note instanceof EntryOK)
-                return true;
-            if (modes.contains(ReportMode.FIXABLE)
-                    && (note instanceof EntryAdd || note instanceof EntryMissingDuplicate || note instanceof EntryUnneeded || note instanceof EntryWrongName))
-                return true;
-            // Mapped by default
-            if (note instanceof EntryWrongHash || note instanceof EntryMissing) //NOSONAR
-                return true;
-            return false;
-        }
-
-    }
-
-    /**
-     * Formats and writes a single status note to the diagnostic output stream.
-     *
-     * @param reportWriter the destination writer
-     * @param note the note to output
-     * @param modes the configured export formats
-     */
-    private void writeReport(PrintWriter reportWriter, Note note, final EnumSet<ReportMode> modes) {
-        if (modes.contains(ReportMode.COMPACT)) {
-            if (note.parent != null) {
-                if (modes.contains(ReportMode.GROUP_BY_TYPE_AND_STATUS))
-                    reportWriter.println("[" + note.parent.getWare().getBaseName() + "]\t" + note.getName() + "\t(" + note.getHash() + ")");
-                else
-                    reportWriter.println(note.getAbbrv() + " :\t[" + note.parent.getWare().getBaseName() + "]\t" + note.getName() + "\t(" + note.getHash() + ")");
-            } else
-                reportWriter.println(note.getName() + " (" + note.getHash() + ")");
-        } else
-            reportWriter.println("\t" + note);
+        new ReportLogWriter(this).write(session);
     }
 
     /**
