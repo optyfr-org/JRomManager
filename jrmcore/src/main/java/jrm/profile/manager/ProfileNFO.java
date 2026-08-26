@@ -14,13 +14,9 @@ import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
-
 import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -35,7 +31,6 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-import jrm.aui.status.StatusRendererFactory;
 import jrm.misc.Log;
 import jrm.security.Session;
 import jrm.security.SignedObjectStore;
@@ -49,36 +44,11 @@ import lombok.Setter;
  * 
  * @author optyfr
  */
-public final class ProfileNFO implements Serializable, StatusRendererFactory {
-    /**
-     * Undefined status placeholder.
-     */
-    private static final String U = "?";
-
-    /**
-     * Double undefined status placeholder.
-     */
-    private static final String U_OF_U = "?/?";
-
-    /**
-     * Fraction formatting template.
-     */
-    private static final String N_OF_T = "%s/%d";
-
+public final class ProfileNFO implements Serializable {
     /**
      * JRomManager identifier string.
      */
     private static final String JROMMANAGER_STR = "JRomManager";
-
-    /**
-     * Standard date-time formatter for displaying timestamps in the user's local timezone.
-     */
-    private static final DateTimeFormatter DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
-
-    /**
-     * Unknown date-time formatted placeholder.
-     */
-    private static final String UNKNOWN_DATE = "????-??-?? ??:??:??";
 
     /**
      * Serial version UID for maintaining serialization compatibility.
@@ -350,109 +320,31 @@ public final class ProfileNFO implements Serializable, StatusRendererFactory {
      * @return the HTML formatted version string
      */
     public String getHTMLVersion() {
-        return toDocument(Optional.ofNullable(stats.getVersion()).map(this::escape).map(this::toNoBR).orElse(toGray("???"))); //$NON-NLS-1$
+        return new ProfileNFOHtml(this).getHTMLVersion();
     }
 
-    /**
-     * Generates HTML formatted representation of owned game sets versus total sets.
-     * 
-     * @return the HTML formatted sets count string
-     */
     public String getHTMLHaveSets() {
-        final String have;
-        if (stats.getHaveSets() == null) {
-            if ((stats.getTotalSets() == null))
-                have = toGray(U_OF_U);
-            else
-                have = String.format(N_OF_T, toGray(U), stats.getTotalSets());
-        } else {
-            final String n;
-            if (stats.getHaveSets() == 0 && stats.getTotalSets() > 0)
-                n = toRed("0");
-            else if (stats.getHaveSets().equals(stats.getTotalSets()))
-                n = toGreen(toStr(stats.getHaveSets()));
-            else
-                n = toOrange(toStr(stats.getHaveSets()));
-            have = String.format(N_OF_T, n, stats.getTotalSets());
-        }
-        return toDocument(have);
+        return new ProfileNFOHtml(this).getHTMLHaveSets();
     }
 
-    /**
-     * Generates HTML formatted representation of owned ROM files versus total ROMs.
-     * 
-     * @return the HTML formatted ROMs count string
-     */
     public String getHTMLHaveRoms() {
-        final String have;
-        if (stats.getHaveRoms() == null) {
-            if (stats.getTotalRoms() == null)
-                have = toGray(U_OF_U);
-            else
-                have = String.format(N_OF_T, toGray(U), stats.getTotalRoms());
-        } else {
-            final String n;
-            if (stats.getHaveRoms() == 0 && stats.getTotalRoms() > 0)
-                n = toRed("0");
-            else if (stats.getHaveRoms().equals(stats.getTotalRoms()))
-                n = toGreen(toStr(stats.getHaveRoms()));
-            else
-                n = toOrange(toStr(stats.getHaveRoms()));
-            have = String.format(N_OF_T, n, stats.getTotalRoms());
-        }
-        return toDocument(have);
+        return new ProfileNFOHtml(this).getHTMLHaveRoms();
     }
 
-    /**
-     * Generates HTML formatted representation of owned CHD/disk files versus total disks.
-     * 
-     * @return the HTML formatted disks count string
-     */
     public String getHTMLHaveDisks() {
-        final String have;
-        if (stats.getHaveDisks() == null) {
-            if (stats.getTotalDisks() == null)
-                have = toGray(U_OF_U);
-            else
-                have = String.format(N_OF_T, toGray(U), stats.getTotalDisks());
-        } else {
-            final String n;
-            if (stats.getHaveDisks() == 0 && stats.getTotalDisks() > 0)
-                n = toRed("0");
-            else if (stats.getHaveDisks().equals(stats.getTotalDisks()))
-                n = toGreen(toStr(stats.getHaveDisks()));
-            else
-                n = toOrange(toStr(stats.getHaveDisks()));
-            have = String.format(N_OF_T, n, stats.getTotalDisks());
-        }
-        return toDocument(have);
+        return new ProfileNFOHtml(this).getHTMLHaveDisks();
     }
 
-    /**
-     * Generates HTML formatted representation of profile creation timestamp.
-     * 
-     * @return the HTML formatted creation timestamp string
-     */
     public String getHTMLCreated() {
-        return toDocument(stats.getCreated() == null ? toGray(UNKNOWN_DATE) : DATE_FORMAT.format(stats.getCreated())); // $NON-NLS-1$
+        return new ProfileNFOHtml(this).getHTMLCreated();
     }
 
-    /**
-     * Generates HTML formatted representation of last scanned timestamp.
-     * 
-     * @return the HTML formatted scanned timestamp string
-     */
     public String getHTMLScanned() {
-        return toDocument(stats.getScanned() == null ? toGray(UNKNOWN_DATE) : DATE_FORMAT.format(stats.getScanned())); // $NON-NLS-1$
+        return new ProfileNFOHtml(this).getHTMLScanned();
     }
 
-    /**
-     * Generates HTML formatted representation of last repair timestamp.
-     * 
-     * @return the HTML formatted repaired timestamp string
-     */
     public String getHTMLFixed() {
-        return toDocument(stats.getFixed() == null ? toGray(UNKNOWN_DATE) : DATE_FORMAT.format(stats.getFixed())); // $NON-NLS-1$
+        return new ProfileNFOHtml(this).getHTMLFixed();
     }
     /**
      * Scans the provided directory on disk and loads the metadata profile information of any matching catalog files found inside.
