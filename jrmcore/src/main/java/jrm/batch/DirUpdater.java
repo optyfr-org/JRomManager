@@ -4,16 +4,11 @@
 package jrm.batch;
 
 import java.io.File;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Stream;
 
-import org.apache.commons.compress.utils.Sets;
 import org.apache.commons.io.FilenameUtils;
 
 import jrm.aui.basic.AbstractSrcDstResult;
@@ -96,19 +91,8 @@ public class DirUpdater {
         final var dur = new DirUpdaterResults();
         dur.setDat(dat);
         try {
-            var datlist = new File[] { dat };
-            var dstlist = new File[] { dst };
-            if (dat.isDirectory()) {
-                datlist = dat.listFiles((_, sfilename) -> Sets.newHashSet("xml", "dat").contains(FilenameUtils.getExtension(sfilename).toLowerCase())); //$NON-NLS-1$ //$NON-NLS-2$
-                Arrays.sort(datlist, (a, b) -> a.getAbsolutePath().compareTo(b.getAbsolutePath()));
-                for (File d : datlist)
-                    Files.copy(session.getUser().getSettings().getProfileSettingsFile(dat).toPath(), session.getUser().getSettings().getProfileSettingsFile(d).toPath(),
-                            StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.COPY_ATTRIBUTES);
-                dstlist = Stream.of(datlist).map(datfile -> new File(dst, FilenameUtils.removeExtension(datfile.getName()))).toArray(File[]::new);
-                for (File d : dstlist)
-                    d.mkdir();
-            }
-            update(scancache, row, dat, dur, datlist, dstlist);
+            final var lists = DatDirExpander.expand(session, dat, dst);
+            update(scancache, row, dat, dur, lists.datlist(), lists.dstlist());
             progress.setProgress3(null, null);
             dur.save(session);
         } catch (final BreakException e) {
