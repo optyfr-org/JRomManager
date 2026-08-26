@@ -37,7 +37,6 @@ import java.util.Set;
 import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
@@ -71,16 +70,11 @@ import jrm.profile.data.AnywareList;
 import jrm.profile.data.AnywareStatus;
 import jrm.profile.data.EntityStatus;
 import jrm.profile.data.ExportMode;
-import jrm.profile.data.Machine;
 import jrm.profile.data.MachineList;
-import jrm.profile.data.Software;
 import jrm.profile.data.SoftwareList;
 import jrm.profile.filter.Keywords;
 import jrm.profile.manager.Export;
 import jrm.profile.manager.Export.ExportType;
-import jrm.profile.manager.MameExecutable;
-import jrm.profile.manager.MameLaunch;
-import jrm.profile.manager.ProfileNFOMame;
 import jrm.profile.manager.ProfileNFOMame.MameStatus;
 import jrm.security.Session;
 import jrm.ui.MainFrame;
@@ -593,7 +587,7 @@ public class ProfileViewer extends JDialog {
             if (session.getCurrProfile() != null) {
                 final var profile = session.getCurrProfile();
                 if (profile.getNfo().getMame().getStatus() == MameStatus.UPTODATE)
-                    launchMame(ware, profile);
+                    MameLauncher.launch(ware, profile);
                 else
                     JOptionPane.showMessageDialog(ProfileViewer.this,
                             String.format(Messages.getString("ProfileViewer.MameNotAvailableOrObsolete"), profile.getNfo().getMame().getStatus()), //$NON-NLS-1$
@@ -617,93 +611,6 @@ public class ProfileViewer extends JDialog {
             target.setRowSelectionInterval(row, row);
             target.scrollRectToVisible(target.getCellRect(row, 0, true));
         }
-    }
-
-    /**
-     * Launches MAME with the specified anyware and profile configuration.
-     *
-     * @param ware the anyware (machine or software) to launch
-     * @param profile the profile containing MAME configuration
-     * @throws HeadlessException if the operation requires a display that is not available
-     */
-    private void launchMame(final Anyware ware, final Profile profile) throws HeadlessException {
-        final ProfileNFOMame mame = profile.getNfo().getMame();
-        
-        // Validate MAME executable before launching to prevent arbitrary program execution
-        if (mame.getFile() == null) {
-            JOptionPane.showMessageDialog(ProfileViewer.this, "MAME executable is not configured for this profile.", 
-                    Messages.getString("ProfileViewer.Exception"), JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        if (!MameExecutable.isLaunchable(mame.getFile())) {
-            JOptionPane.showMessageDialog(ProfileViewer.this, 
-                    "MAME executable does not exist or is not a native executable: " + mame.getFile().getAbsolutePath(), 
-                    Messages.getString("ProfileViewer.Exception"), JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
-        String[] args = null;
-        try {
-            if (ware instanceof Software) {
-                args = getMameArgsSofware(ware, profile, mame, args);
-            } else {
-                args = getMameArgsMachine(ware, profile, mame);
-            }
-            if (args != null) {
-                final ProcessBuilder pb = new ProcessBuilder(args).directory(mame.getFile().getParentFile()).redirectErrorStream(true)
-                        .redirectOutput(new File(mame.getFile().getParentFile(), "JRomManager.log")); //$NON-NLS-1$
-                pb.start().waitFor();
-            }
-        } catch (IllegalArgumentException e1) {
-            JOptionPane.showMessageDialog(ProfileViewer.this, e1.getMessage(), Messages.getString("ProfileViewer.Exception"), JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$
-        } catch (IOException e1) {
-            JOptionPane.showMessageDialog(ProfileViewer.this, e1.getMessage(), Messages.getString("ProfileViewer.Exception"), JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$
-        } catch (InterruptedException e1) {
-            JOptionPane.showMessageDialog(ProfileViewer.this, e1.getMessage(), Messages.getString("ProfileViewer.Exception"), JOptionPane.ERROR_MESSAGE); //$NON-NLS-1$
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    /**
-     * Builds MAME command-line arguments for launching a machine.
-     *
-     * @param ware the machine to launch
-     * @param profile the profile containing ROM paths
-     * @param mame the MAME configuration
-     * @return the command-line arguments array
-     */
-    private String[] getMameArgsMachine(final Anyware ware, final Profile profile, final ProfileNFOMame mame) {
-        return MameLaunch.machine(mame.getFile(), ware.getBaseName(), mame.getFile().getParent(), MameLaunch.romPaths(profile, false))
-                .toArray(String[]::new);
-    }
-
-    /**
-     * Builds MAME command-line arguments for launching software.
-     *
-     * @param ware the software to launch
-     * @param profile the profile containing ROM paths
-     * @param mame the MAME configuration
-     * @param args initial arguments (may be null)
-     * @return the command-line arguments array
-     * @throws HeadlessException if the operation requires a display that is not available
-     */
-    private String[] getMameArgsSofware(final Anyware ware, final Profile profile, final ProfileNFOMame mame, String[] args) throws HeadlessException {
-        Log.debug(() -> ((Software) ware).getSl().getBaseName() + ", " + ((Software) ware).getCompatibility()); //$NON-NLS-1$
-        JList<Machine> machines = new JList<>(
-                profile.getMachineListList().getSortedMachines(((Software) ware).getSl().getBaseName(), ((Software) ware).getCompatibility()).toArray(new Machine[0]));
-        machines.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        if (machines.getModel().getSize() > 0)
-            machines.setSelectedIndex(0);
-        JOptionPane.showMessageDialog(ProfileViewer.this, machines);
-        final var machine = machines.getSelectedValue();
-        if (machine != null) {
-            final var device = MameLaunch.deviceInstance(ware, machine);
-            Log.debug(() -> "-> " + machine.getBaseName() + " " + device + " " + ware.getBaseName()); //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-            args = MameLaunch.software(mame.getFile(), machine.getBaseName(), device, ware.getBaseName(), mame.getFile().getParent(),
-                    MameLaunch.romPaths(profile, true)).toArray(String[]::new);
-        }
-        return args;
     }
 
     /**
