@@ -7,18 +7,13 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.time.Instant;
-import java.util.ArrayDeque;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -36,21 +31,18 @@ import javafx.scene.AccessibleAttribute;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
 import javafx.scene.control.ContextMenu;
-import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableColumn.CellDataFeatures;
 import javafx.scene.control.TableColumn.CellEditEvent;
 import javafx.scene.control.TableRow;
 import javafx.scene.control.TableView;
-import javafx.scene.control.TextField;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.control.cell.TextFieldTreeCell;
 import javafx.scene.control.skin.TableColumnHeader;
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.Region;
-import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 import javafx.stage.FileChooser.ExtensionFilter;
 import javafx.stage.Stage;
@@ -62,19 +54,15 @@ import jrm.fx.ui.controls.VersionCellFactory;
 import jrm.fx.ui.misc.DragNDrop;
 import jrm.fx.ui.profile.manager.DirItem;
 import jrm.fx.ui.profile.manager.HaveNTotalCellFactory;
-import jrm.fx.ui.progress.ProgressTask;
 import jrm.locale.Messages;
-import jrm.misc.BreakException;
 import jrm.misc.Log;
 import jrm.profile.manager.Dir;
 import jrm.profile.manager.Import;
-import jrm.profile.manager.MameExecutable;
 import jrm.profile.manager.ProfileNFO;
 import jrm.profile.manager.ProfileNFOMame.MameStatus;
 import jrm.profile.manager.ProfileNFOStats.HaveNTotal;
 import jrm.security.Session;
 import jrm.security.Sessions;
-import lombok.AllArgsConstructor;
 import lombok.Setter;
 
 /**
@@ -155,6 +143,8 @@ public class ProfilePanelController implements Initializable {
 
     /** The current user session. */
     final Session session = Sessions.getSingleSession();
+
+    private final ProfileImportTasks importTasks = new ProfileImportTasks(this);
 
     /**
      * Callback used to load a selected profile.
@@ -496,7 +486,7 @@ public class ProfilePanelController implements Initializable {
      *
      * @param newValue the newly selected tree item, or {@code null} to do nothing
      */
-    private void populate(TreeItem<Dir> newValue) /* NOSONAR */ {
+    void populate(TreeItem<Dir> newValue) /* NOSONAR */ {
         if (newValue == null)
             return;
         profilesList.setItems(FXCollections.observableArrayList(ProfileNFO.list(session, newValue.getValue().getFile())));
@@ -558,346 +548,7 @@ public class ProfilePanelController implements Initializable {
             session.getUser().getSettings().setProperty("MainFrame.ChooseExeOrDatToImport", files.stream().filter(File::exists).map(File::getParent).findFirst().orElse(null));
     }
 
-    /**
-     * Background task that searches for DAT files in the selected inputs and imports
-     * them into the currently selected profile directory.
-     */
-    private final class ImportDatTask extends ProgressTask<Void> {
-        /** The files selected by the user for import. */
-        private final List<File> files;
-        /** Whether the import is a MAME software list import. */
-        private final boolean sl;
-        /** The successfully prepared imports with their base files, to be processed on success. */
-        final List<ImportWithBaseFile> imprts = new ArrayList<>();
 
-        /**
-         * Constructs a new DAT import task.
-         *
-         * @param owner the stage owning the progress dialog
-         * @param files the files selected for import
-         * @param sl {@code true} to import as a MAME software list, {@code false} otherwise
-         * @throws IOException if an I/O error occurs while preparing the task
-         * @throws URISyntaxException if a URI used by the task is malformed
-         */
-        private ImportDatTask(Stage owner, List<File> files, boolean sl) throws IOException, URISyntaxException {
-            super(owner);
-            this.files = files;
-            this.sl = sl;
-        }
-
-        /**
-         * Searches each selected file for DAT/executable files and prepares the
-         * corresponding imports.
-         *
-         * @return always {@code null}
-         * @throws Exception if an error occurs while preparing an import
-         */
-        @Override
-        protected Void call() throws Exception {
-            for (final var basefile : files) {
-                for (final var file : searchDats(basefile)) {
-                    setProgress(Messages.getString("MainFrame.ImportingFromMame"), -1); //$NON-NLS-1$
-                    imprts.add(new ImportWithBaseFile(new Import(session, file, sl, this), basefile));
-                }
-            }
-            return null;
-        }
-
-        /**
-         * Called on the JavaFX application thread when the task succeeds: processes
-         * each prepared import and refreshes the selected directory in the tree.
-         */
-        @Override
-        protected void succeeded() {
-            this.close();
-            var rejected = 0;
-            for (final var imprt : imprts) {
-                if (imprt.imprt.getFile() == null) {
-                    rejected++;
-                    continue;
-                }
-                try {
-                    importDat(imprt, sl);
-                } catch (IOException e) {
-                    Log.err(e.getMessage(), e);
-                }
-            }
-            if (rejected > 0)
-                Dialogs.showAlert(rejected == 1
-                        ? "Could not import 1 selected file. Only DAT/XML files and native MAME/MESS executables are accepted."
-                        : "Could not import " + rejected + " selected files. Only DAT/XML files and native MAME/MESS executables are accepted.");
-
-            final var theNode = profilesTree.getSelectionModel().getSelectedItem();
-            if (theNode instanceof DirItem d) {
-                d.reload();
-                populate(d);
-            } else
-                Log.err(Messages.getString("MainFrame.NodeNotFound")); //$NON-NLS-1$
-        }
-
-        /**
-         * Called on the JavaFX application thread when the task fails: shows an alert
-         * for user cancellations, or an error dialog with the cause otherwise.
-         */
-        @Override
-        protected void failed() {
-            if (getException() instanceof BreakException)
-                Dialogs.showAlert("Cancelled");
-            else {
-                this.close();
-                Optional.ofNullable(getException().getCause()).ifPresentOrElse(cause -> {
-                    Log.err(cause.getMessage(), cause);
-                    Dialogs.showError(cause);
-                }, () -> {
-                    Log.err(getException().getMessage(), getException());
-                    Dialogs.showError(getException());
-                });
-            }
-        }
-
-        /**
-         * Import a DAT file into the currently selected profile directory, resolving its destination path relative to the given base file. Non-MAME DATs are copied directly (with an overwrite/rename/file-chooser prompt when the target already exists), while MAME DATs prompt the user for a JRM file name before delegating to {@link #importDat(Session, boolean, jrm.profile.manager.Import, File)}.
-         * 
-         * @param imprt the import with base file holder describing the source import and the base used to compute the destination directory
-         * @param sl whether the import is a MAME software list import
-         * 
-         * @throws IllegalArgumentException if the destination directory or import parameters are not valid
-         * @throws IOException if the destination directory cannot be created or the import file cannot be copied
-         */
-        private void importDat(final ImportWithBaseFile imprt, final boolean sl) throws IllegalArgumentException, IOException {
-            final var selDir = profilesTree.getSelectionModel().getSelectedItem().getValue().getFile().toPath();
-            final var currDir = selDir.resolve(imprt.basefile.toPath().getParent().relativize(imprt.imprt.getOrgFile().toPath().getParent())).toFile();
-            Files.createDirectories(currDir.toPath());
-            if (!imprt.imprt.isMame()) {
-                var fileRef = new AtomicReference<File>(new File(currDir, imprt.imprt.getFile().getName()));
-                int mode = importDatExistsChoose(fileRef);
-                if (mode == 3)
-                    return;
-                if (!fileRef.get().exists() || mode == 0) {
-                    try {
-                        FileUtils.copyFile(imprt.imprt.getFile(), fileRef.get());
-                    } catch (IOException e) {
-                        Log.err(e.getMessage(), e);
-                    }
-                }
-            } else {
-                final var layout = new VBox();
-                layout.setPrefWidth(300);
-                final var label = new Label("Choose a name to save JRM file for import of " + imprt.imprt.getOrgFile());
-                label.setWrapText(true);
-                layout.getChildren().add(label);
-                final var nameField = new TextField(imprt.imprt.getFile().getName());
-                layout.getChildren().add(nameField);
-                final var result = Dialogs.showConfirmation("Choose a name to save JRM file", layout, ButtonType.APPLY);
-                final var fileName = result.filter(t -> t == ButtonType.APPLY)
-                        .map(_ -> nameField.getText())
-                        .filter(t -> !t.isBlank())
-                        .map(t -> t.endsWith(".jrm") ? t : (t + ".jrm"))
-                        .orElse(imprt.imprt.getFile().getName());
-                importDat(session, sl, imprt.imprt, currDir.toPath().resolve(fileName).toFile());
-            }
-        }
-
-        /**
-         * Asks the user how to proceed when the import destination already exists.
-         *
-         * @param file the destination file reference, updated in place when auto-rename is chosen
-         * @return the chosen mode: {@code 0} overwrite, {@code 1} auto-rename, {@code 2} file chooser, {@code 3} cancel
-         * @throws IllegalArgumentException inherited from the underlying dialog API
-         */
-        private int importDatExistsChoose(AtomicReference<File> file) throws IllegalArgumentException {
-            int mode = -1;
-            if (file.get().exists()) {
-                final var overwrite = new ButtonType("Overwrite");
-                final var autorename = new ButtonType("Auto Rename");
-                final var filechooser = new ButtonType("File Chooser");
-                final var options = new ButtonType[] { overwrite, autorename, filechooser, ButtonType.CANCEL };
-                final var ret = Dialogs.showConfirmation("File already exists", "File already exists, choose what to do", options);
-                if (ret.isEmpty())
-                    mode = 3;
-                else if (ret.get() == overwrite)
-                    mode = 0;
-                else if (ret.get() == autorename)
-                    mode = 1;
-                else if (ret.get() == filechooser)
-                    mode = 2;
-                else
-                    mode = 3;
-                if (mode == 1)
-                    file.set(autoRenameFile(file.get()));
-            }
-            return mode;
-        }
-
-        /**
-         * Computes a non-existing sibling file name by appending an incrementing
-         * numeric suffix to the base name.
-         *
-         * @param file the original file
-         * @return a sibling file that does not exist yet
-         * @throws IllegalArgumentException never thrown; declared for signature compatibility
-         */
-        private File autoRenameFile(File file) throws IllegalArgumentException {
-            for (var i = 1;; i++) {
-                final var testFile = new File(file.getParentFile(), FilenameUtils.getBaseName(file.getName()) + '_' + i + '.' + FilenameUtils.getExtension(file.getName()));
-                if (!testFile.exists())
-                    return testFile;
-            }
-        }
-
-        /**
-         * Searches for DAT files and MAME executables starting from the given file.
-         *
-         * @param file the file or directory to start the search from
-         * @return the accumulated list of matching files
-         */
-        private List<File> searchDats(File file) {
-            return ProfilePanelController.searchDats(file, new ArrayList<>());
-        }
-
-        /**
-         * Copies the prepared import file to its destination, and for MAME imports also
-         * copies the associated ROMs and software-list files and persists the profile.
-         *
-         * @param session the current user session
-         * @param sl {@code true} to import as a MAME software list, {@code false} otherwise
-         * @param imprt the prepared import
-         * @param file the destination file
-         * @return always {@code null}
-         */
-        private Void importDat(final Session session, final boolean sl, final jrm.profile.manager.Import imprt, final File file) {
-            try {
-                final var parent = file.getParentFile();
-                FileUtils.copyFile(imprt.getFile(), file);
-                if (imprt.isMame()) {
-                    final var pnfo = ProfileNFO.load(session, file);
-                    pnfo.getMame().set(imprt.getOrgFile(), sl);
-                    if (imprt.getRomsFile() != null) {
-                        FileUtils.copyFileToDirectory(imprt.getRomsFile(), parent);
-                        pnfo.getMame().setFileroms(new File(parent, imprt.getRomsFile().getName()));
-                        if (imprt.getSlFile() != null) {
-                            FileUtils.copyFileToDirectory(imprt.getSlFile(), parent);
-                            pnfo.getMame().setFilesl(new File(parent, imprt.getSlFile().getName()));
-                        }
-                    }
-                    pnfo.save(session);
-                }
-            } catch (final IOException e) {
-                Log.err(e.getMessage(), e);
-            }
-            return null;
-        }
-
-    }
-
-    /**
-     * Background task that re-imports a profile from its MAME executable and updates
-     * the associated ROMs and software-list files.
-     */
-    private final class UpdateFromMameTask extends ProgressTask<Import> {
-        /** The profile to update from MAME. */
-        private final ProfileNFO nfo;
-
-        /**
-         * Constructs a new update-from-MAME task.
-         *
-         * @param owner the stage owning the progress dialog
-         * @param nfo the profile to update from MAME
-         * @throws IOException if an I/O error occurs while preparing the task
-         * @throws URISyntaxException if a URI used by the task is malformed
-         */
-        private UpdateFromMameTask(Stage owner, ProfileNFO nfo) throws IOException, URISyntaxException {
-            super(owner);
-            this.nfo = nfo;
-        }
-
-        /**
-         * Builds the MAME import for the profile.
-         *
-         * @return the prepared import
-         * @throws Exception if an error occurs while preparing the import
-         */
-        @Override
-        protected Import call() throws Exception {
-            return new Import(session, nfo.getMame().getFile(), nfo.getMame().isSL(), this);
-        }
-
-        /**
-         * Called on the JavaFX application thread when the task succeeds: applies the
-         * updated MAME import to the profile.
-         */
-        @Override
-        protected void succeeded() {
-            try {
-                this.close();
-                updateFromMame(session, nfo, get());
-            } catch (InterruptedException e) {
-                Log.err(e.getMessage(), e);
-                Thread.currentThread().interrupt();
-            } catch (ExecutionException | IOException e) {
-                Log.err(e.getMessage(), e);
-                Dialogs.showError(e);
-            }
-        }
-
-        /**
-         * Called on the JavaFX application thread when the task fails: shows an alert
-         * for user cancellations, or an error dialog with the cause otherwise.
-         */
-        @Override
-        protected void failed() {
-            if (getException() instanceof BreakException)
-                Dialogs.showAlert("Cancelled");
-            else {
-                this.close();
-                Optional.ofNullable(getException().getCause()).ifPresentOrElse(cause -> {
-                    Log.err(cause.getMessage(), cause);
-                    Dialogs.showError(cause);
-                }, () -> {
-                    Log.err(getException().getMessage(), getException());
-                    Dialogs.showError(getException());
-                });
-            }
-        }
-
-        /**
-         * Applies the updated MAME import to the profile, replacing its ROMs and
-         * software-list files, resetting the stats, and persisting the profile.
-         *
-         * @param session the current user session
-         * @param nfo the profile to update
-         * @param imprt the prepared import
-         * @throws IOException if the ROMs or software-list files cannot be copied
-         */
-        private void updateFromMame(final Session session, final ProfileNFO nfo, Import imprt) throws IOException {
-            if (imprt == null || !imprt.canApplyMameUpdate(nfo.getMame().isSL())) {
-                Dialogs.showAlert("Could not update from MAME. The executable is missing, is not a native MAME/MESS binary, or did not return listxml data.");
-                return;
-            }
-            nfo.getMame().deleteAlongside(nfo.getFile());
-            nfo.getMame().setFileroms(new File(nfo.getFile().getParentFile(), imprt.getRomsFile().getName()));
-            Files.copy(imprt.getRomsFile().toPath(), nfo.getMame().getFileroms().toPath(), StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);
-            if (nfo.getMame().isSL()) {
-                nfo.getMame().setFilesl(new File(nfo.getFile().getParentFile(), imprt.getSlFile().getName()));
-                Files.copy(imprt.getSlFile().toPath(), nfo.getMame().getFilesl().toPath(), StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);
-            }
-            nfo.getMame().setUpdated();
-            nfo.getStats().reset();
-            nfo.save(session);
-            profilesList.refresh();
-        }
-    }
-
-    /**
-     * Pairs a prepared import with the base file used to compute its destination directory.
-     */
-    @AllArgsConstructor
-    private static final class ImportWithBaseFile {
-        /** The prepared import. */
-        Import imprt;
-        /** The base file from which the import originated. */
-        File basefile;
-    }
 
     /**
      * Starts a background task to import the given files, optionally as software lists.
@@ -909,7 +560,7 @@ public class ProfilePanelController implements Initializable {
         try {
             if (files == null)
                 return;
-            Thread.startVirtualThread(new ImportDatTask((Stage) profilesList.getScene().getWindow(), files, sl));
+            Thread.startVirtualThread(importTasks.newImportDatTask((Stage) profilesList.getScene().getWindow(), files, sl));
         } catch (IOException | URISyntaxException e) {
             Log.err(e.getMessage(), e);
             Dialogs.showError(e);
@@ -1039,6 +690,50 @@ public class ProfilePanelController implements Initializable {
      *
      * @param e the action event triggering the update
      */
+    int importDatExistsChoose(AtomicReference<File> file) throws IllegalArgumentException {
+        int mode = -1;
+        if (file.get().exists()) {
+            final var overwrite = new ButtonType("Overwrite");
+            final var autorename = new ButtonType("Auto Rename");
+            final var filechooser = new ButtonType("File Chooser");
+            final var options = new ButtonType[] { overwrite, autorename, filechooser, ButtonType.CANCEL };
+            final var ret = Dialogs.showConfirmation("File already exists", "File already exists, choose what to do", options);
+            if (ret.isEmpty())
+                mode = 3;
+            else if (ret.get() == overwrite)
+                mode = 0;
+            else if (ret.get() == autorename)
+                mode = 1;
+            else if (ret.get() == filechooser)
+                mode = 2;
+            else
+                mode = 3;
+            if (mode == 1)
+                file.set(autoRenameFile(file.get()));
+        }
+        return mode;
+    }
+
+    private File autoRenameFile(File file) throws IllegalArgumentException {
+        for (var i = 1;; i++) {
+            final var testFile = new File(file.getParentFile(), FilenameUtils.getBaseName(file.getName()) + '_' + i + '.' + FilenameUtils.getExtension(file.getName()));
+            if (!testFile.exists())
+                return testFile;
+        }
+    }
+
+    void performImportDat(final Session session, final boolean sl, final Import imprt, final File targetFile) {
+        try {
+            if (!imprt.isMame()) {
+                FileUtils.copyFile(imprt.getFile(), targetFile);
+            } else {
+                FileUtils.copyFile(imprt.getFile(), targetFile);
+            }
+        } catch (IOException e) {
+            Log.err(e.getMessage(), e);
+        }
+    }
+
     @FXML
     private void updateFromMame(ActionEvent e) {
         final var nfo = profilesList.getSelectionModel().getSelectedItem();
@@ -1050,7 +745,7 @@ public class ProfilePanelController implements Initializable {
                 chooser.setInitialFileName(nfo.getFile().getName());
                 if (nfo.getMame().getStatus() == MameStatus.NEEDUPDATE || (EnumSet.of(MameStatus.NOTFOUND, MameStatus.UNKNOWN).contains(nfo.getMame().getStatus())
                         && updateFromMameRelocate(nfo, chooser.showOpenDialog(profilesList.getScene().getWindow())) == MameStatus.NEEDUPDATE)) {
-                    Thread.startVirtualThread(new UpdateFromMameTask((Stage) profilesList.getScene().getWindow(), nfo));
+                    Thread.startVirtualThread(importTasks.newUpdateFromMameTask((Stage) profilesList.getScene().getWindow(), nfo));
                 }
             } catch (IOException | URISyntaxException ex) {
                 Log.err(ex.getMessage(), ex);
@@ -1072,56 +767,4 @@ public class ProfilePanelController implements Initializable {
         return MameStatus.NOTFOUND;
     }
 
-    /**
-     * Maximum directory nesting searched from the starting file. Deeper folders are omitted.
-     */
-    static final int MAX_DAT_SEARCH_DEPTH = 100;
-
-    /**
-     * Search for DAT files and MAME executables starting from the given file.
-     * Walks iteratively with a depth cap and canonical-path cycle detection.
-     *
-     * @param file the file or directory to start the search from
-     * @param files the list to append matching files to
-     * @return the same list reference passed in, with matches appended
-     */
-    static List<File> searchDats(File file, List<File> files) {
-        if (file == null || files == null)
-            return files;
-        final var pending = new ArrayDeque<PendingDat>();
-        pending.add(new PendingDat(file, 0));
-        final var visited = new HashSet<String>();
-        while (!pending.isEmpty()) {
-            final var current = pending.removeFirst();
-            final File currentFile = current.file();
-            if (currentFile == null)
-                continue;
-            if (currentFile.isFile()) {
-                if (FilenameUtils.isExtension(currentFile.getName(), "xml", "dat") || MameExecutable.isLaunchable(currentFile))
-                    files.add(currentFile);
-                continue;
-            }
-            if (current.depth() >= MAX_DAT_SEARCH_DEPTH || !currentFile.isDirectory())
-                continue;
-            final String canonical;
-            try {
-                canonical = currentFile.getCanonicalPath();
-            } catch (final IOException e) {
-                Log.warn(e.getMessage());
-                continue;
-            }
-            if (!visited.add(canonical))
-                continue;
-            try (final var stream = Files.newDirectoryStream(currentFile.toPath())) {
-                for (final var path : stream)
-                    pending.add(new PendingDat(path.toFile(), current.depth() + 1));
-            } catch (IOException e) {
-                Log.warn(e.getMessage());
-            }
-        }
-        return files;
-    }
-
-    private record PendingDat(File file, int depth) {
-    }
 }

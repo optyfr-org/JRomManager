@@ -14,6 +14,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+import jrm.profile.manager.DatFileSearch;
+
 @DisplayName("ProfilePanelController.searchDats")
 class ProfilePanelControllerSearchDatsTest {
 
@@ -30,7 +32,7 @@ class ProfilePanelControllerSearchDatsTest {
         final Path nested = Files.createDirectories(root.resolve("sub"));
         final Path nestedDat = Files.writeString(nested.resolve("soft.dat"), "soft", StandardCharsets.UTF_8);
 
-        final var found = ProfilePanelController.searchDats(root.toFile(), new ArrayList<>());
+        final var found = DatFileSearch.searchDats(root.toFile(), new ArrayList<>());
 
         assertThat(found).containsExactlyInAnyOrder(dat.toFile(), xml.toFile(), nestedDat.toFile());
     }
@@ -40,7 +42,7 @@ class ProfilePanelControllerSearchDatsTest {
     void acceptsSingleMatchingFile() throws IOException {
         final Path dat = Files.writeString(tempDir.resolve("only.dat"), "dat", StandardCharsets.UTF_8);
 
-        assertThat(ProfilePanelController.searchDats(dat.toFile(), new ArrayList<>())).containsExactly(dat.toFile());
+        assertThat(DatFileSearch.searchDats(dat.toFile(), new ArrayList<>())).containsExactly(dat.toFile());
     }
 
     @Test
@@ -48,12 +50,12 @@ class ProfilePanelControllerSearchDatsTest {
     void capsDeepDirectoryChain() throws IOException {
         Path current = Files.createDirectories(tempDir.resolve("deep"));
         final File root = current.toFile();
-        for (int i = 0; i < ProfilePanelController.MAX_DAT_SEARCH_DEPTH + 5; i++)
+        for (int i = 0; i < DatFileSearch.MAX_DAT_SEARCH_DEPTH + 5; i++)
             current = Files.createDirectories(current.resolve("d"));
         Files.writeString(current.resolve("hidden.dat"), "dat", StandardCharsets.UTF_8);
 
         final var found = new ArrayList<File>();
-        assertThatCode(() -> ProfilePanelController.searchDats(root, found)).doesNotThrowAnyException();
+        assertThatCode(() -> DatFileSearch.searchDats(root, found)).doesNotThrowAnyException();
         assertThat(found).isEmpty();
     }
 
@@ -61,6 +63,6 @@ class ProfilePanelControllerSearchDatsTest {
     @DisplayName("returns the given list for a null file")
     void nullFileReturnsSameList() {
         final var files = new ArrayList<File>();
-        assertThat(ProfilePanelController.searchDats(null, files)).isSameAs(files).isEmpty();
+        assertThat(DatFileSearch.searchDats(null, files)).isSameAs(files).isEmpty();
     }
 }
