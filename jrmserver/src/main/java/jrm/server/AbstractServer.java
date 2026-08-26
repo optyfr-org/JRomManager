@@ -1,16 +1,8 @@
 package jrm.server;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.nio.file.FileSystemNotFoundException;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Collections;
 import java.util.Scanner;
 
 import org.apache.commons.daemon.Daemon;
@@ -19,12 +11,9 @@ import org.eclipse.jetty.ee9.servlet.DefaultServlet;
 import org.eclipse.jetty.ee9.servlet.ServletHolder;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.gzip.GzipHandler;
-import org.eclipse.jetty.util.URIUtil;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.resource.ResourceFactory;
-import org.eclipse.jetty.util.resource.Resources;
 
-import jrm.fullserver.FullServer;
 import jrm.misc.Log;
 import jrm.server.shared.WebSession;
 
@@ -136,10 +125,7 @@ public abstract class AbstractServer implements Daemon {
      * @return a {@link Path} representing the server's working directory
      */
     protected static Path getWorkPath() {
-        String base = System.getProperty("jrommanager.dir");
-        if (base == null)
-            base = System.getProperty("user.dir");
-        return Paths.get(base);
+        return ServerPaths.getWorkPath();
     }
 
     /**
@@ -152,9 +138,7 @@ public abstract class AbstractServer implements Daemon {
      * @throws IOException if the logs directory cannot be created
      */
     protected static String getLogPath() throws IOException {
-        final var path = getWorkPath().resolve("logs");
-        Files.createDirectories(path);
-        return path.toString();
+        return ServerPaths.getLogPath();
     }
 
     /**
@@ -308,27 +292,7 @@ public abstract class AbstractServer implements Daemon {
      * @throws FileNotFoundException if no valid client resource path can be found in any of the searched locations
      */
     protected static Resource getClientPath(ResourceFactory resourceFactory, String path) throws IOException, URISyntaxException {
-        Resource resource;
-
-        if (path != null) {
-            resource = resourceFactory.newResource(path);
-            if (Resources.exists(resource))
-                return resource;
-            resource = resourceFactory.newClassLoaderResource(path, true);
-            if (Resources.exists(resource))
-                return resource;
-        }
-
-        resource = resourceFactory.newResource("jrt:/jrm.merged.module/webclient/");
-        if (Resources.exists(resource))
-            return resource;
-        URL url = FullServer.class.getResource("/webclient/");
-        if (url != null) {
-            resource = resourceFactory.newResource(URIUtil.correctURI(url.toURI()));
-            if (Resources.exists(resource))
-                return resource;
-        }
-        throw new FileNotFoundException("Unable to find webclient path");
+        return ServerPaths.getClientPath(resourceFactory, path);
     }
 
     /**
@@ -352,26 +316,7 @@ public abstract class AbstractServer implements Daemon {
      * @throws FileNotFoundException if no valid certificate path can be found in any of the searched locations
      */
     protected static Resource getCertsPath(String path) throws URISyntaxException, IOException {
-        Resource resource;
-        final var resourceFactory = ResourceFactory.root();
-        if (path != null) {
-            resource = resourceFactory.newResource(path);
-            if (Resources.exists(resource))
-                return resource;
-            resource = resourceFactory.newClassLoaderResource(path, true);
-            if (Resources.exists(resource))
-                return resource;
-        }
-        resource = resourceFactory.newResource("jrt:/jrm.merged.module/certs/localhost.pfx");
-        if (Resources.exists(resource))
-            return resource;
-        URL url = FullServer.class.getResource("/certs/localhost.pfx");
-        if (url != null) {
-            resource = resourceFactory.newResource(URIUtil.correctURI(url.toURI()));
-            if (Resources.exists(resource))
-                return resource;
-        }
-        throw new FileNotFoundException("Unable to find localhost certificate");
+        return ServerPaths.getCertsPath(path);
     }
 
     /**
@@ -394,17 +339,7 @@ public abstract class AbstractServer implements Daemon {
      *         filesystem cannot be created)
      */
     protected static Path getPath(String path) {
-        try {
-            return path.startsWith("jrt:") || path.startsWith("file:") || path.startsWith("jar:") ? Path.of(URI.create(path)) : Paths.get(path);
-        } catch (FileSystemNotFoundException _) {
-            final var uri = URI.create(path);
-            try {
-                FileSystems.newFileSystem(uri, Collections.emptyMap());
-                return Path.of(uri);
-            } catch (IOException _) {
-                return null;
-            }
-        }
+        return ServerPaths.getPath(path);
     }
 
 }
