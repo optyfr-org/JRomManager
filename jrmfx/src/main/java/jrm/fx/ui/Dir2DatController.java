@@ -6,7 +6,6 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Optional;
 import java.util.ResourceBundle;
@@ -28,10 +27,6 @@ import jrm.misc.BreakException;
 import jrm.misc.Log;
 import jrm.misc.SettingsEnum;
 import jrm.profile.manager.Export.ExportType;
-import jrm.profile.scan.Dir2Dat;
-import jrm.profile.scan.DirScan;
-import jrm.profile.scan.DirScan.Options;
-import jrm.security.Session;
 
 /**
  * FXML controller for the Dir2Dat panel.
@@ -370,18 +365,7 @@ public class Dir2DatController extends BaseController {
     }
 
     private void executeDir2Dat(final String src, final String dst, final HashMap<String, String> headers, final ProgressTask<Void> task) throws IOException {
-        if (src == null || src.isEmpty() || dst == null || dst.isEmpty())
-            return;
-        final File srcdir = new File(src);
-        if (!srcdir.isDirectory())
-            return;
-        final File dstdat = new File(dst);
-        final File dstdir = dstdat.getParentFile();
-        if ((dstdir == null || dstdir.isDirectory()) && (dstdat.exists() || dstdat.createNewFile())) {
-            final var options = initOptions(session);
-            final var type = ExportType.valueOf(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_format)); // $NON-NLS-1$
-            new Dir2Dat(session, srcdir, dstdat, task, options, type, headers);
-        }
+        Dir2DatRun.execute(session, src, dst, headers, task);
     }
 
     private static void handleDir2DatFailure(final ProgressTask<Void> task) {
@@ -397,33 +381,6 @@ public class Dir2DatController extends BaseController {
                 Dialogs.showError(task.getException());
             });
         }
-    }
-
-    /**
-     * Initializes the directory scan options from settings.
-     *
-     * @param session the security session
-     * @return the scan options
-     */
-    private EnumSet<DirScan.Options> initOptions(final Session session) {
-        EnumSet<DirScan.Options> options = EnumSet.of(Options.USE_PARALLELISM, Options.MD5_DISKS, Options.SHA1_DISKS);
-        if (Boolean.TRUE.equals(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_scan_subfolders, Boolean.class))) // $NON-NLS-1$
-            options.add(Options.RECURSE);
-        if (Boolean.FALSE.equals(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_deep_scan, Boolean.class))) // $NON-NLS-1$
-            options.add(Options.IS_DEST);
-        if (Boolean.TRUE.equals(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_add_md5, Boolean.class))) // $NON-NLS-1$
-            options.add(Options.NEED_MD5);
-        if (Boolean.TRUE.equals(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_add_sha1, Boolean.class))) // $NON-NLS-1$
-            options.add(Options.NEED_SHA1);
-        if (Boolean.TRUE.equals(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_junk_folders, Boolean.class))) // $NON-NLS-1$
-            options.add(Options.JUNK_SUBFOLDERS);
-        if (Boolean.TRUE.equals(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_do_not_scan_archives, Boolean.class))) // $NON-NLS-1$
-            options.add(Options.ARCHIVES_AND_CHD_AS_ROMS);
-        if (Boolean.TRUE.equals(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_match_profile, Boolean.class))) // $NON-NLS-1$
-            options.add(Options.MATCH_PROFILE);
-        if (Boolean.TRUE.equals(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_include_empty_dirs, Boolean.class))) // $NON-NLS-1$
-            options.add(Options.EMPTY_DIRS);
-        return options;
     }
 
     /**
