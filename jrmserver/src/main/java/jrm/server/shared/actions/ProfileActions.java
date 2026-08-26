@@ -2,24 +2,13 @@ package jrm.server.shared.actions;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Optional;
-
-import org.apache.commons.io.FileUtils;
-
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
-import com.eclipsesource.json.JsonObject.Member;
-import com.eclipsesource.json.JsonValue;
-
 import jrm.misc.BreakException;
-import jrm.misc.FindCmd;
 import jrm.misc.Log;
-import jrm.misc.ProfileSettings;
-import jrm.misc.ProfileSettingsEnum;
 import jrm.profile.fix.Fix;
 import jrm.profile.manager.Import;
 import jrm.profile.manager.ProfileNFO;
@@ -73,10 +62,15 @@ public class ProfileActions extends PathAbstractor {
     /** JSON key for parameter object containing operation-specific data. */
     private static final String PARAMS = "params";
 
-    /**
-     * The {@link ActionsMgr} instance used for managing session interactions and WebSocket communications.
-     */
-    private final ActionsMgr ws;
+	/**
+	 * The {@link ActionsMgr} instance used for managing session interactions and WebSocket communications.
+	 */
+	private final ActionsMgr ws;
+
+	private ProfileImportOps importOps;
+	private ProfileSettingsOps settingsOps;
+	private ProfileScanOps scanOps;
+	private ProfileFixOps fixOps;
 
     /**
      * Constructs a new {@code ProfileActions} instance with the specified actions manager.
@@ -90,6 +84,14 @@ public class ProfileActions extends PathAbstractor {
     public ProfileActions(ActionsMgr ws) {
         super(ws.getSession());
         this.ws = ws;
+        this.importOps = new ProfileImportOps(this);
+        this.settingsOps = new ProfileSettingsOps(this);
+        this.scanOps = new ProfileScanOps(this);
+        this.fixOps = new ProfileFixOps(this);
+    }
+
+    ActionsMgr getWs() {
+        return ws;
     }
 
     /**
@@ -152,32 +154,7 @@ public class ProfileActions extends PathAbstractor {
      * @param jso the JSON object containing import parameters
      */
     private void performMameImport(JsonObject jso) {
-        WebSession session = ws.getSession();
-        session.getWorker().setProgress(new ProgressActions(ws));
-        session.getWorker().getProgress().canCancel(false);
-        session.getWorker().getProgress().setProgress(session.getMsgs().getString("MainFrame.ImportingFromMame"), -1); //$NON-NLS-1$
-        try {
-            JsonObject jsobj = jso.get(PARAMS).asObject();
-            String filename = FindCmd.findMame();
-            if (filename != null) {
-                final var sl = jsobj.getBoolean("sl", false);
-                final var imprt = new Import(session, new File(filename), sl, session.getWorker().getProgress());
-                if (imprt.getFile() != null)
-                    doImport(session, jsobj, sl, imprt);
-                else
-                    new GlobalActions(ws).warn("Could not import anything from Mame");
-            } else
-                new GlobalActions(ws).warn("Mame not found in system's search path");
-        } catch (BreakException _) {
-            // user cancelled action
-        } catch (IOException e) {
-            Log.err(e.getMessage(), e);
-            new GlobalActions(ws).warn(e.getMessage());
-        } finally {
-            session.getWorker().getProgress().close();
-            session.getWorker().setProgress(null);
-            session.setLastAction(Instant.now());
-        }
+        importOps.performMameImport(jso);
     }
 
     /**
@@ -196,29 +173,7 @@ public class ProfileActions extends PathAbstractor {
      * @throws IOException if file copying or deletion fails
      */
     private void doImport(WebSession session, JsonObject jsobj, final boolean sl, final Import imprt) throws SecurityException, IOException {
-        final var parent = getAbsolutePath(
-                Optional.ofNullable(jsobj.get(PARENT)).filter(JsonValue::isString).map(JsonValue::asString).orElse(session.getUser().getSettings().getWorkPath().toString()))
-                .toFile();
-        final var file = new File(parent, imprt.getFile().getName());
-        FileUtils.copyFile(imprt.getFile(), file);
-        final var pnfo = ProfileNFO.load(session, file);
-        pnfo.getMame().set(imprt.getOrgFile(), sl);
-        if (imprt.getRomsFile() != null) {
-            FileUtils.copyFileToDirectory(imprt.getRomsFile(), parent);
-            pnfo.getMame().setFileroms(new File(parent, imprt.getRomsFile().getName()));
-            if (sl) {
-                if (imprt.getSlFile() != null) {
-                    FileUtils.copyFileToDirectory(imprt.getSlFile(), parent);
-                    pnfo.getMame().setFilesl(new File(parent, imprt.getSlFile().getName()));
-                } else
-                    new GlobalActions(ws).warn("Could not import softwares list");
-            }
-            pnfo.save(session);
-            imported(pnfo.getFile());
-        } else {
-            new GlobalActions(ws).warn("Could not import roms list");
-            Files.delete(file.toPath());
-        }
+        importOps.doImport(session, jsobj, sl, imprt);
     }
 
     /**
@@ -334,18 +289,7 @@ public class ProfileActions extends PathAbstractor {
      * @param jso the JSON object containing the settings file path
      */
     public void importSettings(JsonObject jso) {
-        WebSession session = ws.getSession();
-        if (session.getCurrProfile() != null) {
-            final JsonValue jsv = jso.get(PARAMS).asObject().get("path");
-            if (jsv != null && !jsv.isNull()) {
-                session.getCurrProfile().loadSettings(PathAbstractor.getAbsolutePath(session, jsv.asString()).toFile());
-                session.getCurrProfile().loadCatVer(null);
-                session.getCurrProfile().loadNPlayers(null);
-                loaded(session.getCurrProfile());
-                new CatVerActions(ws).loaded(session.getCurrProfile());
-                new NPlayersActions(ws).loaded(session.getCurrProfile());
-            }
-        }
+        settingsOps.importSettings(jso);
     }
 
     /**
@@ -372,13 +316,7 @@ public class ProfileActions extends PathAbstractor {
      * @param jso the JSON object containing the export file path
      */
     public void exportSettings(JsonObject jso) {
-        WebSession session = ws.getSession();
-        if (session.getCurrProfile() != null) {
-            final JsonValue jsv = jso.get(PARAMS).asObject().get("path");
-            if (jsv != null && !jsv.isNull()) {
-                session.getCurrProfile().saveSettings(PathAbstractor.getAbsolutePath(session, jsv.asString()).toFile());
-            }
-        }
+        settingsOps.exportSettings(jso);
     }
 
     /**
@@ -429,57 +367,11 @@ public class ProfileActions extends PathAbstractor {
      * @param automate {@code true} to enable automatic fix after scan, {@code false} to scan only
      */
     public void scan(JsonObject jso, final boolean automate) {
-        ws.getSession().setWorker(new Worker(() -> performScan(jso, automate))).start();
+        ws.getSession().setWorker(new Worker(() -> scanOps.performScan(jso, automate))).start();
     }
 
-    /**
-     * Performs the actual scan operation, handling progress updates and error notifications.
-     * <p>
-     * This method is called by {@link #scan(JsonObject, boolean)} to execute the scan in a background thread. It handles progress
-     * updates and error notifications, and optionally triggers an automatic fix operation if specified.
-     * </p>
-     * 
-     * @param jso the JSON object containing scan parameters (currently unused)
-     * @param automate {@code true} to enable automatic fix after scan, {@code false} to scan only
-     * 
-     * @throws BreakException if the user cancels the operation
-     * @throws ScanException if an error occurs during the scan operation
-     */
-    private void performScan(JsonObject jso, final boolean automate) {
-        final var session = runScanAndNotify();
-        final var automation = currentScanAutomation(session);
-        if (automate && session.getCurrScan() != null && hasPendingScanActions(session) && automation.hasFix())
-            fix(jso);
-    }
-
-    /**
-     * Runs a single scan on the current worker, notifies the client, and never starts a fix.
-     *
-     * @return the session that was scanned
-     */
-    private WebSession runScanAndNotify() {
-        final var session = ws.getSession();
-        session.getWorker().setProgress(new ProgressActions(ws));
-        try {
-            session.setCurrScan(new Scan(session.getCurrProfile(), session.getWorker().getProgress()));
-        } catch (BreakException _) {
-            // user cancelled action
-        } catch (ScanException ex) {
-            session.getWorker().getProgress().addError(ex.getMessage());
-        }
-        session.getWorker().getProgress().close();
-        session.getWorker().setProgress(null);
-        session.setLastAction(Instant.now());
-        scanned(session.getCurrScan(), currentScanAutomation(session).hasReport());
-        return session;
-    }
-
-    private static ScanAutomation currentScanAutomation(final WebSession session) {
-        return ScanAutomation.valueOf(session.getCurrProfile().getSettings().getProperty(ProfileSettingsEnum.automation_scan));
-    }
-
-    private static boolean hasPendingScanActions(final WebSession session) {
-        return session.getCurrScan().actions.stream().mapToInt(Collection::size).sum() > 0;
+    void runScanAndNotifyForFix() {
+        scanOps.runScanAndNotify();
     }
 
     /**
@@ -531,31 +423,8 @@ public class ProfileActions extends PathAbstractor {
         ws.getSession().setWorker(new Worker(this::performFix)).start();
     }
 
-    /**
-     * Performs the actual fix operation in a background thread. It rescans the profile if necessary, creates a Fix instance to process the
-     * scan's action list, and executes the fix operation. It also handles progress updates and notifications.
-     */
     private void performFix() {
-        final var session = ws.getSession();
-        session.getWorker().setProgress(new ProgressActions(ws));
-        try {
-            if (session.getCurrProfile().hasPropsChanged()) {
-                session.setCurrScan(new Scan(session.getCurrProfile(), session.getWorker().getProgress()));
-                if (!hasPendingScanActions(session))
-                    return;
-            }
-            final var fix = new Fix(session.getCurrProfile(), session.getCurrScan(), session.getWorker().getProgress());
-            fixed(fix);
-        } catch (ScanException ex) {
-            session.getWorker().getProgress().addError(ex.getMessage());
-        } finally {
-            final var automation = currentScanAutomation(session);
-            session.getWorker().getProgress().close();
-            session.getWorker().setProgress(null);
-            session.setLastAction(Instant.now());
-            if (automation.hasScanAgain())
-                session.setWorker(new Worker(this::runScanAndNotify)).start();
-        }
+        fixOps.performFix();
     }
 
     /**
@@ -595,56 +464,7 @@ public class ProfileActions extends PathAbstractor {
      * @param jso the JSON object containing the profile path (optional) and property settings
      */
     public void setProperty(JsonObject jso) {
-        final var profile = jso.getString("profile", null);
-        ProfileSettings settings = profile != null ? new ProfileSettings() : ws.getSession().getCurrProfile().getSettings();
-        JsonObject pjso = jso.get(PARAMS).asObject();
-        try {
-            for (Member m : pjso) {
-                JsonValue value = m.getValue();
-                if (value.isString())
-                    rejectUnwritableDestPath(m.getName(), value.asString());
-            }
-            for (Member m : pjso) {
-                JsonValue value = m.getValue();
-                if (value.isBoolean())
-                    settings.setProperty(m.getName(), value.asBoolean());
-                else if (value.isNumber())
-                    settings.setProperty(m.getName(), value.asInt());
-                else if (value.isString())
-                    settings.setProperty(m.getName(), value.asString());
-                else
-                    settings.setProperty(m.getName(), value.toString());
-            }
-            if (profile != null)
-                ws.getSession().getUser().getSettings().saveProfileSettings(getAbsolutePath(profile).toFile(), settings);
-            else
-                ws.getSession().getCurrProfile().saveSettings();
-        } catch (SecurityException e) {
-            Log.err(() -> "Profile.setProperty rejected: " + e.getMessage());
-            new GlobalActions(ws).warn("Write access denied for destination path. Settings were not saved.");
-        } catch (Exception e) {
-            Log.err(e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Rejects destination/backup path properties that point at non-writeable locations (e.g. {@code %shared} for non-admins).
-     */
-    private void rejectUnwritableDestPath(final String name, final String value) {
-        if (value == null || value.isEmpty())
-            return;
-        if (!isDestPathProperty(name))
-            return;
-        requireWriteable(ws.getSession(), value);
-    }
-
-    private static boolean isDestPathProperty(final String name) {
-        return ProfileSettingsEnum.roms_dest_dir.toString().equals(name)
-                || ProfileSettingsEnum.disks_dest_dir.toString().equals(name)
-                || ProfileSettingsEnum.swroms_dest_dir.toString().equals(name)
-                || ProfileSettingsEnum.swdisks_dest_dir.toString().equals(name)
-                || ProfileSettingsEnum.samples_dest_dir.toString().equals(name)
-                || ProfileSettingsEnum.backup_dest_dir.toString().equals(name);
+        settingsOps.setProperty(jso);
     }
 
     /**
