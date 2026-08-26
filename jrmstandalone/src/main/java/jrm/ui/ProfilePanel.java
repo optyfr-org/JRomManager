@@ -9,9 +9,6 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -42,7 +39,6 @@ import javax.swing.table.TableColumn;
 import javax.swing.tree.TreePath;
 import javax.swing.tree.TreeSelectionModel;
 
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
 import jrm.locale.Messages;
@@ -60,6 +56,7 @@ import jrm.ui.profile.manager.DirNode;
 import jrm.ui.profile.manager.DirTreeCellEditor;
 import jrm.ui.profile.manager.DirTreeCellRenderer;
 import jrm.ui.profile.manager.DirTreeModel;
+import jrm.ui.profile.manager.ProfileDirIo;
 import jrm.ui.profile.manager.DirTreeSelectionListener;
 import jrm.ui.profile.manager.FileTableCellRenderer;
 import jrm.ui.profile.manager.FileTableModel;
@@ -339,11 +336,7 @@ public class ProfilePanel extends JPanel {
     private void dropCache(final FileTableModel filemodel) {
         final int row = profilesList.getSelectedRow();
         if (row >= 0)
-            try {
-                Files.deleteIfExists(Paths.get(filemodel.getFileAt(row).getAbsolutePath() + ".cache"));
-            } catch (IOException e1) {
-                Log.err(e1.getMessage(), e1);
-            }
+            ProfileDirIo.dropCache(filemodel.getFileAt(row));
     }
 
     /**
@@ -549,38 +542,21 @@ public class ProfilePanel extends JPanel {
      * @return null (placeholder for SwingWorker compatibility)
      */
     private Void importDat(final Session session, final boolean sl, final jrm.profile.manager.Import imprt, final File file) {
-        try {
-            final var parent = file.getParentFile();
-            FileUtils.copyFile(imprt.getFile(), file);
-            if (imprt.isMame()) {
-                final var pnfo = ProfileNFO.load(session, file);
-                pnfo.getMame().set(imprt.getOrgFile(), sl);
-                if (imprt.getRomsFile() != null) {
-                    FileUtils.copyFileToDirectory(imprt.getRomsFile(), parent);
-                    pnfo.getMame().setFileroms(new File(parent, imprt.getRomsFile().getName()));
-                    if (imprt.getSlFile() != null) {
-                        FileUtils.copyFileToDirectory(imprt.getSlFile(), parent);
-                        pnfo.getMame().setFilesl(new File(parent, imprt.getSlFile().getName()));
-                    }
-                }
-                pnfo.save(session);
-            }
-            final var model = (DirTreeModel) profilesTree.getModel();
-            final var root = (DirNode) model.getRoot();
-            DirNode theNode = root.find(parent);
-            if (theNode != null) {
-                theNode.reload();
-                model.reload(theNode);
-                if ((theNode = root.find(parent)) != null) {
-                    profilesTree.clearSelection();
-                    profilesTree.setSelectionPath(new TreePath(model.getPathToRoot(theNode)));
-                } else
-                    Log.err(Messages.getString("MainFrame.FinalNodeNotFound")); //$NON-NLS-1$
+        final var parent = file.getParentFile();
+        ProfileDirIo.copyMameImport(imprt, file, sl, session);
+        final var model = (DirTreeModel) profilesTree.getModel();
+        final var root = (DirNode) model.getRoot();
+        DirNode theNode = root.find(parent);
+        if (theNode != null) {
+            theNode.reload();
+            model.reload(theNode);
+            if ((theNode = root.find(parent)) != null) {
+                profilesTree.clearSelection();
+                profilesTree.setSelectionPath(new TreePath(model.getPathToRoot(theNode)));
             } else
-                Log.err(Messages.getString("MainFrame.NodeNotFound")); //$NON-NLS-1$
-        } catch (final IOException e) {
-            Log.err(e.getMessage(), e);
-        }
+                Log.err(Messages.getString("MainFrame.FinalNodeNotFound")); //$NON-NLS-1$
+        } else
+            Log.err(Messages.getString("MainFrame.NodeNotFound")); //$NON-NLS-1$
         return null;
     }
 
@@ -597,16 +573,7 @@ public class ProfilePanel extends JPanel {
                     Messages.getString("ProfileViewer.Exception"), JOptionPane.ERROR_MESSAGE);
             return;
         }
-        nfo.getMame().deleteAlongside(nfo.getFile());
-        nfo.getMame().setFileroms(new File(nfo.getFile().getParentFile(), imprt.getRomsFile().getName()));
-        Files.copy(imprt.getRomsFile().toPath(), nfo.getMame().getFileroms().toPath(), StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);
-        if (nfo.getMame().isSL()) {
-            nfo.getMame().setFilesl(new File(nfo.getFile().getParentFile(), imprt.getSlFile().getName()));
-            Files.copy(imprt.getSlFile().toPath(), nfo.getMame().getFilesl().toPath(), StandardCopyOption.COPY_ATTRIBUTES, StandardCopyOption.REPLACE_EXISTING);
-        }
-        nfo.getMame().setUpdated();
-        nfo.getStats().reset();
-        nfo.save(session);
+        ProfileDirIo.copyMameUpdate(imprt, nfo, session);
     }
 
     /**
@@ -631,12 +598,8 @@ public class ProfilePanel extends JPanel {
                 if (mode == 3)
                     continue;
                 if (!fileRef.get().exists() || mode == 0) {
-                    try {
-                        FileUtils.copyFile(imprt.getFile(), fileRef.get());
-                        ((FileTableModel) profilesList.getModel()).populate(session);
-                    } catch (IOException e) {
-                        Log.err(e.getMessage(), e);
-                    }
+                    ProfileDirIo.copyImportFile(imprt, fileRef.get());
+                    ((FileTableModel) profilesList.getModel()).populate(session);
                 }
             }
             final var workdir = session.getUser().getSettings().getWorkPath().toFile(); // $NON-NLS-1$

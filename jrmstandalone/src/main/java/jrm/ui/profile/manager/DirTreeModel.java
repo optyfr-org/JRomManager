@@ -8,17 +8,9 @@
  */
 package jrm.ui.profile.manager;
 
-import java.io.File;
-import java.io.IOException;
-
 import javax.swing.event.TreeModelEvent;
 import javax.swing.event.TreeModelListener;
 import javax.swing.tree.DefaultTreeModel;
-
-import org.apache.commons.io.FileUtils;
-
-import jrm.misc.Log;
-import jrm.profile.manager.Dir;
 
 /**
  * Tree model for the profile manager's directory tree.
@@ -43,19 +35,9 @@ public class DirTreeModel extends DefaultTreeModel implements TreeModelListener 
     @Override
     public void treeNodesChanged(final TreeModelEvent e) {
         final DirNode node = (DirNode) e.getTreePath().getLastPathComponent();
-        try {
-            final int index = e.getChildIndices()[0];
-            final DirNode childNode = (DirNode) node.getChildAt(index);
-            if (childNode.getUserObject() instanceof String) {
-                final File newdir = new File(node.getDir().getFile(), childNode.getUserObject().toString());
-                final File olddir = childNode.getDir().getFile();
-                if (olddir.renameTo(newdir))
-                    childNode.setDir(new Dir(newdir));
-                childNode.setUserObject(childNode.getDir());
-            }
-        } catch (final NullPointerException exc) {
-            Log.err(exc.getMessage(), exc);
-        }
+        final int index = e.getChildIndices()[0];
+        final DirNode childNode = (DirNode) node.getChildAt(index);
+        ProfileDirIo.renameDir(node, childNode);
     }
 
     @Override
@@ -65,15 +47,11 @@ public class DirTreeModel extends DefaultTreeModel implements TreeModelListener 
 
     @Override
     public void treeNodesRemoved(final TreeModelEvent e) {
-        try {
-            final Object[] children = e.getChildren();
-            if (children == null || children.length == 0)
-                return;
-            final DirNode child = (DirNode) children[0];
-            FileUtils.deleteDirectory(child.getDir().getFile());
-        } catch (NullPointerException | IOException exc) {
-            Log.err(exc.getMessage(), exc);
-        }
+        final Object[] children = e.getChildren();
+        if (children == null || children.length == 0)
+            return;
+        final DirNode child = (DirNode) children[0];
+        ProfileDirIo.deleteDir(child);
     }
 
     @Override
