@@ -334,18 +334,18 @@ class SettingsPanelControllerTest {
     void shouldUpdateMemoryStatus(TestApp application) {
         SettingsPanelController controller = TestApp.getController();
         
-        controller.updateMemory();
+        controller.getMemoryMonitor().updateMemory();
         
         assertThat(controller.status.getText()).as("status text").isNotEmpty();
         assertThat(controller.status.getText()).as("status text").contains("MiB");
     }
 
     @Test
-    @DisplayName("Should have scheduler initialized")
+    @DisplayName("Should have memory monitor initialized")
     void shouldHaveSchedulerInitialized(TestApp application) {
         SettingsPanelController controller = TestApp.getController();
         
-        assertThat(controller.scheduler).as("scheduler").isNotNull();
+        assertThat(controller.getMemoryMonitor()).as("memoryMonitor").isNotNull();
     }
 
     @Test

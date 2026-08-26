@@ -112,7 +112,7 @@ public class MainFrame extends Application {
             try {
                 primaryStage.setOnCloseRequest(_ -> {
                     session.getUser().getSettings().setProperty("MainFrame.Bounds", Settings.toJson(primaryStage));
-                    controller.getSettingsPanelController().scheduler.shutdown();
+                    controller.getSettingsPanelController().getMemoryMonitor().shutdown();
                 });
                 primaryStage.getIcons().add(getIcon("/jrm/resicons/rom.png"));
                 primaryStage.setTitle(Messages.getString("MainFrame.Title") + " " + getVersion());

@@ -4,9 +4,6 @@ import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import javafx.beans.value.ChangeListener;
@@ -25,7 +22,6 @@ import jrm.compressors.ZipLevel;
 import jrm.compressors.ZipTempThreshold;
 import jrm.fx.ui.JRMScene.StyleSheet;
 import jrm.fx.ui.misc.DragNDrop;
-import jrm.locale.Messages;
 import jrm.misc.Log;
 import jrm.misc.ProfileSettingsEnum;
 import jrm.misc.SettingsEnum;
@@ -95,8 +91,11 @@ public class SettingsPanelController extends BaseController {
     /** Valid debug log levels selectable in the UI. */
     private static final Level[] levels = new Level[] { Level.OFF, Level.SEVERE, Level.WARNING, Level.INFO, Level.CONFIG, Level.FINE, Level.FINER, Level.FINEST, Level.ALL };
 
-    /** The scheduler for periodic memory monitoring. */
-    final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private MemoryStatusMonitor memoryMonitor;
+
+    MemoryStatusMonitor getMemoryMonitor() {
+        return memoryMonitor;
+    }
 
     /**
      * Initializes the settings panel, setting up general settings, compressors, and debug sections.
@@ -343,7 +342,8 @@ public class SettingsPanelController extends BaseController {
         cbDbgLevel.getSelectionModel().select(Level.parse(session.getUser().getSettings().getProperty(SettingsEnum.debug_level)));
         cbDbgLevel.getSelectionModel().selectedItemProperty().addListener((ChangeListener<Level>) (_, _, newValue) -> changeDebugLevel(newValue));
         gc.setOnAction(_ -> performGarbageCollection());
-        scheduler.scheduleAtFixedRate(this::updateMemory, 0, 20, TimeUnit.SECONDS);
+        memoryMonitor = new MemoryStatusMonitor(status);
+        memoryMonitor.start();
     }
 
     /**
@@ -351,7 +351,7 @@ public class SettingsPanelController extends BaseController {
      */
     private void performGarbageCollection() {
         System.gc(); // NOSONAR
-        updateMemory();
+        memoryMonitor.updateMemory();
     }
 
     /**
@@ -362,19 +362,6 @@ public class SettingsPanelController extends BaseController {
     private void changeDebugLevel(Level newValue) {
         session.getUser().getSettings().setProperty(SettingsEnum.debug_level, newValue.toString());
         Log.setLevel(newValue);
-    }
-
-    /** Memory format pattern for MiB display. */
-    private static final String XX_MIB = "%.2f MiB";
-
-    /**
-     * Updates the memory usage status display with total, used, free, and maximum JVM heap metrics.
-     */
-    void updateMemory() {
-        final Runtime rt = Runtime.getRuntime();
-        status.setText(String.format(Messages.getString("MainFrame.MemoryUsage"), String.format(XX_MIB, rt.totalMemory() / 1048576.0), //$NON-NLS-1$
-                String.format(XX_MIB, (rt.totalMemory() - rt.freeMemory()) / 1048576.0), String.format(XX_MIB, rt.freeMemory() / 1048576.0),
-                String.format(XX_MIB, rt.maxMemory() / 1048576.0))); // $NON-NLS-2$ //$NON-NLS-3$ //$NON-NLS-4$ //$NON-NLS-5$
     }
 
     /**
