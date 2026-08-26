@@ -6,7 +6,6 @@ import java.util.EnumSet;
 
 import com.eclipsesource.json.JsonObject;
 
-import jrm.aui.basic.AbstractSrcDstResult;
 import jrm.aui.basic.ResultColUpdater;
 import jrm.aui.basic.SDRList;
 import jrm.aui.basic.SrcDstResult;
@@ -14,7 +13,6 @@ import jrm.batch.TorrentChecker;
 import jrm.io.torrent.options.TrntChkMode;
 import jrm.misc.BreakException;
 import jrm.misc.Log;
-import jrm.misc.SettingsEnum;
 import jrm.server.shared.WebSession;
 import jrm.server.shared.Worker;
 
@@ -75,7 +73,8 @@ import jrm.server.shared.Worker;
  */
 public class TrntChkActions {
     /** The WebSocket action manager for sending messages and accessing the session. */
-    private final ActionsMgr ws;
+	private final ActionsMgr ws;
+	private final TrntChkSessionBridge bridge;
 
     /**
      * Constructs a new TrntChkActions handler.
@@ -84,6 +83,7 @@ public class TrntChkActions {
      */
     public TrntChkActions(ActionsMgr ws) {
         this.ws = ws;
+        this.bridge = new TrntChkSessionBridge(ws.getSession());
     }
 
     /**
@@ -140,18 +140,12 @@ public class TrntChkActions {
      */
     private void performTorrentCheck() {
         WebSession session = ws.getSession();
-        final var mode = TrntChkMode.valueOf(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_mode));
-        final var opts = EnumSet.noneOf(TorrentChecker.Options.class);
-        if (Boolean.TRUE.equals(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_remove_unknown_files, Boolean.class)))
-            opts.add(TorrentChecker.Options.REMOVEUNKNOWNFILES);
-        if (Boolean.TRUE.equals(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_remove_wrong_sized_files, Boolean.class)))
-            opts.add(TorrentChecker.Options.REMOVEWRONGSIZEDFILES);
-        if (Boolean.TRUE.equals(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_detect_archived_folders, Boolean.class)))
-            opts.add(TorrentChecker.Options.DETECTARCHIVEDFOLDERS);
+        final var mode = bridge.getMode();
+        final var opts = bridge.getOpts();
 
         session.getWorker().setProgress(new ProgressActions(ws));
         try {
-            SDRList<SrcDstResult> sdrl = SrcDstResult.fromJSON(session.getUser().getSettings().getProperty(SettingsEnum.trntchk_sdr));
+            SDRList<SrcDstResult> sdrl = bridge.loadSDR();
             new TorrentChecker<SrcDstResult>(session, session.getWorker().getProgress(), sdrl, mode, createResultColUpdater(session, sdrl), opts);
         } catch (BreakException _) {
             // user cancelled action
@@ -190,16 +184,14 @@ public class TrntChkActions {
             @Override
             public void updateResult(int row, String result) {
                 sdrl.get(row).setResult(result);
-                session.getUser().getSettings().setProperty(SettingsEnum.trntchk_sdr, AbstractSrcDstResult.toJSON(sdrl));
-                session.getUser().getSettings().saveSettings();
+                bridge.saveSDR(sdrl);
                 TrntChkActions.this.updateResult(row, result);
             }
 
             @Override
             public void clearResults() {
                 sdrl.forEach(sdr -> sdr.setResult(""));
-                session.getUser().getSettings().setProperty(SettingsEnum.trntchk_sdr, AbstractSrcDstResult.toJSON(sdrl));
-                session.getUser().getSettings().saveSettings();
+                bridge.saveSDR(sdrl);
                 TrntChkActions.this.clearResults();
             }
         };
