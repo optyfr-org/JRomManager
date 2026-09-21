@@ -52,7 +52,10 @@ jobs:
       - name: JPackage with Gradle
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew ${{ inputs.gradle-tasks }} -PtargetPlatform=${{ inputs.target-platform }} -PinstallerType=${{ inputs.installer-type }}
+          GRADLE_TASKS: ${{ inputs.gradle-tasks }}
+          TARGET_PLATFORM: ${{ inputs.target-platform }}
+          INSTALLER_TYPE: ${{ inputs.installer-type }}
+        run: ./gradlew $GRADLE_TASKS "-PtargetPlatform=$TARGET_PLATFORM" "-PinstallerType=$INSTALLER_TYPE"
       - name: Releasing extra artifacts
         if: inputs.extra-artifacts != ''
         uses: optyfr-org/composite-actions/upload-release-asset@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
