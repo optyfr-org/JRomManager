@@ -684,12 +684,6 @@ public class ProfilePanelController implements Initializable {
             }
     }
 
-    /**
-     * Updates the selected profile from its MAME executable, optionally relocating
-     * the MAME file first if it cannot be found.
-     *
-     * @param e the action event triggering the update
-     */
     int importDatExistsChoose(AtomicReference<File> file) throws IllegalArgumentException {
         int mode = -1;
         if (file.get().exists()) {
@@ -734,6 +728,12 @@ public class ProfilePanelController implements Initializable {
         }
     }
 
+    /**
+     * Updates the selected profile from its MAME executable, optionally relocating
+     * the MAME file first if it cannot be found.
+     *
+     * @param e the action event triggering the update
+     */
     @FXML
     private void updateFromMame(ActionEvent e) {
         final var nfo = profilesList.getSelectionModel().getSelectedItem();

@@ -297,36 +297,11 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
             node.setStatus(Status.SIZE);
         }
     }
-    /**
-     * Checks the blocks of a single file specified in the torrent file against the corresponding file in the destination directory
-     * using piece-by-piece SHA-1 hashing. It updates the progress handler with the current status and accumulates statistics on the
-     * number of pieces that are valid, missing bytes, and files with size mismatches. It also handles the removal of wrong sized
-     * files if the corresponding option is enabled.
-     *
-     * @param data the CheckBlocksData object for accumulating verification statistics and state
-     * @param src the source file representing the torrent file
-     * @param dst the destination directory where the files should be located
-     * @param tfile the TorrentFile object representing the file to be checked
-     * @param report the report object for recording verification results
-     * @param progress the progress handler for reporting verification progress
-     * 
-     * @throws IOException if an I/O error occurs during file checking or reading
-     */
-
-
-
-
-
-
-
-
-
 
     String formatCompleteResult(final int removedFiles) {
         final String complete = session.getMsgs().getString(TORRENT_CHECKER_RESULT_COMPLETE);
         return toDocument(removedFiles > 0 ? toBoldBlue(complete) : toBoldGreen(complete));
     }
-
 
     /**
      * Removes files from the destination directory that are not listed in the torrent file. It walks through the destination

@@ -130,7 +130,8 @@ public abstract class AbstractServer implements Daemon {
 
     /**
      * Resolves and creates (if necessary) the logs directory under the server's working path. The directory is created recursively
-     * using {@link Files#createDirectories(Path, java.nio.file.attribute.FileAttribute[]) Files.createDirectories} if it does not
+     * using {@link java.nio.file.Files#createDirectories(Path, java.nio.file.attribute.FileAttribute[]) Files.createDirectories} if it
+     * does not
      * already exist.
      *
      * @return the absolute path to the logs directory as a {@link String}
@@ -274,11 +275,11 @@ public abstract class AbstractServer implements Daemon {
      * <ol>
      * <li>The explicit {@code path} argument (filesystem or classpath).</li>
      * <li>The Java module runtime image at {@code jrt:/jrm.merged.module/webclient/}.</li>
-     * <li>The classpath resource {@code /webclient/} relative to {@link FullServer}.</li>
+     * <li>The classpath resource {@code /webclient/} relative to {@link jrm.fullserver.FullServer FullServer}.</li>
      * </ol>
      * <p>
-     * Each candidate is validated via {@link Resources#exists(Resource)} before being returned. If none of the candidates resolve
-     * to an existing resource, a {@link FileNotFoundException} is thrown.
+     * Each candidate is validated via {@link org.eclipse.jetty.util.resource.Resources#exists(Resource) Resources.exists} before being returned. If none of the candidates resolve
+     * to an existing resource, a {@link java.io.FileNotFoundException FileNotFoundException} is thrown.
      * </p>
      *
      * @param resourceFactory the {@link ResourceFactory} used to create {@link Resource} instances from paths, URIs, or classpath
@@ -289,7 +290,7 @@ public abstract class AbstractServer implements Daemon {
      *
      * @throws IOException if an I/O error occurs while resolving the resource
      * @throws URISyntaxException if the resource URI cannot be parsed
-     * @throws FileNotFoundException if no valid client resource path can be found in any of the searched locations
+     * @throws java.io.FileNotFoundException if no valid client resource path can be found in any of the searched locations
      */
     protected static Resource getClientPath(ResourceFactory resourceFactory, String path) throws IOException, URISyntaxException {
         return ServerPaths.getClientPath(resourceFactory, path);
@@ -300,11 +301,11 @@ public abstract class AbstractServer implements Daemon {
      * <ol>
      * <li>The explicit {@code path} argument (filesystem or classpath).</li>
      * <li>The Java module runtime image at {@code jrt:/jrm.merged.module/certs/localhost.pfx}.</li>
-     * <li>The classpath resource {@code /certs/localhost.pfx} relative to {@link FullServer}.</li>
+     * <li>The classpath resource {@code /certs/localhost.pfx} relative to {@link jrm.fullserver.FullServer FullServer}.</li>
      * </ol>
      * <p>
-     * Each candidate is validated via {@link Resources#exists(Resource)} before being returned. If none of the candidates resolve
-     * to an existing resource, a {@link FileNotFoundException} is thrown.
+     * Each candidate is validated via {@link org.eclipse.jetty.util.resource.Resources#exists(Resource) Resources.exists} before being returned. If none of the candidates resolve
+     * to an existing resource, a {@link java.io.FileNotFoundException FileNotFoundException} is thrown.
      * </p>
      *
      * @param path an optional explicit path to the certificate file; may be {@code null} to rely on embedded defaults
@@ -313,7 +314,7 @@ public abstract class AbstractServer implements Daemon {
      *
      * @throws URISyntaxException if the resource URI cannot be parsed
      * @throws IOException if an I/O error occurs while resolving the resource
-     * @throws FileNotFoundException if no valid certificate path can be found in any of the searched locations
+     * @throws java.io.FileNotFoundException if no valid certificate path can be found in any of the searched locations
      */
     protected static Resource getCertsPath(String path) throws URISyntaxException, IOException {
         return ServerPaths.getCertsPath(path);
@@ -323,13 +324,13 @@ public abstract class AbstractServer implements Daemon {
      * Converts a string path representation into a {@link Path} object, handling multiple URI schemes including {@code jrt:},
      * {@code file:}, and {@code jar:}.
      * <p>
-     * If the path string begins with one of the recognized URI scheme prefixes, it is parsed as a {@link URI} and converted to a
-     * {@link Path} via {@link Path#of(URI)}. If the underlying filesystem does not yet exist (e.g., a JAR or JRT filesystem), a new
-     * {@link java.nio.file.FileSystem FileSystem} is created on-the-fly using {@link FileSystems#newFileSystem(URI, java.util.Map)
-     * FileSystems.newFileSystem}.
+     * If the path string begins with one of the recognized URI scheme prefixes, it is parsed as a {@link java.net.URI URI} and
+     * converted to a {@link Path} via {@link Path#of(java.net.URI)}. If the underlying filesystem does not yet exist (e.g., a JAR or
+     * JRT filesystem), a new {@link java.nio.file.FileSystem FileSystem} is created on-the-fly using
+     * {@link java.nio.file.FileSystems#newFileSystem(java.net.URI, java.util.Map) FileSystems.newFileSystem}.
      * </p>
      * <p>
-     * Plain filesystem paths (without a URI scheme prefix) are resolved via {@link Paths#get(String, String...) Paths.get}.
+     * Plain filesystem paths (without a URI scheme prefix) are resolved via {@link java.nio.file.Paths#get(String, String...) Paths.get}.
      * </p>
      *
      * @param path the string representation of the path to convert; may be a URI string (e.g., {@code "jrt:/..."},
