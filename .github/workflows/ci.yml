@@ -1,0 +1,51 @@
+name: Java CI with Gradle
+
+on:
+  push:
+    branches: [ '*' ]
+  pull_request:
+    branches: [ master ]
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        lfs: true
+        submodules: true
+        persist-credentials: false
+
+    - name: Set up JDK
+      uses: optyfr-org/composite-actions/setup-gradle@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+      with:
+        java-distribution: temurin
+
+    - name: Build with Gradle
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: ./gradlew build -xtest
+
+    - name: Set up Docker
+      uses: optyfr-org/composite-actions/setup-docker@57e543dfc608ece508fc8f5dc98471f066a10759 # main
+      with:
+        registry: dhi.io
+        registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
+        registry-password: ${{ secrets.DOCKERHUB_TOKEN }}
+        dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+        dockerhub-password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+    - name: Docker build and push
+      uses: optyfr-org/composite-actions/docker-build-push@57e543dfc608ece508fc8f5dc98471f066a10759 # main
+      with:
+        images: optyfr/jrommanager
+        context: ./build/docker/
+        prepare-script: ./prep_docker.sh
+        platforms: linux/amd64,linux/arm64
+        push: ${{ github.event_name != 'pull_request' }}

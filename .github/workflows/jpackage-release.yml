@@ -1,0 +1,68 @@
+name: JPackage and Release
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: GitHub-hosted runner label
+        required: true
+        type: string
+      target-platform:
+        description: Gradle targetPlatform
+        required: true
+        type: string
+      installer-type:
+        description: Gradle installerType
+        required: true
+        type: string
+      gradle-tasks:
+        description: Gradle tasks before platform properties
+        required: false
+        type: string
+        default: jpackage
+      extra-artifacts:
+        description: Optional extra artifact globs to publish before the installer
+        required: false
+        type: string
+        default: ''
+      lfs:
+        description: Fetch Git LFS files on checkout
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  jpackage:
+    runs-on: ${{ inputs.runner }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          lfs: ${{ inputs.lfs }}
+          submodules: true
+          persist-credentials: false
+      - name: Set up JDK
+        uses: optyfr-org/composite-actions/setup-gradle@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+        with:
+          java-distribution: temurin
+      - name: JPackage with Gradle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew ${{ inputs.gradle-tasks }} -PtargetPlatform=${{ inputs.target-platform }} -PinstallerType=${{ inputs.installer-type }}
+      - name: Releasing extra artifacts
+        if: inputs.extra-artifacts != ''
+        uses: optyfr-org/composite-actions/upload-release-asset@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+        with:
+          tag: ${{ github.ref_name }}
+          file: ${{ inputs.extra-artifacts }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Releasing installer
+        uses: optyfr-org/composite-actions/upload-release-asset@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+        with:
+          tag: ${{ github.ref_name }}
+          file: build/installer/*
+          token: ${{ secrets.GITHUB_TOKEN }}

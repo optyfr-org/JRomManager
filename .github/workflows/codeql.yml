@@ -8,7 +8,7 @@
 # We have attempted to detect the languages in your repository. Please check
 # the `language` matrix defined below to confirm you have the correct set of
 # supported CodeQL languages.
-#
+
 name: "CodeQL Advanced"
 
 on:
@@ -46,9 +46,10 @@ jobs:
         - language: actions
           build-mode: none
         - language: java-kotlin
-          build-mode: none # This mode only analyzes Java. Set this to 'autobuild' or 'manual' to analyze Kotlin too.
+          query: security-extended,security-and-quality
+          build-mode: autobuild # This mode only analyzes Java. Set this to 'autobuild' or 'manual' to analyze Kotlin too.
         # CodeQL supports the following values keywords for 'language': 'actions', 'c-cpp', 'csharp', 'go', 'java-kotlin', 'javascript-typescript', 'python', 'ruby', 'rust', 'swift'
-        # Use `c-cpp` to analyze code written in C, C++ or both
+        # Use 'c-cpp' to analyze code written in C, C++ or both
         # Use 'java-kotlin' to analyze code written in Java, Kotlin or both
         # Use 'javascript-typescript' to analyze code written in JavaScript, TypeScript or both
         # To learn more about changing the languages that are analyzed or customizing the build mode for your analysis,
@@ -57,7 +58,7 @@ jobs:
         # your codebase is analyzed, see https://docs.github.com/en/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/codeql-code-scanning-for-compiled-languages
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v7
+      uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       with:
         lfs: true
         submodules: true
@@ -68,13 +69,18 @@ jobs:
     # or others). This is typically only required for manual builds.
     # - name: Setup runtime (example)
     #   uses: actions/setup-example@v1
+    - name: Set up JDK
+      uses: optyfr-org/composite-actions/setup-gradle@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+      with:
+        java-distribution: temurin
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@v4
+      uses: github/codeql-action/init@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
+        queries: ${{ matrix.query }}
         # If you wish to specify custom queries, you can do so here or in a config file.
         # By default, queries listed here will override any specified in a config file.
         # Prefix the list here with "+" to use these queries and those in the config file.
@@ -100,6 +106,6 @@ jobs:
         exit 1
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v4
+      uses: github/codeql-action/analyze@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4
       with:
         category: "/language:${{matrix.language}}"

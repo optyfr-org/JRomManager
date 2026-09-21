@@ -1,0 +1,120 @@
+name: Linux Release
+
+on:
+  workflow_call:
+    secrets:
+      DOCKERHUB_USERNAME:
+        required: true
+      DOCKERHUB_TOKEN:
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  linux:
+    permissions:
+      contents: write
+    env:
+      beta: ${{ contains(github.ref, 'beta') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - id: get_version
+        uses: battila7/get-version-action@d97fbc34ceb64d1f5d95f4dfd6dce33521ccccf5 # v2
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          lfs: true
+          submodules: true
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: optyfr-org/composite-actions/setup-gradle@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+        with:
+          java-distribution: temurin
+
+      - name: Build with Gradle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew build -xtest
+
+      - name: Set release metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_NAME: v${{ steps.get_version.outputs.version }}
+          RELEASE_PRERELEASE: ${{ env.beta }}
+          RELEASE_NOTES: changelogs/${{ steps.get_version.outputs.version }}.md
+        run: gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --title "$RELEASE_NAME" --prerelease="$RELEASE_PRERELEASE" --notes-file "$RELEASE_NOTES"
+
+      - name: Add deb package to release
+        uses: optyfr-org/composite-actions/upload-release-asset@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+        with:
+          tag: ${{ github.ref_name }}
+          file: build/distributions/jrommanager_*_*.deb
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add rpm package to release
+        uses: optyfr-org/composite-actions/upload-release-asset@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+        with:
+          tag: ${{ github.ref_name }}
+          file: build/distributions/jrommanager-*.*.rpm
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add tarball to release
+        uses: optyfr-org/composite-actions/upload-release-asset@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+        with:
+          tag: ${{ github.ref_name }}
+          file: build/distributions/JRomManager-*.tar.gz
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: JPackage DEB with Gradle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew jpackage -PtargetPlatform=linux-x64 -PinstallerType=deb
+
+      - name: Add jpackage deb to release
+        uses: optyfr-org/composite-actions/upload-release-asset@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+        with:
+          tag: ${{ github.ref_name }}
+          file: build/installer/*
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: JPackage RPM with Gradle
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./gradlew jpackage -PtargetPlatform=linux-x64 -PinstallerType=rpm
+
+      - name: Add jpackage rpm to release
+        uses: optyfr-org/composite-actions/upload-release-asset@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+        with:
+          tag: ${{ github.ref_name }}
+          file: build/installer/*
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: build AppImage
+        run: ./appimage/build.sh
+
+      - name: Add AppImage to release
+        uses: optyfr-org/composite-actions/upload-release-asset@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+        with:
+          tag: ${{ github.ref_name }}
+          file: build/JRomManager-*.AppImage
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker
+        uses: optyfr-org/composite-actions/setup-docker@57e543dfc608ece508fc8f5dc98471f066a10759 # main
+        with:
+          registry: dhi.io
+          registry-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          registry-password: ${{ secrets.DOCKERHUB_TOKEN }}
+          dockerhub-username: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Docker build and push
+        uses: optyfr-org/composite-actions/docker-build-push@57e543dfc608ece508fc8f5dc98471f066a10759 # main
+        with:
+          images: optyfr/jrommanager
+          context: ./build/docker/
+          prepare-script: ./prep_docker.sh
+          platforms: linux/amd64,linux/arm64
