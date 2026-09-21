@@ -182,6 +182,19 @@ class RemoteFileChooserXMLResponseTest {
 
             assertThat(result).isPresent().hasValue(file.toFile());
         }
+
+        @Test
+        @DisplayName("case-corrects every ancestor directory of a lowercased path")
+        void findsByStringPathWithCasedAncestors() throws Exception {
+            final Path dir = workPath.resolve("MiXeD").resolve("MiNeD");
+            Files.createDirectories(dir);
+            final Path file = dir.resolve("dAtA.dat");
+            Files.createFile(file);
+
+            final Optional<java.io.File> result = CaseInsensitiveFileFinder.findFileIgnoreCase(file.toString().toLowerCase());
+
+            assertThat(result).isPresent().hasValue(file.toFile());
+        }
     }
 
     @Nested
