@@ -91,14 +91,21 @@ version = props.getProperty("Specification-Version")+'.'+props.getProperty("Impl
 
 repositories {
     mavenCentral()
-    maven { url = "https://jitpack.io" }
     maven {
-        url = uri("https://maven.pkg.github.com/optyfr/Jtrrntzip")
+        url = uri("https://maven.pkg.github.com/optyfr-org/SevenZipJBindingAllInOne")
         credentials {
             username = "public"
             password = System.getenv("GITHUB_TOKEN") ?: ""
         }
     }
+    maven {
+        url = uri("https://maven.pkg.github.com/optyfr-org/Jtrrntzip")
+        credentials {
+            username = "public"
+            password = System.getenv("GITHUB_TOKEN") ?: ""
+        }
+    }
+    maven { url = "https://jitpack.io" }
 }
 
 configurations.all {
