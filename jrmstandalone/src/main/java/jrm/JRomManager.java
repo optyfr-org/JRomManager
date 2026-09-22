@@ -49,6 +49,9 @@ public final class JRomManager {
      */
     private static @Getter MainFrame mainFrame;
 
+    /** Holds the lock channel for the lifetime of the process (released in shutdown hook). */
+    private static FileChannel lockChannel;
+
     /**
      * Command-line argument container for the application.
      * <p>
@@ -121,26 +124,37 @@ public final class JRomManager {
      * @return {@code true} if the lock was successfully acquired, {@code false} if
      *         another instance is already running
      */
-    private static boolean lockInstance(final Session session, final String lockFile) {
-        try (final var fc = FileChannel.open(session.getUser().getSettings().getWorkPath().resolve(lockFile),
-                StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE,
-                StandardOpenOption.DELETE_ON_CLOSE)) {
-            final var fl = fc.tryLock();
-            if (fl != null) {
-                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                    try {
-                        fl.release();
-                        fc.close();
-                    } catch (final Exception e) {
-                        Log.err("Unable to remove lock file: " + lockFile, e); //$NON-NLS-1$
-                    }
+     private static boolean lockInstance(final Session session, final String lockFile) {
+         try {
+             lockChannel = FileChannel.open(session.getUser().getSettings().getWorkPath().resolve(lockFile),
+                     StandardOpenOption.CREATE, StandardOpenOption.READ, StandardOpenOption.WRITE,
+                     StandardOpenOption.DELETE_ON_CLOSE);
+             final var fl = lockChannel.tryLock();
+             if (fl != null) {
+                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                     try {
+                         fl.release();
+                         lockChannel.close();
+                     } catch (final Exception e) {
+                         Log.err("Unable to remove lock file: " + lockFile, e); //$NON-NLS-1$
+                     }
 
-                }));
-                return true;
-            }
-        } catch (final Exception e) {
-            Log.err("Unable to create and/or lock file: " + lockFile, e); //$NON-NLS-1$
-        }
-        return false;
-    }
+                 }));
+                 return true;
+             } else {
+                 lockChannel.close();
+                 lockChannel = null;
+             }
+         } catch (final Exception e) {
+             Log.err("Unable to create and/or lock file: " + lockFile, e); //$NON-NLS-1$
+             if (lockChannel != null) {
+                 try {
+                     lockChannel.close();
+                 } catch (final Exception ignore) {
+                 }
+                 lockChannel = null;
+             }
+         }
+         return false;
+     }
 }

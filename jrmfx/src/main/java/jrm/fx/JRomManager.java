@@ -36,6 +36,9 @@ public class JRomManager {
      */
     private static @Getter MainFrame mainFrame;
 
+    /** Holds the lock channel for the lifetime of the process (released in shutdown hook). */
+    private static FileChannel lockChannel;
+
     /**
      * Command-line argument holder parsed by JCommander.
      */
@@ -91,28 +94,37 @@ public class JRomManager {
      * @param lockFile the lock file name
      * @return true if successful, false otherwise
      */
-    private static boolean lockInstance(final Session session, final String lockFile) {
-        try {
-            final var fc = getLock(session, lockFile);
-            final var fl = fc.tryLock();
-            if (fl != null) {
-                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                    try {
-                        fl.release();
-                        fc.close();
-                    } catch (final Exception e) {
-                        Log.err("Unable to remove lock file: " + lockFile, e); //$NON-NLS-1$
-                    }
+     private static boolean lockInstance(final Session session, final String lockFile) {
+         try {
+             lockChannel = getLock(session, lockFile);
+             final var fl = lockChannel.tryLock();
+             if (fl != null) {
+                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                     try {
+                         fl.release();
+                         lockChannel.close();
+                     } catch (final Exception e) {
+                         Log.err("Unable to remove lock file: " + lockFile, e); //$NON-NLS-1$
+                     }
 
-                }));
-                return true;
-            } else
-                fc.close();
-        } catch (final Exception e) {
-            Log.err("Unable to create and/or lock file: " + lockFile, e); //$NON-NLS-1$
-        }
-        return false;
-    }
+                 }));
+                 return true;
+             } else {
+                 lockChannel.close();
+                 lockChannel = null;
+             }
+         } catch (final Exception e) {
+             Log.err("Unable to create and/or lock file: " + lockFile, e); //$NON-NLS-1$
+             if (lockChannel != null) {
+                 try {
+                     lockChannel.close();
+                 } catch (final Exception ignore) {
+                 }
+                 lockChannel = null;
+             }
+         }
+         return false;
+     }
 
     /**
      * Opens or creates the lock file in the session work path and returns a writable channel.
