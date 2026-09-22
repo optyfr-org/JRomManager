@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicReference;
 import com.eclipsesource.json.JsonArray;
 import com.eclipsesource.json.JsonObject;
 import jrm.misc.BreakException;
@@ -367,12 +368,15 @@ public class ProfileActions extends PathAbstractor {
      * @param automate {@code true} to enable automatic fix after scan, {@code false} to scan only
      */
     public void scan(JsonObject jso, final boolean automate) {
-        ws.getSession().setWorker(new Worker(() -> scanOps.performScan(jso, automate))).start();
+        final var workerRef = new AtomicReference<Worker>();
+        final var worker = new Worker(() -> scanOps.performScan(jso, automate, workerRef.get()));
+        workerRef.set(worker);
+        ws.getSession().setWorker(worker).start();
     }
 
-    void runScanAndNotifyForFix() {
-        scanOps.runScanAndNotify();
-    }
+	void runScanAndNotifyForFix(Worker worker) {
+		scanOps.runScanAndNotify(worker);
+	}
 
     /**
      * Fixes ROM collection issues identified by the previous scan operation.
@@ -420,11 +424,14 @@ public class ProfileActions extends PathAbstractor {
      * @param jso the JSON object containing fix parameters (currently unused)
      */
     public void fix(JsonObject jso) {
-        ws.getSession().setWorker(new Worker(this::performFix)).start();
+        final var workerRef = new AtomicReference<Worker>();
+        final var worker = new Worker(() -> performFix(workerRef.get()));
+        workerRef.set(worker);
+        ws.getSession().setWorker(worker).start();
     }
 
-    private void performFix() {
-        fixOps.performFix();
+    private void performFix(Worker worker) {
+        fixOps.performFix(worker);
     }
 
     /**

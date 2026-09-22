@@ -11,6 +11,7 @@ import jrm.profile.scan.Scan;
 import jrm.profile.scan.ScanException;
 import jrm.profile.scan.options.ScanAutomation;
 import jrm.server.shared.WebSession;
+import jrm.server.shared.Worker;
 
 final class ProfileScanOps {
 	private final ProfileActions parent;
@@ -21,24 +22,24 @@ final class ProfileScanOps {
 		this.ws = parent.getWs();
 	}
 
-	void performScan(JsonObject jso, final boolean automate) {
-		final var session = runScanAndNotify();
+	void performScan(JsonObject jso, final boolean automate, Worker worker) {
+		final var session = runScanAndNotify(worker);
 		final var automation = currentScanAutomation(session);
 		if (automate && session.getCurrScan() != null && hasPendingScanActions(session) && automation.hasFix())
 			parent.fix(jso);
 	}
 
-	WebSession runScanAndNotify() {
+	WebSession runScanAndNotify(Worker worker) {
 		final var session = ws.getSession();
-		session.getWorker().setProgress(new ProgressActions(ws));
+		worker.setProgress(new ProgressActions(ws));
 		try {
-			session.setCurrScan(new Scan(session.getCurrProfile(), session.getWorker().getProgress()));
+			session.setCurrScan(new Scan(session.getCurrProfile(), worker.getProgress()));
 		} catch (BreakException _) {
 		} catch (ScanException ex) {
-			session.getWorker().getProgress().addError(ex.getMessage());
+			worker.getProgress().addError(ex.getMessage());
 		}
-		session.getWorker().getProgress().close();
-		session.getWorker().setProgress(null);
+		worker.getProgress().close();
+		worker.setProgress(null);
 		session.setLastAction(Instant.now());
 		parent.scanned(session.getCurrScan(), currentScanAutomation(session).hasReport());
 		return session;
