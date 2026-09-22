@@ -19,6 +19,9 @@ on:
   schedule:
     - cron: '29 17 * * 4'
 
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Auto created by GitHub. This token is used to authenticate with the repository and can be used to make API calls.
+
 jobs:
   analyze:
     name: Analyze (${{ matrix.language }})
