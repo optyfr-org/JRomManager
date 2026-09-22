@@ -361,7 +361,7 @@ public class ProfileActions extends PathAbstractor {
      * <p>
      * <b>Automation:</b> If the profile's automation settings specify {@link ScanAutomation#hasFix()}, and the scan found actions
      * to perform, this method automatically calls {@link #fix(JsonObject)} after the scan completes. The subsequent fix path never
-     * re-enters this method; verification uses {@link #runScanAndNotifyForFix()} instead.
+      * re-enters this method; verification uses {@link #runScanAndNotifyForFix(Worker)} instead.
      * </p>
      *
      * @param jso the JSON object containing scan parameters (currently unused)
@@ -417,7 +417,7 @@ public class ProfileActions extends PathAbstractor {
      * </ul>
      * <p>
      * <b>Automation:</b> If the profile's automation settings specify {@link ScanAutomation#hasScanAgain()}, this method
-     * runs a one-shot verification scan via {@link #runScanAndNotifyForFix()} after the fix completes. That path cannot start another
+      * runs a one-shot verification scan via {@link #runScanAndNotifyForFix(Worker)} after the fix completes. That path cannot start another
      * fix, so the scan/fix pipeline cannot recurse.
      * </p>
      *
