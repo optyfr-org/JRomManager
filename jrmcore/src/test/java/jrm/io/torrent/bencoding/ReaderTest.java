@@ -45,6 +45,17 @@ class ReaderTest {
             .hasMessageContaining("maximum depth");
     }
 
+    @Test
+    @DisplayName("rejects dictionary with non-string key (must throw TorrentException, not ClassCastException)")
+    void rejectsDictionaryWithNonStringKey() {
+        // bencode: d i123e i0e e  (dictionary with integer key instead of byte string)
+        final var payload = "di123ei0ee".getBytes(StandardCharsets.US_ASCII);
+
+        assertThatThrownBy(() -> new Reader(payload).read())
+            .isInstanceOf(TorrentException.class)
+            .hasMessageContaining("Dictionary keys must be strings");
+    }
+
     private static String nestedLists(final int depth) {
         return "l".repeat(depth) + "e".repeat(depth);
     }

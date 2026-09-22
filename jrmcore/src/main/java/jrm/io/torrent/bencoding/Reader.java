@@ -159,8 +159,11 @@ public class Reader {
         final var dict = new BDictionary();
         while (readCurrentByte() != 'e') {
             // Each dictionary *must* map BByteStrings to any other value.
-            BByteString key = (BByteString) readSingleType(depth + 1);
-            IBencodable value = readSingleType(depth + 1);
+            final var keyObj = readSingleType(depth + 1);
+            if (!(keyObj instanceof BByteString key)) {
+                throw new TorrentException("Error parsing dictionary. Dictionary keys must be strings, got " + keyObj.getClass().getSimpleName());
+            }
+            final var value = readSingleType(depth + 1);
 
             dict.add(key, value);
         }
