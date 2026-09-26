@@ -1,0 +1,126 @@
+[
+  {
+    "name": "jrm.fx.JRomManager$Args",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.MainFrameController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.ProfilePanelController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.ScannerPanelController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.ScannerPanelSettingsController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.SettingsPanelController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.Dir2DatController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.BatchToolsPanelController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.BatchDirUpd8rResultsController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.BatchTorrentResultsController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.progress.ProgressController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.profile.ProfileViewerController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.profile.filter.KeywordsController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.profile.report.ReportFrameController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.profile.report.ReportLiteController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.profile.report.ReportViewController",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fx.ui.misc.WindowState",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "javafx.scene.control.skin.TableColumnHeader",
+    "methods": [
+      {"name": "resizeColumnToFitContent", "parameterTypes": ["int"]}
+    ]
+  },
+  {
+    "name": "jrm.aui.basic.SrcDstResult",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "jrm.fx.ui.misc.SrcDstResult",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.beust.jcommander.converters.BooleanConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.beust.jcommander.converters.StringConverter",
+    "allDeclaredConstructors": true
+  }
+]

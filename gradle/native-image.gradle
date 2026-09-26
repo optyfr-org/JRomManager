@@ -1,0 +1,33 @@
+apply plugin: 'org.graalvm.buildtools.native'
+
+graalvmNative {
+    toolchainDetection = true
+    testSupport = false
+    binaries.all {
+        // Required charsets: UTF-8, US-ASCII, CP437, CP1252.
+        // UTF-8, UTF-16, US-ASCII and ISO-8859-1 are always in the image.
+        // Cp437: jtrrntzip ZipNameCodec (torrentzip entry names).
+        // CP1252 is required and lives in sun.nio.cs.ext; native-image has no per-charset whitelist.
+        // -H:+AddAllCharsets is the only supported way to include those ext charsets.
+        // Record image sizes with and without this flag once the first images build.
+        // SevenZipJBinding loads its platform DLL from the classpath and calls back through JNI.
+        // reachability-metadata.json registers that DLL plus the callbacks traced for open/create.
+        buildArgs.addAll(
+            '--no-fallback',
+            '-H:+ReportExceptionStackTraces',
+            '--install-exit-handlers',
+            '-H:+AddAllCharsets',
+            '--initialize-at-build-time=jrm.security.ForyPersistence',
+            '--initialize-at-build-time=org.apache.fory.pool.ThreadPoolFory$PooledEntry',
+        )
+    }
+    agent {
+        enabled = true
+        defaultMode = 'standard'
+        metadataCopy {
+            inputTaskNames.addAll('run', 'test')
+            outputDirectories.add("src/main/resources/META-INF/native-image/${project.group}/${project.name}")
+            mergeWithExisting = true
+        }
+    }
+}

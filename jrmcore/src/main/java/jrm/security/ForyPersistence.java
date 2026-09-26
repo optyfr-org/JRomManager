@@ -9,8 +9,8 @@
 package jrm.security;
 
 import java.io.File;
+import java.util.function.Consumer;
 
-import org.apache.fory.Fory;
 import org.apache.fory.ThreadSafeFory;
 
 import jrm.batch.DirUpdaterResults;
@@ -75,19 +75,17 @@ public final class ForyPersistence {
     static final int REPORT_DEPTH = 100;
     static final int TRNTCHK_DEPTH = 1_000_000;
 
-    private static final ThreadSafeFory CACHE = create(CACHE_DEPTH);
-    private static final ThreadSafeFory REPORT = create(REPORT_DEPTH);
-    private static final ThreadSafeFory TRNTCHK = create(TRNTCHK_DEPTH);
-
-    static {
-        registerShared(CACHE);
-        registerProfileData(CACHE);
-        registerNfo(CACHE);
-        registerShared(REPORT);
-        registerProfileData(REPORT);
-        registerReport(REPORT);
-        registerTrntChk(TRNTCHK);
-    }
+    private static final ThreadSafeFory CACHE = create(CACHE_DEPTH, fory -> {
+        registerShared(fory);
+        registerProfileData(fory);
+        registerNfo(fory);
+    });
+    private static final ThreadSafeFory REPORT = create(REPORT_DEPTH, fory -> {
+        registerShared(fory);
+        registerProfileData(fory);
+        registerReport(fory);
+    });
+    private static final ThreadSafeFory TRNTCHK = create(TRNTCHK_DEPTH, ForyPersistence::registerTrntChk);
 
     private ForyPersistence() {
         throw new UnsupportedOperationException("Utility class");
@@ -107,8 +105,8 @@ public final class ForyPersistence {
         };
     }
 
-    private static ThreadSafeFory create(final int depth) {
-        return Fory.builder()
+    private static ThreadSafeFory create(final int depth, final Consumer<ThreadSafeFory> register) {
+        final ThreadSafeFory fory = org.apache.fory.Fory.builder()
                 .withXlang(false)
                 .requireClassRegistration(true)
                 .withCompatible(false)
@@ -117,10 +115,14 @@ public final class ForyPersistence {
                 .withDeserializeUnknownClass(false)
                 .withJdkClassSerializableCheck(true)
                 .buildThreadSafeFory();
+        register.accept(fory);
+        fory.ensureSerializersCompiled();
+        return fory;
     }
 
     static void registerShared(final ThreadSafeFory fory) {
         fory.register(File.class, 100);
+        fory.registerSerializer(File.class, resolver -> new FilePathSerializer(resolver.getConfig()));
         fory.register(TrrntZipStatus.class, 103);
         fory.register(Container.class, 104);
         fory.register(Archive.class, 105);

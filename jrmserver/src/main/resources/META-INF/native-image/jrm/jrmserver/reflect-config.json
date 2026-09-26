@@ -1,0 +1,162 @@
+[
+  {
+    "name": "jrm.server.Server$Args",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fullserver.FullServer$Args",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fullserver.db.H2",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fullserver.db.DB",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.handlers.UploadServlet$Result",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ProgressActions$Open",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ProgressActions$ClearInfos",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ProgressActions$SetFullProgress",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ProgressActions$SetFullProgress$Data",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ProgressActions$SetFullProgress$Data$PB",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ProgressActions$SetInfos",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ProgressActions$SetInfos$Data",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ProgressActions$ExtendInfos",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ProgressActions$ExtendInfos$Data",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ProgressActions$CanCancel",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ProgressActions$CanCancel$Data",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ProgressActions$Close",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ProgressActions$Close$Data",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ActionsMgr$UpdateResult",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ActionsMgr$UpdateResult$Params",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.server.shared.actions.ActionsMgr$SingleCmd",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "ch.qos.logback.core.ConsoleAppender",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "ch.qos.logback.classic.encoder.PatternLayoutEncoder",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "ch.qos.logback.classic.Level",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.aui.basic.SrcDstResult",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.beust.jcommander.converters.BooleanConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.beust.jcommander.converters.IntegerConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.beust.jcommander.converters.StringConverter",
+    "allDeclaredConstructors": true
+  }
+]

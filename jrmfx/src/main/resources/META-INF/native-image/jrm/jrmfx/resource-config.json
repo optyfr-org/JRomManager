@@ -1,0 +1,23 @@
+{
+  "resources": {
+    "includes": [
+      {"pattern": "jrm/fx/ui/.*\\.fxml"},
+      {"pattern": "jrm/fx/ui/css/.*\\.css"},
+      {"pattern": "jrm/resources/Messages.*\\.properties"},
+      {"pattern": "jrm/resicons/.*\\.png"},
+      {"pattern": "jrm/resicons/.*\\.svg"},
+      {"pattern": "jrm/resicons/.*\\.gif"},
+      {"pattern": "jrm/resicons/icons/.*\\.png"},
+      {"pattern": "jrm/resources/dtd/.*\\.dtd"},
+      {"pattern": "sevenzipjbinding-platforms.properties"},
+      {"pattern": "Windows-amd64/.*"},
+      {"pattern": "Linux-amd64/.*"},
+      {"pattern": "Linux-aarch64/.*"},
+      {"pattern": "Mac-x86_64/.*"}
+    ],
+    "excludes": []
+  },
+  "bundles": [
+    {"name": "jrm.resources.Messages"}
+  ]
+}

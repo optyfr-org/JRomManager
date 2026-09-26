@@ -6,6 +6,7 @@ jlink {
     addExtraDependencies("javafx")
     mergedModule {
         additive = true
+        excludeProvides service: 'org.apache.fory.shaded.org.codehaus.commons.compiler.ICompilerFactory'
         requires 'ch.qos.logback.classic'
         requires 'jdk.zipfs'
         requires 'java.desktop'

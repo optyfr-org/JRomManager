@@ -1,6 +1,24 @@
 apply plugin: "io.freefair.lombok"
 apply plugin: "eclipse"
 apply plugin: 'application'
+apply from: "$rootDir/gradle/native-image.gradle"
+
+graalvmNative {
+    binaries {
+        main {
+            imageName.set('jrmcli')
+            mainClass.set('jrm.cli.JRomManagerCLI')
+            buildArgs.addAll(
+                '-J--add-opens=java.base/java.lang=ALL-UNNAMED',
+                '-J--add-opens=java.base/java.lang.invoke=ALL-UNNAMED',
+                '-J--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+                '-J--add-opens=java.base/java.util=ALL-UNNAMED',
+                // Builder JVM only; not a runtime image argument.
+                '-J--enable-native-access=ALL-UNNAMED',
+            )
+        }
+    }
+}
 
 dependencies {
     implementation project(':jrmcore')

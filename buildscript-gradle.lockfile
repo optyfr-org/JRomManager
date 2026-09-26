@@ -4,6 +4,7 @@
 # To regenerate this file, run: ./gradlew dependencies --write-locks
 com.bmuschko:gradle-docker-plugin:3.2.1=classpath
 com.github.luben:zstd-jni:1.5.6-3=classpath
+com.github.openjson:openjson:1.0.13=classpath
 com.google.code.findbugs:jsr305:3.0.2=classpath
 com.google.code.gson:gson:2.13.2=classpath
 com.google.errorprone:error_prone_annotations:2.41.0=classpath
@@ -37,6 +38,10 @@ org.bouncycastle:bcutil-jdk18on:1.86=classpath
 org.codehaus.plexus:plexus-archiver:4.10.0=classpath
 org.codehaus.plexus:plexus-interpolation:1.27=classpath
 org.codehaus.plexus:plexus-io:3.5.0=classpath
+org.graalvm.buildtools.native:org.graalvm.buildtools.native.gradle.plugin:1.1.14=classpath
+org.graalvm.buildtools:graalvm-reachability-metadata:1.1.14=classpath
+org.graalvm.buildtools:native-gradle-plugin:1.1.14=classpath
+org.graalvm.buildtools:utils:1.1.14=classpath
 org.openjfx.javafxplugin:org.openjfx.javafxplugin.gradle.plugin:0.1.0=classpath
 org.openjfx:javafx-plugin:0.1.0=classpath
 org.redline-rpm:redline:1.2.10=classpath

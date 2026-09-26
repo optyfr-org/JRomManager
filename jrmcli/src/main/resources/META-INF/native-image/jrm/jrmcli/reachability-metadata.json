@@ -1,0 +1,332 @@
+{
+    "reflection":  [
+                       {
+                           "type":  "java.lang.Boolean",
+                           "jniAccessible":  true,
+                           "methods":  [
+                                           {
+                                               "name":  "booleanValue",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "getBoolean",
+                                               "parameterTypes":  [
+                                                                      "java.lang.String"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "valueOf",
+                                               "parameterTypes":  [
+                                                                      "boolean"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "java.lang.Double",
+                           "jniAccessible":  true,
+                           "methods":  [
+                                           {
+                                               "name":  "valueOf",
+                                               "parameterTypes":  [
+                                                                      "double"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "java.lang.Integer",
+                           "jniAccessible":  true,
+                           "methods":  [
+                                           {
+                                               "name":  "intValue",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "longValue",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "valueOf",
+                                               "parameterTypes":  [
+                                                                      "int"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "java.lang.Long",
+                           "jniAccessible":  true,
+                           "methods":  [
+                                           {
+                                               "name":  "longValue",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "valueOf",
+                                               "parameterTypes":  [
+                                                                      "long"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "java.lang.OutOfMemoryError",
+                           "jniAccessible":  true
+                       },
+                       {
+                           "type":  "java.lang.String",
+                           "jniAccessible":  true
+                       },
+                       {
+                           "type":  "java.lang.String[]"
+                       },
+                       {
+                           "type":  "java.util.Date",
+                           "jniAccessible":  true,
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+                                                                      "long"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "getTime",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "net.sf.sevenzipjbinding.ArchiveFormat",
+                           "jniAccessible":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "codecIndex"
+                                          },
+                                          {
+                                              "name":  "methodName"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "net.sf.sevenzipjbinding.IArchiveOpenVolumeCallback",
+                           "jniAccessible":  true
+                       },
+                       {
+                           "type":  "net.sf.sevenzipjbinding.ICryptoGetTextPassword",
+                           "jniAccessible":  true
+                       },
+                       {
+                           "type":  "net.sf.sevenzipjbinding.IInStream",
+                           "jniAccessible":  true
+                       },
+                       {
+                           "type":  "net.sf.sevenzipjbinding.SevenZip$DummyOpenArchiveCallback",
+                           "jniAccessible":  true,
+                           "methods":  [
+                                           {
+                                               "name":  "setTotal",
+                                               "parameterTypes":  [
+                                                                      "java.lang.Long",
+                                                                      "java.lang.Long"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "net.sf.sevenzipjbinding.SevenZipException",
+                           "jniAccessible":  true,
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+                                                                      "java.lang.String"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "net.sf.sevenzipjbinding.impl.InArchiveImpl",
+                           "jniAccessible":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "jbindingSession"
+                                          },
+                                          {
+                                              "name":  "sevenZipArchiveInstance"
+                                          },
+                                          {
+                                              "name":  "sevenZipInStreamInstance"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "setArchiveFormat",
+                                               "parameterTypes":  [
+                                                                      "java.lang.String"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "net.sf.sevenzipjbinding.impl.OutArchiveImpl",
+                           "jniAccessible":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "archiveFormat"
+                                          },
+                                          {
+                                              "name":  "inArchive"
+                                          },
+                                          {
+                                              "name":  "jbindingSession"
+                                          },
+                                          {
+                                              "name":  "sevenZipArchiveInstance"
+                                          },
+                                          {
+                                              "name":  "trace"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "net.sf.sevenzipjbinding.impl.OutArchiveZipImpl",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "net.sf.sevenzipjbinding.impl.OutItem",
+                           "jniAccessible":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "dataSize"
+                                          },
+                                          {
+                                              "name":  "propertyAttributes"
+                                          },
+                                          {
+                                              "name":  "propertyCreationTime"
+                                          },
+                                          {
+                                              "name":  "propertyIsDir"
+                                          },
+                                          {
+                                              "name":  "propertyLastAccessTime"
+                                          },
+                                          {
+                                              "name":  "propertyLastModificationTime"
+                                          },
+                                          {
+                                              "name":  "propertyPath"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "verify",
+                                               "parameterTypes":  [
+                                                                      "boolean"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "net.sf.sevenzipjbinding.impl.OutItemFactory",
+                           "jniAccessible":  true,
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+                                                                      "net.sf.sevenzipjbinding.IOutArchive",
+                                                                      "int"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "net.sf.sevenzipjbinding.impl.RandomAccessFileInStream",
+                           "jniAccessible":  true,
+                           "methods":  [
+                                           {
+                                               "name":  "read",
+                                               "parameterTypes":  [
+                                                                      "byte[]"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "seek",
+                                               "parameterTypes":  [
+                                                                      "long",
+                                                                      "int"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "net.sf.sevenzipjbinding.impl.RandomAccessFileOutStream",
+                           "jniAccessible":  true,
+                           "methods":  [
+                                           {
+                                               "name":  "seek",
+                                               "parameterTypes":  [
+                                                                      "long",
+                                                                      "int"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "sun.security.provider.SHA",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       }
+                   ],
+    "resources":  [
+                      {
+                          "glob":  "Windows-amd64/lib7-Zip-JBinding.dll"
+                      },
+                      {
+                          "glob":  "Windows-amd64/sevenzipjbinding-lib.properties"
+                      },
+                      {
+                          "glob":  "sevenzipjbinding-platforms.properties"
+                      },
+                      {
+                          "glob":  "Linux-amd64/.*"
+                      },
+                      {
+                          "glob":  "Linux-aarch64/.*"
+                      },
+                      {
+                          "glob":  "Mac-x86_64/.*"
+                      }
+                  ]
+}

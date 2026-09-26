@@ -2,9 +2,30 @@ apply plugin: "io.freefair.lombok"
 apply plugin: "org.openjfx.javafxplugin"
 apply plugin: "eclipse"
 apply plugin: 'application'
+apply from: "$rootDir/gradle/native-image.gradle"
+
+graalvmNative {
+    // Experimental. Stock native-image cannot statically link OpenJFX natives;
+    // ship the JavaFX SDK platform libraries next to the binary.
+    // javafx.web is on the default UI path (WebviewCellFactory). javafx.swing is unused
+    // in main sources and stays in the JVM module set.
+    binaries {
+        main {
+            imageName.set('jrmfx')
+            mainClass.set('jrm.fx.JRomManagerMulti')
+            buildArgs.addAll(
+                '-J--add-opens=java.base/java.lang.invoke=ALL-UNNAMED',
+                '-J--add-opens=javafx.controls/javafx.scene.control.skin=ALL-UNNAMED',
+                // Builder JVM only; not a runtime image argument.
+                '-J--sun-misc-unsafe-memory-access=allow',
+                '-J--enable-native-access=javafx.graphics,ALL-UNNAMED',
+            )
+        }
+    }
+}
 
 javafx {
-    version = '22'
+    version = '25'
     modules = [ 'javafx.controls', 'javafx.fxml', 'javafx.web', 'javafx.swing' ]
 }
 

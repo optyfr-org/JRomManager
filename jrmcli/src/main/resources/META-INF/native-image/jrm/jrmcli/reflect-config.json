@@ -1,0 +1,50 @@
+[
+  {
+    "name": "jrm.cli.CLIArgs",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.cli.TrntChkCLI$TrntchkArgs",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.cli.DirUpd8rCLI$DirUpdaterArgs",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.cli.CompressorCLI$CompressorArgs",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.cli.FileSystemCLI$RmArgs",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.cli.FileSystemCLI$MdArgs",
+    "allDeclaredConstructors": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.aui.basic.SrcDstResult",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.beust.jcommander.converters.BooleanConverter",
+    "allDeclaredConstructors": true
+  },
+  {
+    "name": "com.beust.jcommander.converters.StringConverter",
+    "allDeclaredConstructors": true
+  }
+]

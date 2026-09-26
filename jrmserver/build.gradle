@@ -1,6 +1,46 @@
 apply plugin: "io.freefair.lombok"
 apply plugin: "eclipse"
 apply plugin: 'application'
+apply from: "$rootDir/gradle/native-image.gradle"
+
+graalvmNative {
+    agent {
+        metadataCopy {
+            inputTaskNames.add('runFullServer')
+        }
+    }
+    binaries {
+        main {
+            imageName.set('jrmserver')
+            mainClass.set('jrm.server.Server')
+            buildArgs.addAll(
+                '-J--add-opens=java.base/java.lang=ALL-UNNAMED',
+                '-J--add-opens=java.base/java.lang.invoke=ALL-UNNAMED',
+                '-J--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+                '-J--add-opens=java.base/java.util=ALL-UNNAMED',
+                // Builder JVM only; not a runtime image argument.
+                '-J--enable-native-access=ALL-UNNAMED',
+                '--enable-url-protocols=http,https',
+            )
+        }
+        fullServer {
+            imageName.set('jrmfullserver')
+            mainClass.set('jrm.fullserver.FullServer')
+            // Start native jrmfullserver with -C/--cert. Webclient static serving from the
+            // image heap needs a runtime smoke check; if resource: listing fails, pass --client <dir>.
+            // listLibrariesMissingMetadata does not list Logback, so no extra converter entries.
+            buildArgs.addAll(
+                '-J--add-opens=java.base/java.lang=ALL-UNNAMED',
+                '-J--add-opens=java.base/java.lang.invoke=ALL-UNNAMED',
+                '-J--add-opens=java.base/java.lang.reflect=ALL-UNNAMED',
+                '-J--add-opens=java.base/java.util=ALL-UNNAMED',
+                // Builder JVM only; not a runtime image argument.
+                '-J--enable-native-access=ALL-UNNAMED',
+                '--enable-url-protocols=http,https',
+            )
+        }
+    }
+}
 
 compileJava.dependsOn ':WebClient:jar'
 

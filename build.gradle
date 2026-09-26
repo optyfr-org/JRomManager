@@ -24,6 +24,7 @@ plugins {
     id "org.beryx.jlink" version "4.1.1" apply false
     id 'jacoco'
     id "io.github.sgtsilvio.gradle.javadoc-links" version "0.10.0"
+    id 'org.graalvm.buildtools.native' version '1.1.14' apply false
 }
 
 dependencyLocking {
@@ -99,6 +100,7 @@ configurations.all {
 }
 
 subprojects {
+    group = 'jrm'
     apply from: "$rootDir/gradle/java-conventions.gradle"
 }
 

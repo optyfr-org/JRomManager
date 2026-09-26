@@ -1,0 +1,22 @@
+{
+  "resources": {
+    "includes": [
+      {"pattern": "logback\\.xml"},
+      {"pattern": "jrm/resources/Messages.*\\.properties"},
+      {"pattern": "jrm/resources/dtd/.*\\.dtd"},
+      {"pattern": "jrm/resicons/.*"},
+      {"pattern": "webclient/.*"},
+      {"pattern": "certs/.*"},
+      {"pattern": "META-INF/services/.*"},
+      {"pattern": "sevenzipjbinding-platforms.properties"},
+      {"pattern": "Windows-amd64/.*"},
+      {"pattern": "Linux-amd64/.*"},
+      {"pattern": "Linux-aarch64/.*"},
+      {"pattern": "Mac-x86_64/.*"}
+    ],
+    "excludes": []
+  },
+  "bundles": [
+    {"name": "jrm.resources.Messages"}
+  ]
+}
