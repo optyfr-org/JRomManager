@@ -12,3 +12,5 @@ jrmstandalone/.classpath
 /.settings/
 */.settings/
 /JRomManager.code-workspace
+/.playwright-mcp/page-2026-09-29T07-52-00-762Z.png
+/.vscode/settings.json

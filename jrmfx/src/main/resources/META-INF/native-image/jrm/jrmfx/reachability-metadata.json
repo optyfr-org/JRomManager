@@ -1,32 +1,7 @@
 {
     "reflection":  [
                        {
-                           "type":  "java.lang.Boolean",
-                           "jniAccessible":  true,
-                           "methods":  [
-                                           {
-                                               "name":  "booleanValue",
-                                               "parameterTypes":  [
-
-                                                                  ]
-                                           },
-                                           {
-                                               "name":  "getBoolean",
-                                               "parameterTypes":  [
-                                                                      "java.lang.String"
-                                                                  ]
-                                           },
-                                           {
-                                               "name":  "valueOf",
-                                               "parameterTypes":  [
-                                                                      "boolean"
-                                                                  ]
-                                           }
-                                       ]
-                       },
-                       {
                            "type":  "java.lang.Double",
-                           "jniAccessible":  true,
                            "methods":  [
                                            {
                                                "name":  "valueOf",
@@ -38,7 +13,6 @@
                        },
                        {
                            "type":  "java.lang.Integer",
-                           "jniAccessible":  true,
                            "methods":  [
                                            {
                                                "name":  "intValue",
@@ -62,7 +36,6 @@
                        },
                        {
                            "type":  "java.lang.Long",
-                           "jniAccessible":  true,
                            "methods":  [
                                            {
                                                "name":  "longValue",
@@ -79,19 +52,13 @@
                                        ]
                        },
                        {
-                           "type":  "java.lang.OutOfMemoryError",
-                           "jniAccessible":  true
-                       },
-                       {
-                           "type":  "java.lang.String",
-                           "jniAccessible":  true
+                           "type":  "java.lang.OutOfMemoryError"
                        },
                        {
                            "type":  "java.lang.String[]"
                        },
                        {
                            "type":  "java.util.Date",
-                           "jniAccessible":  true,
                            "methods":  [
                                            {
                                                "name":  "\u003cinit\u003e",
@@ -109,7 +76,6 @@
                        },
                        {
                            "type":  "net.sf.sevenzipjbinding.ArchiveFormat",
-                           "jniAccessible":  true,
                            "fields":  [
                                           {
                                               "name":  "codecIndex"
@@ -120,20 +86,13 @@
                                       ]
                        },
                        {
-                           "type":  "net.sf.sevenzipjbinding.IArchiveOpenVolumeCallback",
-                           "jniAccessible":  true
+                           "type":  "net.sf.sevenzipjbinding.IArchiveOpenVolumeCallback"
                        },
                        {
-                           "type":  "net.sf.sevenzipjbinding.ICryptoGetTextPassword",
-                           "jniAccessible":  true
-                       },
-                       {
-                           "type":  "net.sf.sevenzipjbinding.IInStream",
-                           "jniAccessible":  true
+                           "type":  "net.sf.sevenzipjbinding.IInStream"
                        },
                        {
                            "type":  "net.sf.sevenzipjbinding.SevenZip$DummyOpenArchiveCallback",
-                           "jniAccessible":  true,
                            "methods":  [
                                            {
                                                "name":  "setTotal",
@@ -146,7 +105,6 @@
                        },
                        {
                            "type":  "net.sf.sevenzipjbinding.SevenZipException",
-                           "jniAccessible":  true,
                            "methods":  [
                                            {
                                                "name":  "\u003cinit\u003e",
@@ -158,7 +116,6 @@
                        },
                        {
                            "type":  "net.sf.sevenzipjbinding.impl.InArchiveImpl",
-                           "jniAccessible":  true,
                            "fields":  [
                                           {
                                               "name":  "jbindingSession"
@@ -187,7 +144,6 @@
                        },
                        {
                            "type":  "net.sf.sevenzipjbinding.impl.OutArchiveImpl",
-                           "jniAccessible":  true,
                            "fields":  [
                                           {
                                               "name":  "archiveFormat"
@@ -219,7 +175,6 @@
                        },
                        {
                            "type":  "net.sf.sevenzipjbinding.impl.OutItem",
-                           "jniAccessible":  true,
                            "fields":  [
                                           {
                                               "name":  "dataSize"
@@ -254,7 +209,6 @@
                        },
                        {
                            "type":  "net.sf.sevenzipjbinding.impl.OutItemFactory",
-                           "jniAccessible":  true,
                            "methods":  [
                                            {
                                                "name":  "\u003cinit\u003e",
@@ -267,7 +221,6 @@
                        },
                        {
                            "type":  "net.sf.sevenzipjbinding.impl.RandomAccessFileInStream",
-                           "jniAccessible":  true,
                            "methods":  [
                                            {
                                                "name":  "read",
@@ -286,7 +239,6 @@
                        },
                        {
                            "type":  "net.sf.sevenzipjbinding.impl.RandomAccessFileOutStream",
-                           "jniAccessible":  true,
                            "methods":  [
                                            {
                                                "name":  "seek",
@@ -307,6 +259,2400 @@
                                                                   ]
                                            }
                                        ]
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.Application",
+                           "methods":  [
+                                           {
+                                               "name":  "notifyPreferencesChanged",
+                                               "parameterTypes":  [
+                                                                      "java.util.Map"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "reportException",
+                                               "parameterTypes":  [
+                                                                      "java.lang.Throwable"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.Cursor",
+                           "methods":  [
+                                           {
+                                               "name":  "getNativeCursor",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "getType",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.Pixels",
+                           "methods":  [
+                                           {
+                                               "name":  "attachData",
+                                               "parameterTypes":  [
+                                                                      "long"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.Screen",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+                                                                      "long",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "float",
+                                                                      "float",
+                                                                      "float",
+                                                                      "float"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.Screen[]"
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.Size",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.View",
+                           "fields":  [
+                                          {
+                                              "name":  "ptr"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "getAccessible",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "getHeight",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "getWidth",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyDragDrop",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyDragEnter",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyDragLeave",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyDragOver",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyInputMethod",
+                                               "parameterTypes":  [
+                                                                      "java.lang.String",
+                                                                      "int[]",
+                                                                      "int[]",
+                                                                      "byte[]",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyInputMethodCandidatePosRequest",
+                                               "parameterTypes":  [
+                                                                      "int"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyKey",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int",
+                                                                      "char[]",
+                                                                      "int"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyMouse",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "boolean",
+                                                                      "boolean"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyRepaint",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyScroll",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "double",
+                                                                      "double",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "double",
+                                                                      "double"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyView",
+                                               "parameterTypes":  [
+                                                                      "int"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.Window",
+                           "methods":  [
+                                           {
+                                               "name":  "notifyClose",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyDelegatePtr",
+                                               "parameterTypes":  [
+                                                                      "long"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyDestroy",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyFocus",
+                                               "parameterTypes":  [
+                                                                      "int"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyFocusDisabled",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyFocusUngrab",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyMove",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyMoveToAnotherScreen",
+                                               "parameterTypes":  [
+                                                                      "com.sun.glass.ui.Screen"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyScaleChanged",
+                                               "parameterTypes":  [
+                                                                      "float",
+                                                                      "float",
+                                                                      "float",
+                                                                      "float"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.win.WinApplication"
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.win.WinGestureSupport",
+                           "methods":  [
+                                           {
+                                               "name":  "gesturePerformed",
+                                               "parameterTypes":  [
+                                                                      "com.sun.glass.ui.View",
+                                                                      "int",
+                                                                      "boolean",
+                                                                      "boolean",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "float",
+                                                                      "float",
+                                                                      "float",
+                                                                      "float",
+                                                                      "float",
+                                                                      "float",
+                                                                      "float"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "inertiaGestureFinished",
+                                               "parameterTypes":  [
+                                                                      "com.sun.glass.ui.View"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyBeginTouchEvent",
+                                               "parameterTypes":  [
+                                                                      "com.sun.glass.ui.View",
+                                                                      "int",
+                                                                      "boolean",
+                                                                      "int"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyEndTouchEvent",
+                                               "parameterTypes":  [
+                                                                      "com.sun.glass.ui.View"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyNextTouchEvent",
+                                               "parameterTypes":  [
+                                                                      "com.sun.glass.ui.View",
+                                                                      "int",
+                                                                      "long",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.win.WinPixels"
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.win.WinPlatformFactory",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.win.WinView",
+                           "methods":  [
+                                           {
+                                               "name":  "notifyMenu",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "boolean"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyResize",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.glass.ui.win.WinWindow",
+                           "methods":  [
+                                           {
+                                               "name":  "nonClientHitTest",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyMoving",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "float",
+                                                                      "float",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "int"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "notifyResize",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int",
+                                                                      "int"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.javafx.PreviewFeature"
+                       },
+                       {
+                           "type":  "com.sun.javafx.font.directwrite.DWFactory",
+                           "methods":  [
+                                           {
+                                               "name":  "getFactory",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.javafx.font.directwrite.DWRITE_GLYPH_METRICS",
+                           "fields":  [
+                                          {
+                                              "name":  "advanceHeight"
+                                          },
+                                          {
+                                              "name":  "advanceWidth"
+                                          },
+                                          {
+                                              "name":  "bottomSideBearing"
+                                          },
+                                          {
+                                              "name":  "leftSideBearing"
+                                          },
+                                          {
+                                              "name":  "rightSideBearing"
+                                          },
+                                          {
+                                              "name":  "topSideBearing"
+                                          },
+                                          {
+                                              "name":  "verticalOriginY"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.javafx.geom.Path2D",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "byte[]",
+                                                                      "int",
+                                                                      "float[]",
+                                                                      "int"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.javafx.logging.PrintLogger",
+                           "methods":  [
+                                           {
+                                               "name":  "createInstance",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.javafx.logging.jfr.JFRPulseLogger",
+                           "methods":  [
+                                           {
+                                               "name":  "createInstance",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.javafx.reflect.Trampoline",
+                           "methods":  [
+                                           {
+                                               "name":  "invoke",
+                                               "parameterTypes":  [
+                                                                      "java.lang.reflect.Method",
+                                                                      "java.lang.Object",
+                                                                      "java.lang.Object[]"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.javafx.scene.AbstractNode"
+                       },
+                       {
+                           "type":  "com.sun.javafx.scene.control.skin.Utils",
+                           "methods":  [
+                                           {
+                                               "name":  "getResource",
+                                               "parameterTypes":  [
+                                                                      "java.lang.String"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.javafx.tk.quantum.QuantumToolkit",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.pisces.AbstractSurface",
+                           "fields":  [
+                                          {
+                                              "name":  "nativePtr"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "com.sun.pisces.JavaSurface",
+                           "fields":  [
+                                          {
+                                              "name":  "dataInt"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "com.sun.pisces.PiscesRenderer",
+                           "fields":  [
+                                          {
+                                              "name":  "nativePtr"
+                                          },
+                                          {
+                                              "name":  "surface"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "com.sun.pisces.Transform6",
+                           "fields":  [
+                                          {
+                                              "name":  "m00"
+                                          },
+                                          {
+                                              "name":  "m01"
+                                          },
+                                          {
+                                              "name":  "m02"
+                                          },
+                                          {
+                                              "name":  "m10"
+                                          },
+                                          {
+                                              "name":  "m11"
+                                          },
+                                          {
+                                              "name":  "m12"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "com.sun.prism.GraphicsPipeline",
+                           "methods":  [
+                                           {
+                                               "name":  "getFontFactory",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "getPipeline",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.prism.sw.SWPipeline",
+                           "methods":  [
+                                           {
+                                               "name":  "getInstance",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.scenario.effect.impl.prism.PrMergePeer",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+                                                                      "com.sun.scenario.effect.FilterContext",
+                                                                      "com.sun.scenario.effect.impl.Renderer",
+                                                                      "java.lang.String"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.scenario.effect.impl.prism.PrRenderer",
+                           "methods":  [
+                                           {
+                                               "name":  "createRenderer",
+                                               "parameterTypes":  [
+                                                                      "com.sun.scenario.effect.FilterContext"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.scenario.effect.impl.prism.sw.PSWRenderer",
+                           "methods":  [
+                                           {
+                                               "name":  "createRenderer",
+                                               "parameterTypes":  [
+                                                                      "com.sun.scenario.effect.FilterContext"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.scenario.effect.impl.sw.sse.SSEBlend_SRC_INPeer",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+                                                                      "com.sun.scenario.effect.FilterContext",
+                                                                      "com.sun.scenario.effect.impl.Renderer",
+                                                                      "java.lang.String"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.scenario.effect.impl.sw.sse.SSEBoxShadowPeer",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+                                                                      "com.sun.scenario.effect.FilterContext",
+                                                                      "com.sun.scenario.effect.impl.Renderer",
+                                                                      "java.lang.String"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "com.sun.scenario.effect.impl.sw.sse.SSERendererDelegate",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.animation.Interpolator"
+                       },
+                       {
+                           "type":  "javafx.application.Application"
+                       },
+                       {
+                           "type":  "javafx.collections.transformation.SortedList$Element[]"
+                       },
+                       {
+                           "type":  "javafx.css.Rule"
+                       },
+                       {
+                           "type":  "javafx.css.Styleable"
+                       },
+                       {
+                           "type":  "javafx.event.EventTarget"
+                       },
+                       {
+                           "type":  "javafx.fxml.FXMLLoader"
+                       },
+                       {
+                           "type":  "javafx.fxml.Initializable"
+                       },
+                       {
+                           "type":  "javafx.geometry.Pos",
+                           "methods":  [
+                                           {
+                                               "name":  "valueOf",
+                                               "parameterTypes":  [
+                                                                      "java.lang.String"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.Camera"
+                       },
+                       {
+                           "type":  "javafx.scene.Group"
+                       },
+                       {
+                           "type":  "javafx.scene.Node",
+                           "methods":  [
+                                           {
+                                               "name":  "getId",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "setId",
+                                               "parameterTypes":  [
+                                                                      "java.lang.String"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.ParallelCamera"
+                       },
+                       {
+                           "type":  "javafx.scene.Parent"
+                       },
+                       {
+                           "type":  "javafx.scene.Scene"
+                       },
+                       {
+                           "type":  "javafx.scene.canvas.Canvas",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "setHeight",
+                                               "parameterTypes":  [
+                                                                      "double"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "setWidth",
+                                               "parameterTypes":  [
+                                                                      "double"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.control.Cell"
+                       },
+                       {
+                           "type":  "javafx.scene.control.Control"
+                       },
+                       {
+                           "type":  "javafx.scene.control.FocusModel"
+                       },
+                       {
+                           "type":  "javafx.scene.control.IndexedCell"
+                       },
+                       {
+                           "type":  "javafx.scene.control.Labeled"
+                       },
+                       {
+                           "type":  "javafx.scene.control.Skinnable"
+                       },
+                       {
+                           "type":  "javafx.scene.control.TableColumnBase"
+                       },
+                       {
+                           "type":  "javafx.scene.control.TableFocusModel"
+                       },
+                       {
+                           "type":  "javafx.scene.control.TablePosition",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+                                                                      "javafx.scene.control.TableView",
+                                                                      "int",
+                                                                      "javafx.scene.control.TableColumn"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.control.TablePositionBase"
+                       },
+                       {
+                           "type":  "javafx.scene.control.TableRow",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.control.TableView",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.control.TableView$TableViewFocusModel",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+                                                                      "javafx.scene.control.TableView"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.effect.Effect"
+                       },
+                       {
+                           "type":  "javafx.scene.image.Image",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+                                                                      "java.lang.String",
+                                                                      "double",
+                                                                      "double",
+                                                                      "boolean",
+                                                                      "boolean",
+                                                                      "boolean"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.image.ImageView"
+                       },
+                       {
+                           "type":  "javafx.scene.layout.Pane",
+                           "methods":  [
+                                           {
+                                               "name":  "getChildren",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.layout.Region"
+                       },
+                       {
+                           "type":  "javafx.scene.layout.StackPane",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "setAlignment",
+                                               "parameterTypes":  [
+                                                                      "javafx.geometry.Pos"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.paint.Color",
+                           "methods":  [
+                                           {
+                                               "name":  "rgb",
+                                               "parameterTypes":  [
+                                                                      "int",
+                                                                      "int",
+                                                                      "int",
+                                                                      "double"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.shape.Rectangle"
+                       },
+                       {
+                           "type":  "javafx.scene.shape.SVGPath"
+                       },
+                       {
+                           "type":  "javafx.scene.shape.Shape"
+                       },
+                       {
+                           "type":  "javafx.scene.text.Font"
+                       },
+                       {
+                           "type":  "javafx.scene.text.Text"
+                       },
+                       {
+                           "type":  "javafx.scene.transform.Transform"
+                       },
+                       {
+                           "type":  "javafx.scene.web.WebView"
+                       },
+                       {
+                           "type":  "javafx.stage.Screen",
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.stage.Stage"
+                       },
+                       {
+                           "type":  "javafx.stage.Window"
+                       },
+                       {
+                           "type":  "javafx.util.Callback"
+                       },
+                       {
+                           "type":  "javafx.scene.control.ButtonBase",
+                           "methods":  [
+                                           {
+                                               "name":  "setOnAction",
+                                               "parameterTypes":  [
+                                                                      "javafx.event.EventHandler"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.control.ComboBoxBase"
+                       },
+                       {
+                           "type":  "javafx.scene.control.CustomMenuItem"
+                       },
+                       {
+                           "type":  "javafx.scene.control.PopupControl",
+                           "methods":  [
+                                           {
+                                               "name":  "getId",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "setId",
+                                               "parameterTypes":  [
+                                                                      "java.lang.String"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.control.TextInputControl",
+                           "methods":  [
+                                           {
+                                               "name":  "setEditable",
+                                               "parameterTypes":  [
+                                                                      "boolean"
+                                                                  ]
+                                           },
+                                           {
+                                               "name":  "setPromptText",
+                                               "parameterTypes":  [
+                                                                      "java.lang.String"
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "javafx.scene.layout.ConstraintsBase"
+                       },
+                       {
+                           "type":  "jrm.aui.profile.report.ReportTreeHandler"
+                       },
+                       {
+                           "type":  "jrm.aui.progress.ProgressHandler"
+                       },
+                       {
+                           "type":  "jrm.aui.progress.StatusHandler"
+                       },
+                       {
+                           "type":  "jrm.batch.DirUpdaterResults",
+                           "fields":  [
+                                          {
+                                              "name":  "dat"
+                                          },
+                                          {
+                                              "name":  "results"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.batch.DirUpdaterResults$DirUpdaterResult",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "dat"
+                                          },
+                                          {
+                                              "name":  "stats"
+                                          },
+                                          {
+                                              "name":  "this$0"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.batch.DirUpdaterResults_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.batch.DirUpdaterResults_d_DirUpdaterResult_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.batch.TrntChkReport",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "all"
+                                          },
+                                          {
+                                              "name":  "nodes"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.batch.TrntChkReport$Child",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "children"
+                                          },
+                                          {
+                                              "name":  "data"
+                                          },
+                                          {
+                                              "name":  "parent"
+                                          },
+                                          {
+                                              "name":  "this$0"
+                                          },
+                                          {
+                                              "name":  "uid"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.batch.TrntChkReport$ChildData",
+                           "fields":  [
+                                          {
+                                              "name":  "length"
+                                          },
+                                          {
+                                              "name":  "status"
+                                          },
+                                          {
+                                              "name":  "title"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.batch.TrntChkReport$FilterPredicate"
+                       },
+                       {
+                           "type":  "jrm.batch.TrntChkReport$Status"
+                       },
+                       {
+                           "type":  "jrm.batch.TrntChkReport$Status[]"
+                       },
+                       {
+                           "type":  "jrm.batch.TrntChkReport_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.batch.TrntChkReport_d_ChildData_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.batch.TrntChkReport_d_Child_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.misc.GlobalSettings"
+                       },
+                       {
+                           "type":  "jrm.misc.ProfileSettings"
+                       },
+                       {
+                           "type":  "jrm.misc.Settings"
+                       },
+                       {
+                           "type":  "jrm.misc.SettingsImpl"
+                       },
+                       {
+                           "type":  "jrm.profile.Profile",
+                           "fields":  [
+                                          {
+                                              "name":  "build"
+                                          },
+                                          {
+                                              "name":  "disksCnt"
+                                          },
+                                          {
+                                              "name":  "header"
+                                          },
+                                          {
+                                              "name":  "machineListList"
+                                          },
+                                          {
+                                              "name":  "machinesCnt"
+                                          },
+                                          {
+                                              "name":  "md5Disks"
+                                          },
+                                          {
+                                              "name":  "md5Roms"
+                                          },
+                                          {
+                                              "name":  "romsCnt"
+                                          },
+                                          {
+                                              "name":  "samplesCnt"
+                                          },
+                                          {
+                                              "name":  "sha1Disks"
+                                          },
+                                          {
+                                              "name":  "sha1Roms"
+                                          },
+                                          {
+                                              "name":  "softwaresCnt"
+                                          },
+                                          {
+                                              "name":  "softwaresListCnt"
+                                          },
+                                          {
+                                              "name":  "suspiciousCRC"
+                                          },
+                                          {
+                                              "name":  "swdisksCnt"
+                                          },
+                                          {
+                                              "name":  "swromsCnt"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.profile.ProfileProperties"
+                       },
+                       {
+                           "type":  "jrm.profile.Profile_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Anyware",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "cloneof"
+                                          },
+                                          {
+                                              "name":  "description"
+                                          },
+                                          {
+                                              "name":  "disks"
+                                          },
+                                          {
+                                              "name":  "profile"
+                                          },
+                                          {
+                                              "name":  "roms"
+                                          },
+                                          {
+                                              "name":  "samples"
+                                          },
+                                          {
+                                              "name":  "year"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.AnywareBase",
+                           "serializable":  true
+                       },
+                       {
+                           "type":  "jrm.profile.data.AnywareList",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "profile"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.AnywareListList",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "profile"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.AnywareStatus"
+                       },
+                       {
+                           "type":  "jrm.profile.data.AnywareStatus[]"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Archive",
+                           "serializable":  true
+                       },
+                       {
+                           "type":  "jrm.profile.data.Archive_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Container",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "entriesByFName"
+                                          },
+                                          {
+                                              "name":  "file"
+                                          },
+                                          {
+                                              "name":  "lastTZipCheck"
+                                          },
+                                          {
+                                              "name":  "lastTZipStatus"
+                                          },
+                                          {
+                                              "name":  "loaded"
+                                          },
+                                          {
+                                              "name":  "modified"
+                                          },
+                                          {
+                                              "name":  "relfile"
+                                          },
+                                          {
+                                              "name":  "size"
+                                          },
+                                          {
+                                              "name":  "type"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Container$Type"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Container$Type[]"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Container_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Device",
+                           "fields":  [
+                                          {
+                                              "name":  "extensions"
+                                          },
+                                          {
+                                              "name":  "fixedImage"
+                                          },
+                                          {
+                                              "name":  "instance"
+                                          },
+                                          {
+                                              "name":  "intrface"
+                                          },
+                                          {
+                                              "name":  "mandatory"
+                                          },
+                                          {
+                                              "name":  "tag"
+                                          },
+                                          {
+                                              "name":  "type"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Device$Extension",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "name"
+                                          },
+                                          {
+                                              "name":  "this$0"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Device$Instance",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "briefname"
+                                          },
+                                          {
+                                              "name":  "name"
+                                          },
+                                          {
+                                              "name":  "this$0"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Device_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Device_d_Extension_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Device_d_Instance_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Directory",
+                           "serializable":  true
+                       },
+                       {
+                           "type":  "jrm.profile.data.Directory_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Disk",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "index"
+                                          },
+                                          {
+                                              "name":  "optional"
+                                          },
+                                          {
+                                              "name":  "region"
+                                          },
+                                          {
+                                              "name":  "writeable"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Disk_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Driver",
+                           "fields":  [
+                                          {
+                                              "name":  "cocktail"
+                                          },
+                                          {
+                                              "name":  "emulation"
+                                          },
+                                          {
+                                              "name":  "saveState"
+                                          },
+                                          {
+                                              "name":  "status"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Driver$SaveStateType"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Driver$SaveStateType[]"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Driver$StatusType"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Driver$StatusType[]"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Driver_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Entity",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "crc"
+                                          },
+                                          {
+                                              "name":  "dumpStatus"
+                                          },
+                                          {
+                                              "name":  "md5"
+                                          },
+                                          {
+                                              "name":  "merge"
+                                          },
+                                          {
+                                              "name":  "sha1"
+                                          },
+                                          {
+                                              "name":  "size"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Entity$Status"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Entity$Status[]"
+                       },
+                       {
+                           "type":  "jrm.profile.data.EntityBase",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "ownStatus"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.EntityStatus"
+                       },
+                       {
+                           "type":  "jrm.profile.data.EntityStatus[]"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Entry",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "cachedName"
+                                          },
+                                          {
+                                              "name":  "crc"
+                                          },
+                                          {
+                                              "name":  "file"
+                                          },
+                                          {
+                                              "name":  "md5"
+                                          },
+                                          {
+                                              "name":  "modified"
+                                          },
+                                          {
+                                              "name":  "parent"
+                                          },
+                                          {
+                                              "name":  "relfile"
+                                          },
+                                          {
+                                              "name":  "sha1"
+                                          },
+                                          {
+                                              "name":  "size"
+                                          },
+                                          {
+                                              "name":  "type"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Entry$Type"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Entry$Type[]"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Entry_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.FakeDirectory",
+                           "serializable":  true
+                       },
+                       {
+                           "type":  "jrm.profile.data.FakeDirectory_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Input",
+                           "fields":  [
+                                          {
+                                              "name":  "coins"
+                                          },
+                                          {
+                                              "name":  "players"
+                                          },
+                                          {
+                                              "name":  "service"
+                                          },
+                                          {
+                                              "name":  "tilt"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Input_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Machine",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "cabinetType"
+                                          },
+                                          {
+                                              "name":  "deviceRef"
+                                          },
+                                          {
+                                              "name":  "devices"
+                                          },
+                                          {
+                                              "name":  "driver"
+                                          },
+                                          {
+                                              "name":  "input"
+                                          },
+                                          {
+                                              "name":  "isbios"
+                                          },
+                                          {
+                                              "name":  "isdevice"
+                                          },
+                                          {
+                                              "name":  "ismechanical"
+                                          },
+                                          {
+                                              "name":  "manufacturer"
+                                          },
+                                          {
+                                              "name":  "orientation"
+                                          },
+                                          {
+                                              "name":  "romof"
+                                          },
+                                          {
+                                              "name":  "sampleof"
+                                          },
+                                          {
+                                              "name":  "slots"
+                                          },
+                                          {
+                                              "name":  "sourcefile"
+                                          },
+                                          {
+                                              "name":  "swlists"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Machine$CabinetType"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Machine$CabinetType[]"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Machine$DisplayOrientation"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Machine$DisplayOrientation[]"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Machine$SWList",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "filter"
+                                          },
+                                          {
+                                              "name":  "name"
+                                          },
+                                          {
+                                              "name":  "status"
+                                          },
+                                          {
+                                              "name":  "this$0"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Machine$SWStatus"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Machine$SWStatus[]"
+                       },
+                       {
+                           "type":  "jrm.profile.data.MachineList",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "mByName"
+                                          },
+                                          {
+                                              "name":  "mList"
+                                          },
+                                          {
+                                              "name":  "samplesets"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.MachineListList",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "mlList"
+                                          },
+                                          {
+                                              "name":  "softwareListDefs"
+                                          },
+                                          {
+                                              "name":  "softwareListList"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.MachineListList_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.MachineList_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Machine_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Machine_d_SWList_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.NameBase",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "name"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Rom",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "bios"
+                                          },
+                                          {
+                                              "name":  "date"
+                                          },
+                                          {
+                                              "name":  "loadflag"
+                                          },
+                                          {
+                                              "name":  "offset"
+                                          },
+                                          {
+                                              "name":  "optional"
+                                          },
+                                          {
+                                              "name":  "region"
+                                          },
+                                          {
+                                              "name":  "value"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Rom$LoadFlag"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Rom$LoadFlag[]"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Rom_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Sample",
+                           "serializable":  true
+                       },
+                       {
+                           "type":  "jrm.profile.data.Sample_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Samples",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "samplesMap"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.SamplesList",
+                           "fields":  [
+                                          {
+                                              "name":  "sampleSets"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.SamplesList_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Samples_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Slot",
+                           "fields":  [
+                                          {
+                                              "name":  "name"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.SlotOption",
+                           "fields":  [
+                                          {
+                                              "name":  "def"
+                                          },
+                                          {
+                                              "name":  "devName"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.SlotOption_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Software",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "compatibility"
+                                          },
+                                          {
+                                              "name":  "parts"
+                                          },
+                                          {
+                                              "name":  "publisher"
+                                          },
+                                          {
+                                              "name":  "sl"
+                                          },
+                                          {
+                                              "name":  "supported"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Software$Part",
+                           "fields":  [
+                                          {
+                                              "name":  "dataareas"
+                                          },
+                                          {
+                                              "name":  "diskareas"
+                                          },
+                                          {
+                                              "name":  "intrface"
+                                          },
+                                          {
+                                              "name":  "name"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Software$Part$DataArea",
+                           "fields":  [
+                                          {
+                                              "name":  "databits"
+                                          },
+                                          {
+                                              "name":  "endianness"
+                                          },
+                                          {
+                                              "name":  "name"
+                                          },
+                                          {
+                                              "name":  "roms"
+                                          },
+                                          {
+                                              "name":  "size"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Software$Part$DataArea$Endianness"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Software$Part$DataArea$Endianness[]"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Software$Part$DiskArea",
+                           "fields":  [
+                                          {
+                                              "name":  "disks"
+                                          },
+                                          {
+                                              "name":  "name"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.Software$Supported"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Software$Supported[]"
+                       },
+                       {
+                           "type":  "jrm.profile.data.SoftwareList",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "description"
+                                          },
+                                          {
+                                              "name":  "swByName"
+                                          },
+                                          {
+                                              "name":  "swList"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.SoftwareListList",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "swListByName"
+                                          },
+                                          {
+                                              "name":  "swListList"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.data.SoftwareListList_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.SoftwareList_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Software_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Software_d_Part_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Software_d_Part_d_DataArea_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Software_d_Part_d_DiskArea_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Source"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Sources"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Systm"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Systm$Type"
+                       },
+                       {
+                           "type":  "jrm.profile.data.Systms"
+                       },
+                       {
+                           "type":  "jrm.profile.filter.CatVer"
+                       },
+                       {
+                           "type":  "jrm.profile.filter.CatVer$Category"
+                       },
+                       {
+                           "type":  "jrm.profile.filter.CatVer$Category$SubCategory"
+                       },
+                       {
+                           "type":  "jrm.profile.filter.GamesList"
+                       },
+                       {
+                           "type":  "jrm.profile.filter.NPlayer"
+                       },
+                       {
+                           "type":  "jrm.profile.filter.NPlayers"
+                       },
+                       {
+                           "type":  "jrm.profile.fix.actions.ContainerAction"
+                       },
+                       {
+                           "type":  "jrm.profile.fix.actions.EntryAction"
+                       },
+                       {
+                           "type":  "jrm.profile.manager.ProfileNFO",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "file"
+                                          },
+                                          {
+                                              "name":  "mame"
+                                          },
+                                          {
+                                              "name":  "name"
+                                          },
+                                          {
+                                              "name":  "stats"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.manager.ProfileNFOMame",
+                           "fields":  [
+                                          {
+                                              "name":  "file"
+                                          },
+                                          {
+                                              "name":  "fileroms"
+                                          },
+                                          {
+                                              "name":  "filesl"
+                                          },
+                                          {
+                                              "name":  "modified"
+                                          },
+                                          {
+                                              "name":  "sl"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.profile.manager.ProfileNFOMame_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.manager.ProfileNFOStats",
+                           "fields":  [
+                                          {
+                                              "name":  "created"
+                                          },
+                                          {
+                                              "name":  "fixed"
+                                          },
+                                          {
+                                              "name":  "haveDisks"
+                                          },
+                                          {
+                                              "name":  "haveRoms"
+                                          },
+                                          {
+                                              "name":  "haveSets"
+                                          },
+                                          {
+                                              "name":  "scanned"
+                                          },
+                                          {
+                                              "name":  "totalDisks"
+                                          },
+                                          {
+                                              "name":  "totalRoms"
+                                          },
+                                          {
+                                              "name":  "totalSets"
+                                          },
+                                          {
+                                              "name":  "version"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.profile.manager.ProfileNFOStats_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.manager.ProfileNFO_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.ContainerSubject",
+                           "fields":  [
+                                          {
+                                              "name":  "container"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.report.ContainerTZip"
+                       },
+                       {
+                           "type":  "jrm.profile.report.ContainerTZip_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.ContainerUnknown"
+                       },
+                       {
+                           "type":  "jrm.profile.report.ContainerUnknown_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.ContainerUnneeded"
+                       },
+                       {
+                           "type":  "jrm.profile.report.ContainerUnneeded_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryAdd",
+                           "serializable":  true
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryAdd_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryExtNote",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "entry"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryMissing",
+                           "serializable":  true
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryMissingDuplicate",
+                           "serializable":  true
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryMissingDuplicate_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryMissing_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryNote",
+                           "serializable":  true,
+                           "fields":  [
+                                          {
+                                              "name":  "entity"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryOK",
+                           "serializable":  true
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryOK_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryUnneeded",
+                           "serializable":  true
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryUnneeded_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryWrongHash",
+                           "serializable":  true
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryWrongHash_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryWrongName",
+                           "serializable":  true
+                       },
+                       {
+                           "type":  "jrm.profile.report.EntryWrongName_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.FilterOptions"
+                       },
+                       {
+                           "type":  "jrm.profile.report.FilterOptions[]"
+                       },
+                       {
+                           "type":  "jrm.profile.report.Note",
+                           "serializable":  true
+                       },
+                       {
+                           "type":  "jrm.profile.report.Report",
+                           "fields":  [
+                                          {
+                                              "name":  "reportFile"
+                                          },
+                                          {
+                                              "name":  "stats"
+                                          },
+                                          {
+                                              "name":  "subjects"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.profile.report.Report$FilterPredicate"
+                       },
+                       {
+                           "type":  "jrm.profile.report.Report$Stats",
+                           "fields":  [
+                                          {
+                                              "name":  "fixableDisksCnt"
+                                          },
+                                          {
+                                              "name":  "fixableRomsCnt"
+                                          },
+                                          {
+                                              "name":  "missingDisksCnt"
+                                          },
+                                          {
+                                              "name":  "missingRomsCnt"
+                                          },
+                                          {
+                                              "name":  "missingSamplesCnt"
+                                          },
+                                          {
+                                              "name":  "missingSetCnt"
+                                          },
+                                          {
+                                              "name":  "setCreate"
+                                          },
+                                          {
+                                              "name":  "setCreateComplete"
+                                          },
+                                          {
+                                              "name":  "setCreatePartial"
+                                          },
+                                          {
+                                              "name":  "setFound"
+                                          },
+                                          {
+                                              "name":  "setFoundFixComplete"
+                                          },
+                                          {
+                                              "name":  "setFoundFixPartial"
+                                          },
+                                          {
+                                              "name":  "setFoundOk"
+                                          },
+                                          {
+                                              "name":  "setMissing"
+                                          },
+                                          {
+                                              "name":  "setUnneeded"
+                                          }
+                                      ],
+                           "methods":  [
+                                           {
+                                               "name":  "\u003cinit\u003e",
+                                               "parameterTypes":  [
+
+                                                                  ]
+                                           }
+                                       ]
+                       },
+                       {
+                           "type":  "jrm.profile.report.Report_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.Report_d_Stats_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.RomSuspiciousCRC",
+                           "fields":  [
+                                          {
+                                              "name":  "crc"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.report.RomSuspiciousCRC_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.report.Subject",
+                           "fields":  [
+                                          {
+                                              "name":  "notes"
+                                          },
+                                          {
+                                              "name":  "ware"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.report.SubjectSet",
+                           "fields":  [
+                                          {
+                                              "name":  "status"
+                                          }
+                                      ]
+                       },
+                       {
+                           "type":  "jrm.profile.report.SubjectSet$Status"
+                       },
+                       {
+                           "type":  "jrm.profile.report.SubjectSet$Status[]"
+                       },
+                       {
+                           "type":  "jrm.profile.report.SubjectSet_ForyNativeSerializer"
+                       },
+                       {
+                           "type":  "jrm.profile.scan.DirScan"
+                       },
+                       {
+                           "type":  "jrm.profile.scan.EntryUpdater"
+                       },
+                       {
+                           "type":  "jrm.profile.scan.Scan"
+                       },
+                       {
+                           "type":  "jrm.profile.scan.options.FormatOptions"
+                       },
+                       {
+                           "type":  "jrm.profile.scan.options.FormatOptions$Ext"
+                       },
+                       {
+                           "type":  "jrm.profile.scan.options.FormatOptions$Ext[]"
+                       },
+                       {
+                           "type":  "jrm.profile.scan.options.FormatOptions[]"
+                       },
+                       {
+                           "type":  "jrm.profile.scan.options.HashCollisionOptions"
+                       },
+                       {
+                           "type":  "jrm.profile.scan.options.HashCollisionOptions[]"
+                       },
+                       {
+                           "type":  "jrm.profile.scan.options.MergeOptions"
+                       },
+                       {
+                           "type":  "jrm.profile.scan.options.MergeOptions[]"
+                       },
+                       {
+                           "type":  "jrm.security.PathAbstractor"
+                       },
+                       {
+                           "type":  "jrm.security.Session"
+                       },
+                       {
+                           "type":  "jrm.security.User"
                        }
                    ],
     "resources":  [

@@ -9,17 +9,44 @@ graalvmNative {
     // ship the JavaFX SDK platform libraries next to the binary.
     // javafx.web is on the default UI path (WebviewCellFactory). javafx.swing is unused
     // in main sources and stays in the JVM module set.
+    agent {
+        defaultMode.set('standard')
+        metadataCopy {
+            inputTaskNames.add('run')
+            outputDirectories.add('src/main/resources/META-INF/native-image/jrm/jrmfx/')
+            mergeWithExisting.set(true)
+        }
+    }
     binaries {
         main {
             imageName.set('jrmfx')
             mainClass.set('jrm.fx.JRomManagerMulti')
+            resources.autodetect()
+            resources.includedPatterns.add('.*\\.dll$')
+            resources.includedPatterns.add('com/sun/javafx/.*')
+            resources.includedPatterns.add('com/sun/prism/.*')
+            resources.includedPatterns.add('com/sun/scenario/.*')
+            resources.includedPatterns.add('com/sun/glass/.*')
+            resources.includedPatterns.add('javafx/.*')
             buildArgs.addAll(
                 '-J--add-opens=java.base/java.lang.invoke=ALL-UNNAMED',
                 '-J--add-opens=javafx.controls/javafx.scene.control.skin=ALL-UNNAMED',
                 // Builder JVM only; not a runtime image argument.
                 '-J--sun-misc-unsafe-memory-access=allow',
                 '-J--enable-native-access=javafx.graphics,ALL-UNNAMED',
+                '--enable-native-access=ALL-UNNAMED',
+                // RHScoreboard precedent: toolkit/shader classes must init at run time.
+                // JavaFX 25 renamed com.sun.prism.* to com.sun.prism.impl.*.
+                '--initialize-at-run-time=com.sun.glass.ui.Application',
+                '--initialize-at-run-time=com.sun.glass.ui.Screen',
+                '--initialize-at-run-time=com.sun.glass.ui.win.WinApplication',
+                '--initialize-at-run-time=com.sun.glass.ui.win.WinPlatformFactory',
+                '--initialize-at-run-time=com.sun.javafx.font.directwrite.DWFactory',
             )
+            runtimeArgs.add('-Dprism.maxvram=1G')
+            // The Prism software pipeline loses the green channel in native-image
+            // (all colors render magenta/violet); force the D3D hardware pipeline.
+            runtimeArgs.add('-Dprism.order=d3d')
         }
     }
 }

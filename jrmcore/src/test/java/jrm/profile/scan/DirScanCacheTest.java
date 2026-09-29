@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.logging.Handler;
+import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
@@ -115,6 +116,39 @@ class DirScanCacheTest {
                                     t -> assertThat(t).isNull(),
                                     t -> assertThat(t).isNotInstanceOf(InvalidClassException.class));
                 });
+    }
+
+    /**
+     * Verifies that a first scan of a never-scanned directory (cold cache miss) does not log
+     * {@code Failed to load cache file} at INFO level: a missing cache file is the normal
+     * cold-start path and must stay silent unless debug logging is enabled.
+     *
+     * @throws Exception if the test setup or scan fails
+     */
+    @Test
+    @Timeout(60)
+    @DisplayName("first scan should not log a cache failure at INFO level")
+    void firstScanShouldNotLogCacheFailureAtInfoLevel() throws Exception {
+        // Arrange: a directory that was never scanned, hence has no cache file
+        final var dstDir = tempDir.resolve("fresh-roms");
+        Files.createDirectories(dstDir);
+        Files.write(dstDir.resolve("rom1.bin"), new byte[] { 0x01, 0x02, 0x03, 0x04 });
+        final var dstFile = dstDir.toFile();
+
+        final var options = EnumSet.of(DirScan.Options.IS_DEST);
+
+        // Act: first scan, cache is missing
+        logHandler.clear();
+        final var scan = new DirScan(session, dstFile, handler, options);
+        assertThat(scan).isNotNull();
+
+        // Assert: no INFO-or-higher record mentions a cache load/save failure
+        assertThat(logHandler.getRecords())
+                .filteredOn(logRecord -> logRecord.getLevel().intValue() >= Level.INFO.intValue())
+                .noneSatisfy(logRecord -> assertThat(logRecord.getMessage())
+                        .as("cold cache miss must stay silent at INFO level")
+                        .doesNotContain("Failed to load cache file")
+                        .doesNotContain("Failed to save cache file"));
     }
 
     /**

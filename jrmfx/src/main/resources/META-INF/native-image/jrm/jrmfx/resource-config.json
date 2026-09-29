@@ -1,6 +1,13 @@
 {
   "resources": {
     "includes": [
+      {"pattern": "com/sun/javafx/.*"},
+      {"pattern": "com/sun/prism/.*"},
+      {"pattern": "com/sun/prism/d3d/hlsl/.*\\.obj$"},
+      {"pattern": "com/sun/scenario/.*"},
+      {"pattern": "com/sun/glass/.*"},
+      {"pattern": "javafx/.*"},
+      {"pattern": ".*\\.dll$"},
       {"pattern": "jrm/fx/ui/.*\\.fxml"},
       {"pattern": "jrm/fx/ui/css/.*\\.css"},
       {"pattern": "jrm/resources/Messages.*\\.properties"},
@@ -15,7 +22,9 @@
       {"pattern": "Linux-aarch64/.*"},
       {"pattern": "Mac-x86_64/.*"}
     ],
-    "excludes": []
+    "excludes": [
+      {"pattern": ".*\\.bss$"}
+    ]
   },
   "bundles": [
     {"name": "jrm.resources.Messages"}

@@ -9,6 +9,8 @@
 package jrm.profile.scan;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.NoSuchFileException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -70,7 +72,7 @@ final class ScanCache {
 		final var cachedir = new File(workdir, "cache"); //$NON-NLS-1$
 		cachedir.mkdirs();
 		final var crc = new CRC32();
-		crc.update(file.getAbsolutePath().getBytes());
+		crc.update(file.getAbsolutePath().getBytes(StandardCharsets.UTF_8));
 		return new File(cachedir, String.format("%08x", crc.getValue()) + getCacheExt(options)); //$NON-NLS-1$ //$NON-NLS-2$
 	}
 
@@ -80,13 +82,16 @@ final class ScanCache {
 	void save(final File file, Set<DirScan.Options> options, Map<String, Container> containersByName) {
 		try {
 			SignedObjectStore.write(session, getCacheFile(session, file, options), containersByName, SignedObjectStore.Codec.CACHE);
-		} catch (final Exception _) {
-			// ignore
+		} catch (final Exception e) {
+			Log.warn(() -> "Failed to save cache file: " + file.getAbsolutePath() + " (" + e.getMessage() + ")");
 		}
 	}
 
 	/**
 	 * Deserializes previous runs properties from disk with integrity verification.
+	 * A missing cache file is the normal cold-start path: it is only logged at debug
+	 * level. Other failures (corrupt, tampered, unreadable) are logged at info level
+	 * without duplicating the path already carried by the exception message.
 	 */
 	@SuppressWarnings("unchecked")
 	Map<String, Container> load(final File file, Set<DirScan.Options> options) {
@@ -95,8 +100,10 @@ final class ScanCache {
 			handler.clearInfos();
 			handler.setProgress(String.format(Messages.getString("DirScan.LoadingScanCache"), PathAbstractor.getRelativePath(session, file.toPath())), 0); //$NON-NLS-1$
 			return (Map<String, Container>) SignedObjectStore.read(session, cachefile, SignedObjectStore.Codec.CACHE);
+		} catch (final NoSuchFileException _) {
+			Log.debug(() -> "No cache file for: " + file.getAbsolutePath());
 		} catch (final Exception e) {
-			Log.info(() -> "Failed to load cache file: " + cachefile.getAbsolutePath() + " (" + e.getMessage() + ")");
+			Log.info(() -> "Failed to load cache file: " + file.getAbsolutePath() + " (" + e + ")");
 		}
 		return Collections.synchronizedMap(new HashMap<>());
 	}

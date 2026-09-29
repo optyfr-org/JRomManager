@@ -315,13 +315,14 @@ public final class DirScan extends PathAbstractor {
         final var options = new ScanOptions(session, soptions);
         final var path = Paths.get(dir.getAbsolutePath());
 
+        final var isDirectory = Files.isDirectory(path);
         final var scanCache = new ScanCache(session, handler);
-        if (Boolean.FALSE.equals(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.debug_nocache, Boolean.class))) // $NON-NLS-1$
+        if (isDirectory && Boolean.FALSE.equals(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.debug_nocache, Boolean.class))) // $NON-NLS-1$
             containersByName = scanCache.load(dir, soptions);
         else
             containersByName = Collections.synchronizedMap(new HashMap<>());
 
-        if (!Files.isDirectory(path))
+        if (!isDirectory)
             return;
 
         handler.clearInfos();

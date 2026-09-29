@@ -91,9 +91,13 @@ public class MainFrame extends Application {
 
     /**
      * Launches the JavaFX application.
+     * The application class is passed explicitly: the no-arg
+     * {@code Application.launch()} resolves the caller via stack inspection,
+     * which fails in a GraalVM native image with
+     * {@code ClassNotFoundException: jrm.fx.ui.MainFrame}.
      */
     public static void launch() {
-        Application.launch();
+        Application.launch(MainFrame.class);
     }
 
     /**

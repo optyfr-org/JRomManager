@@ -415,10 +415,15 @@ public class ProfilePanelController implements Initializable {
         for (int i = 0; i < columns.size(); i++) {
             try {
                 final var th = (TableColumnHeader) profilesList.queryAccessibleAttribute(AccessibleAttribute.COLUMN_AT_INDEX, i);
+                if (th == null)
+                    continue;
                 final var columnToFitMethod = TableColumnHeader.class.getDeclaredMethod("resizeColumnToFitContent", int.class);
                 columnToFitMethod.setAccessible(true); // NOSONAR
                 columnToFitMethod.invoke(th, -1);
-            } catch (final NoSuchMethodException | IllegalAccessException | InvocationTargetException e) /* NOSONAR */ {
+            } catch (final NoSuchMethodException | IllegalAccessException | InvocationTargetException | NullPointerException e) /* NOSONAR */ {
+                // NullPointerException covers GraalVM native-image where the reflective
+                // setAccessible/invoke on the package-private skin method is unsupported:
+                // columns simply keep their default width instead of autofitting.
                 Log.err("Failed to resize column " + columns.get(i).getText(), e);
             }
 
