@@ -40,10 +40,12 @@ import net.sf.sevenzipjbinding.IOutFeatureSetMultithreading;
 import net.sf.sevenzipjbinding.IOutFeatureSetSolid;
 import net.sf.sevenzipjbinding.IOutItemAllFormats;
 import net.sf.sevenzipjbinding.IOutUpdateArchive;
+import net.sf.sevenzipjbinding.ISequentialInStream;
 import net.sf.sevenzipjbinding.PropID;
 import net.sf.sevenzipjbinding.SevenZip;
 import net.sf.sevenzipjbinding.SevenZipException;
 import net.sf.sevenzipjbinding.SevenZipNativeInitializationException;
+import net.sf.sevenzipjbinding.impl.OutItemFactory;
 import net.sf.sevenzipjbinding.impl.RandomAccessFileInStream;
 import net.sf.sevenzipjbinding.impl.RandomAccessFileOutStream;
 import net.sf.sevenzipjbinding.impl.VolumedArchiveInStream;
@@ -225,6 +227,25 @@ abstract class NArchive extends NArchiveBase {
                     if (cb != null)
                         cb.setCompleted(complete);
                 }
+
+                // Explicit overrides so GraalVM native-image registers these JNI-visible
+                // methods on the runtime callback class itself: the SevenZip native bridge
+                // resolves GetMethodID against the concrete class and does not fall back to
+                // inherited declarations.
+                @Override
+                public IOutItemAllFormats getItemInformation(final int index, final OutItemFactory<IOutItemAllFormats> outItemFactory) throws SevenZipException {
+                    return super.getItemInformation(index, outItemFactory);
+                }
+
+                @Override
+                public ISequentialInStream getStream(final int index) throws SevenZipException {
+                    return super.getStream(index);
+                }
+
+                @Override
+                public void setOperationResult(final boolean operationResultOk) throws SevenZipException {
+                    super.setOperationResult(operationResultOk);
+                }
             };
 
             if (archive.exists() && getIInArchive() != null) {
@@ -276,18 +297,31 @@ abstract class NArchive extends NArchiveBase {
                 if (iout instanceof IOutFeatureSetLevel sl)
                     sl.setLevel(SevenZipOptions.valueOf(session.getUser().getSettings().getProperty(SettingsEnum.sevenzip_level)).getLevel()); // $NON-NLS-1$
                 if (iout instanceof IOutFeatureSetMultithreading sm)
-                    sm.setThreadCount(session.getUser().getSettings().getProperty(SettingsEnum.sevenzip_threads, Integer.class)); // $NON-NLS-1$
+                    sm.setThreadCount(sevenZipThreadCount(SettingsEnum.sevenzip_threads));
                 break;
             case ZIP:
                 if (iout instanceof IOutFeatureSetLevel sl)
                     sl.setLevel(ZipOptions.valueOf(session.getUser().getSettings().getProperty(SettingsEnum.zip_level)).getLevel()); // $NON-NLS-1$
                 if (iout instanceof IOutFeatureSetMultithreading sm)
-                    sm.setThreadCount(session.getUser().getSettings().getProperty(SettingsEnum.zip_threads, Integer.class)); // $NON-NLS-1$
+                    sm.setThreadCount(sevenZipThreadCount(SettingsEnum.zip_threads));
                 break;
             default:
                 break;
         }
+    }
 
+    /**
+     * Resolves the SevenZip compression thread count, forcing single-threaded operation inside a GraalVM native
+     * image: the SevenZip native compression workers cannot perform JNI lookups there, which crashes archive
+     * creation as soon as multithreading is enabled. The JVM keeps the configured value.
+     *
+     * @param key the settings key holding the configured thread count
+     * @return 1 in a native image, the configured value otherwise
+     */
+    private int sevenZipThreadCount(final jrm.misc.SettingsEnum key) {
+        if ("runtime".equals(System.getProperty("org.graalvm.nativeimage.imagecode"))) //$NON-NLS-1$ //$NON-NLS-2$
+            return 1;
+        return session.getUser().getSettings().getProperty(key, Integer.class);
     }
 
     /**

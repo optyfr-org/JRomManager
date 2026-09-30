@@ -1,0 +1,25 @@
+{
+  "resources": {
+    "includes": [
+      {
+        "pattern": "jtrrntzip/messages.*\\.properties$"
+      },
+      {
+        "pattern": "jtrrntzip/resources/messages.*\\.properties$"
+      }
+    ],
+    "excludes": []
+  },
+  "bundles": [
+    {
+      "name": "jtrrntzip.messages"
+    },
+    {
+      "name": "jtrrntzip.resources.messages"
+    }
+  ],
+  "locales": [
+    "en",
+    "fr"
+  ]
+}
