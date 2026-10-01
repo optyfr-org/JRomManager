@@ -73,7 +73,14 @@ public final class ForyPersistence {
 
     static final int CACHE_DEPTH = 100;
     static final int REPORT_DEPTH = 100;
-    static final int TRNTCHK_DEPTH = 1_000_000;
+    // Fory's maxDepth is not just a validation limit: it sizes a per-instance type-info cache array
+    // that is re-filled on registration, once per pooled Fory (pool size = 4x CPUs). The historic
+    // 1_000_000 value (carried over from the JDK deserialization filter's nesting budget) therefore
+    // stalled class initialization for ~40s and wasted ~256MB. TrntChkReport trees mirror directory
+    // trees, whose depth is capped by OS path limits at a few hundred levels; each nesting level
+    // consumes a few depth units (node, child list, node, ...), so 5_000 leaves huge headroom while
+    // keeping initialization in the millisecond range.
+    static final int TRNTCHK_DEPTH = 5_000;
 
     private static final ThreadSafeFory CACHE = create(CACHE_DEPTH, fory -> {
         registerShared(fory);
@@ -116,8 +123,25 @@ public final class ForyPersistence {
                 .withJdkClassSerializableCheck(true)
                 .buildThreadSafeFory();
         register.accept(fory);
-        fory.ensureSerializersCompiled();
+        // Eagerly Janino-compiling every registered serializer stalls initialization, so only do it
+        // while a native image is being built: this class is initialized at build time (see
+        // gradle/native-image.gradle) and the closed-world runtime cannot JIT-compile new
+        // serializers on first use. On a regular JVM, serializers compile lazily (async in the
+        // background), keeping class initialization cheap.
+        if (isNativeImageBuildTime())
+            fory.ensureSerializersCompiled();
         return fory;
+    }
+
+    /**
+     * Tells whether the current VM is building a GraalVM native image. Native-image sets the
+     * {@code org.graalvm.nativeimage.imagecode} system property to {@code buildtime} during image
+     * construction and to {@code runtime} inside a built image; it is absent on a regular JVM.
+     *
+     * @return {@code true} only while a native image is being built
+     */
+    private static boolean isNativeImageBuildTime() {
+        return "buildtime".equals(System.getProperty("org.graalvm.nativeimage.imagecode"));
     }
 
     static void registerShared(final ThreadSafeFory fory) {

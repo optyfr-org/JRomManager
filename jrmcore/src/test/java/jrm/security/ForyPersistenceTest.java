@@ -285,6 +285,39 @@ class ForyPersistenceTest {
     }
 
     @Test
+    @DisplayName("TRNTCHK max depth should stay small enough for fast Fory initialization")
+    void trntChkDepthShouldStaySmall() {
+        // Fory's maxDepth sizes a per-instance type-info cache array that is re-filled on every
+        // registration for every pooled Fory (pool size = 4x CPUs): a 1_000_000 depth stalled
+        // ForyPersistence initialization for ~40s. TrntChkReport trees mirror directory trees, so a
+        // few thousand levels is already far beyond any realistic nesting.
+        assertThat(ForyPersistence.TRNTCHK_DEPTH).isLessThanOrEqualTo(10_000);
+    }
+
+    @Test
+    @DisplayName("deeply nested TrntChkReport should round-trip under TRNTCHK")
+    void deeplyNestedTrntChkReportShouldRoundTrip(@TempDir final Path torrentDir) throws Exception {
+        final var report = new TrntChkReport(torrentDir.resolve("deep.torrent").toFile());
+        Object node = addTrntChkReportChild(report, "n0");
+        for (int i = 1; i < 500; i++)
+            node = addTrntChkReportChild(node, "n" + i);
+
+        final File file = torrentDir.resolve("deep.cache").toFile();
+        SignedObjectStore.write(session, file, report, SignedObjectStore.Codec.TRNTCHK);
+        final TrntChkReport loaded = (TrntChkReport) SignedObjectStore.read(session, file, SignedObjectStore.Codec.TRNTCHK);
+
+        assertThat(loaded).isNotNull();
+        int depth = 0;
+        Object current = loaded.getNodes().get(0);
+        while (current != null) {
+            depth++;
+            final var children = ((TrntChkReport.Child) current).getChildren();
+            current = (children == null || children.isEmpty()) ? null : children.get(0);
+        }
+        assertThat(depth).isEqualTo(500);
+    }
+
+    @Test
     @DisplayName("Profile Machine+Rom/Disk/Sample should restore parent after CACHE load")
     void profileMachineGraphShouldRestoreParents() throws Exception {
         final Constructor<Profile> constructor = Profile.class.getDeclaredConstructor();
