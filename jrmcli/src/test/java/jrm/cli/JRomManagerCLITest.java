@@ -1,4 +1,4 @@
-﻿package jrm.cli;
+package jrm.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -789,6 +789,25 @@ class JRomManagerCLITest {
                 System.setIn(previousIn);
                 System.setOut(previousOut);
             }
+        }
+    }
+
+    @Nested
+    @DisplayName("Bundled capabilities tests")
+    class BundledCapabilitiesTests {
+
+        @Test
+        @DisplayName("seeded caps should carry a backspace capability decodable to Ctrl+H")
+        void seededCapsShouldDecodeBackspaceToCtrlH() {
+            assertThat(CLIRunner.seedBundledCapabilities("xterm-256color")).isTrue();
+            final var caps = org.jline.utils.InfoCmp.getLoadedInfoCmp("xterm-256color");
+            assertThat(caps).contains("kbs=^H");
+        }
+
+        @Test
+        @DisplayName("seeding unknown terminal type should report false")
+        void seedingUnknownTerminalShouldReportFalse() {
+            assertThat(CLIRunner.seedBundledCapabilities("does-not-exist")).isFalse();
         }
     }
 

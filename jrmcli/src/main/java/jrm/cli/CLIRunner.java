@@ -8,6 +8,7 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 
 import jrm.misc.Log;
 
@@ -58,6 +59,7 @@ public class CLIRunner {
     }
 
     void interactive(CLIArgs cmd) throws IOException {
+        preferBundledCapabilities();
         cli.terminal = TerminalBuilder.builder().system(true).build();
         final LineReader reader = LineReaderBuilder.builder()
                 .terminal(cli.terminal)
@@ -105,6 +107,53 @@ public class CLIRunner {
             if (keyMap != null) {
                 keyMap.bind(delete, KeyMap.del(), KeyMap.ctrl('H'));
             }
+        }
+    }
+
+    /**
+     * Pre-seeds JLine's terminfo cache with its bundled capabilities for the current terminal type
+     * when running under git-bash/MSYS2, and reports whether the override was applied.
+     * <p>
+     * Root cause of the git-bash backspace bug (upstream jline/jline3#1445): JLine resolves key
+     * capabilities by shelling out to {@code infocmp}. The MSYS ncurses database reports
+     * {@code kbs=^?}, which JLine's {@code Curses.doTputs} mis-decodes as U+FFFF instead of DEL
+     * ({@code '^' - '@' == -1}, missing the standard {@code ^?}-means-DEL special case). Backspace
+     * then arrives as U+FFFF, matches no binding and self-inserts (the ￿ tofu). Where no
+     * {@code infocmp} exists (cmd.exe) JLine falls back to its bundled caps ({@code kbs=^H},
+     * decoded correctly), which is why only git-bash is affected. Seeding the bundled caps first
+     * makes JLine skip the external call entirely.
+     *
+     * @return the terminal type that was overridden, or empty if no override was applied
+     */
+    static Optional<String> preferBundledCapabilities() {
+        if (System.getenv("MSYSTEM") == null)
+            return Optional.empty();
+        final var term = System.getenv("TERM");
+        final var candidates = term != null ? new String[] { term, "xterm-256color", "xterm" } : new String[] { "xterm-256color", "xterm" };
+        for (final var name : candidates) {
+            if (seedBundledCapabilities(name))
+                return Optional.of(name);
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Loads JLine's bundled terminfo capabilities for the given terminal type into its cache so
+     * subsequent terminal creation skips the external {@code infocmp} call.
+     *
+     * @param name the terminal type (without {@code .caps} suffix)
+     * @return {@code true} if bundled capabilities were found and cached
+     */
+    static boolean seedBundledCapabilities(final String name) {
+        try (final var in = org.jline.utils.InfoCmp.class.getResourceAsStream(name + ".caps")) {
+            if (in == null)
+                return false;
+            final var caps = new String(in.readAllBytes(), StandardCharsets.UTF_8);
+            org.jline.utils.InfoCmp.setLoadedInfoCmp(name, caps);
+            return true;
+        } catch (final IOException e) {
+            Log.debug(() -> "Cannot load bundled terminfo caps for " + name + ": " + e);
+            return false;
         }
     }
 

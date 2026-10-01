@@ -12,17 +12,20 @@ jlink {
         // java.desktop is auto-derived by the jlink plugin; re-declaring it breaks
         // the merged module-info compilation with "duplicate requires".
     }
+    // --sun-misc-unsafe-memory-access=allow on every launcher: Fory calls the terminally
+    // deprecated sun.misc.Unsafe::staticFieldOffset, and without this flag every start prints a
+    // warning that cannot be silenced from code.
     launcher {
         name = 'JRomManager'
         moduleName = 'jrm.merged.module'
         mainClass = 'jrm.fx.JRomManagerMulti'
-        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED', '--add-opens=javafx.controls/javafx.scene.control.skin=jrm.merged.module', '--enable-native-access=javafx.graphics,jrm.merged.module']
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--sun-misc-unsafe-memory-access=allow', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED', '--add-opens=javafx.controls/javafx.scene.control.skin=jrm.merged.module', '--enable-native-access=javafx.graphics,jrm.merged.module']
     }
     secondaryLauncher {
         name = 'JRomManagerSwing'
         moduleName = 'jrm.merged.module'
         mainClass = 'jrm.JRomManagerMulti'
-        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED', '--enable-native-access=jrm.merged.module']
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--sun-misc-unsafe-memory-access=allow', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED', '--enable-native-access=jrm.merged.module']
     }
     secondaryLauncher {
         name = 'JRomManagerCLI'
@@ -31,14 +34,14 @@ jlink {
         winConsole = true
         // Note: no org.jline.terminal.ffm entry: jline is merged into jrm.merged.module,
         // so there is no such module in the image and naming it only prints an "Unknown module" warning.
-        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--enable-native-access=jrm.merged.module', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--sun-misc-unsafe-memory-access=allow', '--enable-native-access=jrm.merged.module', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
     }
     secondaryLauncher {
         name = 'JRomManagerServer'
         moduleName = 'jrm.merged.module'
         mainClass = 'jrm.server.Server'
         winConsole = true
-        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--sun-misc-unsafe-memory-access=allow', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
         args = ['--workpath','%HOMEPATH%/.jrommanager']
     }
     secondaryLauncher {
@@ -46,7 +49,7 @@ jlink {
         moduleName = 'jrm.merged.module'
         mainClass = 'jrm.fullserver.FullServer'
         winConsole = true
-        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--sun-misc-unsafe-memory-access=allow', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
         args = ['--workpath','%HOMEPATH%/.jrommanager']
     }
     jpackage {
