@@ -105,6 +105,7 @@ run {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'jrm.server.Server'
     jvmArgs (
+        '--sun-misc-unsafe-memory-access=allow',
         '--enable-native-access=ALL-UNNAMED',
         '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
         '--add-opens', 'java.base/java.lang.invoke=ALL-UNNAMED',
@@ -112,7 +113,7 @@ run {
         '--add-opens', 'java.base/java.util=ALL-UNNAMED'
     )
     args (
-        '-d', '-w', '%HOMEPATH%/.jrommanager'
+        '-w', '%HOMEPATH%/.jrommanager'
     )
     workingDir = project.rootDir
     standardInput System.in
@@ -124,6 +125,7 @@ task runFullServer(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'jrm.fullserver.FullServer'
     jvmArgs (
+        '--sun-misc-unsafe-memory-access=allow',
         '--enable-native-access=ALL-UNNAMED',
         '--add-opens', 'java.base/java.lang=ALL-UNNAMED',
         '--add-opens', 'java.base/java.lang.invoke=ALL-UNNAMED',
