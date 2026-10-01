@@ -9,7 +9,8 @@ jlink {
         excludeProvides service: 'org.apache.fory.shaded.org.codehaus.commons.compiler.ICompilerFactory'
         requires 'ch.qos.logback.classic'
         requires 'jdk.zipfs'
-        requires 'java.desktop'
+        // java.desktop is auto-derived by the jlink plugin; re-declaring it breaks
+        // the merged module-info compilation with "duplicate requires".
     }
     launcher {
         name = 'JRomManager'
