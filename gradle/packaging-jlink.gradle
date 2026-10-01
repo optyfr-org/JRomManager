@@ -16,13 +16,13 @@ jlink {
         name = 'JRomManager'
         moduleName = 'jrm.merged.module'
         mainClass = 'jrm.fx.JRomManagerMulti'
-        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED', '--add-opens=javafx.controls/javafx.scene.control.skin=jrm.merged.module', '--enable-native-access=javafx.graphics,jrm.merged.module']
     }
     secondaryLauncher {
         name = 'JRomManagerSwing'
         moduleName = 'jrm.merged.module'
         mainClass = 'jrm.JRomManagerMulti'
-        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED', '--enable-native-access=jrm.merged.module']
     }
     secondaryLauncher {
         name = 'JRomManagerCLI'

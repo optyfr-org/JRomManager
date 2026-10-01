@@ -2,6 +2,7 @@ package jrm.fx.ui;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InaccessibleObjectException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -420,11 +421,15 @@ public class ProfilePanelController implements Initializable {
                 final var columnToFitMethod = TableColumnHeader.class.getDeclaredMethod("resizeColumnToFitContent", int.class);
                 columnToFitMethod.setAccessible(true); // NOSONAR
                 columnToFitMethod.invoke(th, -1);
-            } catch (final NoSuchMethodException | IllegalAccessException | InvocationTargetException | NullPointerException e) /* NOSONAR */ {
+            } catch (final InaccessibleObjectException | NoSuchMethodException | IllegalAccessException | InvocationTargetException
+                    | NullPointerException | SecurityException e) /* NOSONAR */ {
+                // InaccessibleObjectException covers modular runtimes (jlink image) where
+                // javafx.controls does not open javafx.scene.control.skin to our module, and
                 // NullPointerException covers GraalVM native-image where the reflective
                 // setAccessible/invoke on the package-private skin method is unsupported:
                 // columns simply keep their default width instead of autofitting.
-                Log.err("Failed to resize column " + columns.get(i).getText(), e);
+                final var columnName = columns.get(i).getText();
+                Log.debug(() -> "Cannot autofit column " + columnName + ": " + e);
             }
 
         }

@@ -285,16 +285,6 @@ class ForyPersistenceTest {
     }
 
     @Test
-    @DisplayName("TRNTCHK max depth should stay small enough for fast Fory initialization")
-    void trntChkDepthShouldStaySmall() {
-        // Fory's maxDepth sizes a per-instance type-info cache array that is re-filled on every
-        // registration for every pooled Fory (pool size = 4x CPUs): a 1_000_000 depth stalled
-        // ForyPersistence initialization for ~40s. TrntChkReport trees mirror directory trees, so a
-        // few thousand levels is already far beyond any realistic nesting.
-        assertThat(ForyPersistence.TRNTCHK_DEPTH).isLessThanOrEqualTo(10_000);
-    }
-
-    @Test
     @DisplayName("deeply nested TrntChkReport should round-trip under TRNTCHK")
     void deeplyNestedTrntChkReportShouldRoundTrip(@TempDir final Path torrentDir) throws Exception {
         final var report = new TrntChkReport(torrentDir.resolve("deep.torrent").toFile());

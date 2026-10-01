@@ -9,9 +9,17 @@
 package jrm.security;
 
 import java.io.File;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 import org.apache.fory.ThreadSafeFory;
+
+import jrm.misc.Log;
 
 import jrm.batch.DirUpdaterResults;
 import jrm.batch.TrntChkReport;
@@ -82,6 +90,19 @@ public final class ForyPersistence {
     // keeping initialization in the millisecond range.
     static final int TRNTCHK_DEPTH = 5_000;
 
+    // Declared before the codec fields: <clinit> submits warmup tasks while creating them.
+    /** Single daemon thread shared by the three codec warmups; never blocks class initialization. */
+    private static final ExecutorService WARMUP_POOL = Executors.newThreadPerTaskExecutor(new ThreadFactory() {
+        private final AtomicInteger counter = new AtomicInteger();
+
+        @Override
+        public Thread newThread(final Runnable task) {
+            final Thread thread = new Thread(task, "fory-warmup-" + counter.incrementAndGet());
+            thread.setDaemon(true);
+            return thread;
+        }
+    });
+
     private static final ThreadSafeFory CACHE = create(CACHE_DEPTH, fory -> {
         registerShared(fory);
         registerProfileData(fory);
@@ -123,14 +144,32 @@ public final class ForyPersistence {
                 .withJdkClassSerializableCheck(true)
                 .buildThreadSafeFory();
         register.accept(fory);
-        // Eagerly Janino-compiling every registered serializer stalls initialization, so only do it
-        // while a native image is being built: this class is initialized at build time (see
-        // gradle/native-image.gradle) and the closed-world runtime cannot JIT-compile new
-        // serializers on first use. On a regular JVM, serializers compile lazily (async in the
-        // background), keeping class initialization cheap.
-        if (isNativeImageBuildTime())
-            fory.ensureSerializersCompiled();
+        warmUp(fory);
         return fory;
+    }
+
+    /**
+     * Pre-compiles the registered serializers so steady-state (de)serialization runs at full JIT
+     * speed. While a native image is being built (this class is initialized at build time, see
+     * gradle/native-image.gradle) compilation must happen synchronously: the closed-world runtime
+     * cannot JIT-compile new serializers on first use. On a regular JVM it runs on a daemon thread
+     * so class initialization stays cheap; until it finishes, Fory transparently falls back to its
+     * interpreter.
+     *
+     * @param fory the fully registered Fory instance to warm up
+     */
+    private static void warmUp(final ThreadSafeFory fory) {
+        if (isNativeImageBuildTime()) {
+            fory.ensureSerializersCompiled();
+            return;
+        }
+        WARMUP_POOL.execute(() -> {
+            try {
+                fory.ensureSerializersCompiled();
+            } catch (final RuntimeException e) {
+                Log.warn(() -> "Fory serializer warmup failed, continuing with interpreted serializers: " + e);
+            }
+        });
     }
 
     /**
