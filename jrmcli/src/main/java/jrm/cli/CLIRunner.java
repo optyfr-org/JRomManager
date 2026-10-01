@@ -4,14 +4,20 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 
 import jrm.misc.Log;
 
+import org.jline.keymap.KeyMap;
+import org.jline.reader.Binding;
 import org.jline.reader.Completer;
 import org.jline.reader.EndOfFileException;
 import org.jline.reader.LineReader;
 import org.jline.reader.LineReaderBuilder;
+import org.jline.reader.Reference;
 import org.jline.reader.UserInterruptException;
 import org.jline.reader.impl.completer.AggregateCompleter;
 import org.jline.reader.impl.completer.ArgumentCompleter;
@@ -33,13 +39,12 @@ public class CLIRunner {
     }
 
     void stream(final CLIArgs cmd) throws IOException {
-        /* Start terminal that support non-interactive mode */
-        cli.terminal = TerminalBuilder.builder().dumb(true).build();
-        /* Create a PrintWriter for outputting messages to the terminal */
-        cli.out = cli.terminal.writer();
+        /* Plain output without terminal handling: no JLine terminal is created at all, so no
+         * "Unable to create a system terminal" warning is emitted when stdin is piped. */
+        cli.out = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
         cli.printer = new CLIPrinter(cli.out);
         /* Start processing commands from the input file or standard input */
-        final Reader reader = cmd.file != null ? new FileReader(cmd.file) : new InputStreamReader(System.in);
+        final Reader reader = cmd.file != null ? new FileReader(cmd.file, StandardCharsets.UTF_8) : new InputStreamReader(System.in, StandardCharsets.UTF_8);
         try (final var in = new BufferedReader(reader)) {
             String line;
             while (null != (line = in.readLine())) {
@@ -61,6 +66,7 @@ public class CLIRunner {
                 .build();
         cli.out = cli.terminal.writer();
         cli.printer = new CLIPrinter(cli.out);
+        bindBackspace(reader);
         do {
             boolean doBreak = false;
             String line = null;
@@ -81,6 +87,25 @@ public class CLIRunner {
                     Log.err(e.getMessage(), e);
             }
         } while (true);
+    }
+
+    /**
+     * Forces both DEL ({@code \177}) and Ctrl+H ({@code \010}) to delete the previous character in
+     * the emacs and vi-insertion keymaps. Some terminals (notably git-bash/MSYS2, see
+     * jline/jline3#1445) report a backspace byte that matches neither the terminfo
+     * {@code key_backspace} capability nor the pty erase character JLine binds by default, so the key
+     * would otherwise self-insert instead of deleting.
+     *
+     * @param reader the line reader whose keymaps to patch
+     */
+    private static void bindBackspace(final LineReader reader) {
+        final var delete = new Reference(LineReader.BACKWARD_DELETE_CHAR);
+        for (final var keyMapName : new String[] { LineReader.EMACS, LineReader.VIINS }) {
+            final KeyMap<Binding> keyMap = reader.getKeyMaps().get(keyMapName);
+            if (keyMap != null) {
+                keyMap.bind(delete, KeyMap.del(), KeyMap.ctrl('H'));
+            }
+        }
     }
 
     private Completer createCompleter() {

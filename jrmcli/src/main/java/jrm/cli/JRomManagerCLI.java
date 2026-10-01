@@ -179,10 +179,13 @@ public class JRomManagerCLI {
 
         initCommandHandlers();
 
-        if (cmd.interactive) {
+        if (cmd.interactive && System.console() != null) {
             /* Start terminal that support interactive mode */
             runner.interactive(cmd);
         } else {
+            /* Piped/redirected input (or no console at all): process commands as a plain stream
+             * instead of starting a JLine system terminal that would only fall back to a dumb
+             * terminal with a warning. */
             runner.stream(cmd);
         }
     }

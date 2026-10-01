@@ -1,4 +1,4 @@
-package jrm.cli;
+﻿package jrm.cli;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,7 +28,7 @@ import jrm.security.Session;
  * Unit tests for {@link JRomManagerCLI} focusing on command-line parsing ({@code splitLine}), command dispatch
  * ({@code analyze}), and environment variable lookup ({@code getEnv}).
  * <p>
- * The heavy constructor of {@link JRomManagerCLI} initialises a JLine terminal, a {@link Session}, and logging — all of which
+ * The heavy constructor of {@link JRomManagerCLI} initialises a JLine terminal, a {@link Session}, and logging â€” all of which
  * are unsuitable for fast unit tests. Instead, an instance is created via {@code sun.misc.Unsafe.allocateInstance()} (bypassing
  * the constructor) and the required collaborators are injected (via direct assignment for package-private fields or reflection for private ones).
  */
@@ -88,7 +88,7 @@ class JRomManagerCLITest {
         System.clearProperty("JRM_TEST_PROP");
     }
 
-    // ─── Helper methods ───────────────────────────────────────────
+    // â”€â”€â”€ Helper methods â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     /**
      * Allocates a {@link JRomManagerCLI} instance without calling its constructor, using {@link sun.misc.Unsafe}.
@@ -157,7 +157,7 @@ class JRomManagerCLITest {
         return stringWriter.toString();
     }
 
-    // ─── splitLine tests ──────────────────────────────────────────
+    // â”€â”€â”€ splitLine tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Nested
     @DisplayName("splitLine tests")
@@ -280,7 +280,7 @@ class JRomManagerCLITest {
         }
     }
 
-    // ─── analyze dispatch tests ──────────────────────────────────
+    // â”€â”€â”€ analyze dispatch tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Nested
     @DisplayName("analyze dispatch tests")
@@ -361,7 +361,7 @@ class JRomManagerCLITest {
         }
     }
 
-    // ─── analyze 'set' command tests ─────────────────────────────
+    // â”€â”€â”€ analyze 'set' command tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Nested
     @DisplayName("analyze 'set' command tests")
@@ -411,7 +411,7 @@ class JRomManagerCLITest {
         }
     }
 
-    // ─── analyze 'cd' command tests ──────────────────────────────
+    // â”€â”€â”€ analyze 'cd' command tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Nested
     @DisplayName("analyze 'cd' command tests")
@@ -450,7 +450,7 @@ class JRomManagerCLITest {
         }
     }
 
-    // ─── analyze 'dirupd8r' command tests ─────────────────────────
+    // â”€â”€â”€ analyze 'dirupd8r' command tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Nested
     @DisplayName("analyze 'dirupd8r' command tests")
@@ -489,7 +489,7 @@ class JRomManagerCLITest {
         }
     }
 
-    // ─── analyze 'trntchk' command tests ──────────────────────────
+    // â”€â”€â”€ analyze 'trntchk' command tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Nested
     @DisplayName("analyze 'trntchk' command tests")
@@ -528,7 +528,7 @@ class JRomManagerCLITest {
         }
     }
 
-    // ─── analyze 'compressor' command tests ───────────────────────
+    // â”€â”€â”€ analyze 'compressor' command tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Nested
     @DisplayName("analyze 'compressor' command tests")
@@ -559,7 +559,7 @@ class JRomManagerCLITest {
         }
     }
 
-    // ─── analyze 'ls' and 'load' command tests ────────────────────
+    // â”€â”€â”€ analyze 'ls' and 'load' command tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Nested
     @DisplayName("analyze 'ls' and 'load' command tests")
@@ -593,7 +593,7 @@ class JRomManagerCLITest {
         }
     }
 
-    // ─── analyze file system commands (md, rm) ───────────────────
+    // â”€â”€â”€ analyze file system commands (md, rm) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Nested
     @DisplayName("analyze 'md' and 'rm' command tests")
@@ -660,7 +660,7 @@ class JRomManagerCLITest {
         }
     }
 
-    // ─── getEnv tests ─────────────────────────────────────────────
+    // â”€â”€â”€ getEnv tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Nested
     @DisplayName("getEnv tests")
@@ -706,7 +706,7 @@ class JRomManagerCLITest {
         }
     }
 
-    // ─── analyze edge cases ──────────────────────────────────────
+    // â”€â”€â”€ analyze edge cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @Nested
     @DisplayName("analyze edge case tests")
@@ -765,6 +765,52 @@ class JRomManagerCLITest {
             if (CMD.of(input) == CMD.EXIT) return;
             cli.analyze(input);
             assertThat(CMD.of(input)).isNotEqualTo(CMD.UNKNOWN);
+        }
+    }
+
+    @Nested
+    @DisplayName("Stream mode tests")
+    class StreamModeTests {
+
+        @Test
+        @DisplayName("stream should process piped commands without creating a terminal")
+        void streamShouldProcessPipedCommandsWithoutTerminal() throws Exception {
+            final var pipedIn = new java.io.ByteArrayInputStream("help\n".getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            final var capturedOut = new java.io.ByteArrayOutputStream();
+            final var previousIn = System.in;
+            final var previousOut = System.out;
+            System.setIn(pipedIn);
+            System.setOut(new java.io.PrintStream(capturedOut, true, java.nio.charset.StandardCharsets.UTF_8));
+            try {
+                cli.runner.stream(new CLIArgs());
+                assertThat(cli.terminal).isNull();
+                assertThat(capturedOut.toString(java.nio.charset.StandardCharsets.UTF_8)).contains("help");
+            } finally {
+                System.setIn(previousIn);
+                System.setOut(previousOut);
+            }
+        }
+    }
+
+    @Nested
+    @DisplayName("Backspace binding tests")
+    class BackspaceBindingTests {
+
+        @Test
+        @DisplayName("DEL and Ctrl+H should delete the previous char in emacs and viins keymaps")
+        void backspaceKeysShouldDeletePreviousChar() throws Exception {
+            try (final var terminal = org.jline.terminal.TerminalBuilder.builder().dumb(true).build()) {
+                final var reader = org.jline.reader.LineReaderBuilder.builder().terminal(terminal).build();
+                final Method bindBackspace = CLIRunner.class.getDeclaredMethod("bindBackspace", org.jline.reader.LineReader.class);
+                bindBackspace.setAccessible(true);
+                bindBackspace.invoke(null, reader);
+                for (final var keyMapName : new String[] { org.jline.reader.LineReader.EMACS, org.jline.reader.LineReader.VIINS }) {
+                    final var keyMap = reader.getKeyMaps().get(keyMapName);
+                    assertThat(keyMap).isNotNull();
+                    for (final var keySeq : new String[] { org.jline.keymap.KeyMap.del(), org.jline.keymap.KeyMap.ctrl('H') })
+                        assertThat(keyMap.getBound(keySeq)).isEqualTo(new org.jline.reader.Reference(org.jline.reader.LineReader.BACKWARD_DELETE_CHAR));
+                }
+            }
         }
     }
 }
