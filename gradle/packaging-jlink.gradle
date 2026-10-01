@@ -29,7 +29,9 @@ jlink {
         moduleName = 'jrm.merged.module'
         mainClass = 'jrm.cli.JRomManagerCLI'
         winConsole = true
-        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--enable-native-access=jrm.merged.module,org.jline.terminal.ffm', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
+        // Note: no org.jline.terminal.ffm entry: jline is merged into jrm.merged.module,
+        // so there is no such module in the image and naming it only prints an "Unknown module" warning.
+        jvmArgs = ['-Dfile.encoding=UTF-8', '-XX:MaxRAMPercentage=75', '--enable-native-access=jrm.merged.module', '--add-opens=java.base/java.lang.invoke=ALL-UNNAMED']
     }
     secondaryLauncher {
         name = 'JRomManagerServer'
