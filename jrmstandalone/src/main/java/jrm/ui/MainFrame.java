@@ -109,6 +109,8 @@ public class MainFrame extends JFrame implements Popup {
             if (session.getCurrProfile() != null)
                 session.getCurrProfile().saveSettings();
             session.getUser().getSettings().saveSettings();
+            // Close logging last so late records cannot race the log manager on closed handlers.
+            Log.shutdown();
         }));
     }
 

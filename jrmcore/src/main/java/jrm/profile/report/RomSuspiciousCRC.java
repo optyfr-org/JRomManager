@@ -35,6 +35,15 @@ public class RomSuspiciousCRC extends Subject {
     }
 
     /**
+     * No-argument constructor for Fory deserialization.
+     * <p>
+     * Required on GraalVM native images (JDK25+); fields are injected by the deserializer after instantiation.
+     */
+    protected RomSuspiciousCRC() {
+        super();
+    }
+
+    /**
      * Returns a localized string summarizing the suspicious CRC32 value.
      *
      * @return the localized message string

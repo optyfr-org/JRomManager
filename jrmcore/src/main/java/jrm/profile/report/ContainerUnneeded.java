@@ -27,6 +27,15 @@ public class ContainerUnneeded extends ContainerSubject {
     }
 
     /**
+     * No-argument constructor for Fory deserialization.
+     * <p>
+     * Required on GraalVM native images (JDK25+); fields are injected by the deserializer after instantiation.
+     */
+    protected ContainerUnneeded() {
+        super(null);
+    }
+
+    /**
      * Returns a localized string summarizing that the container is unneeded.
      *
      * @return the localized message string

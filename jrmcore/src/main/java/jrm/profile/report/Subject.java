@@ -50,13 +50,24 @@ public abstract class Subject extends AbstractList<Note> implements StatusRender
     protected transient int id = -1;
 
     /**
-     * Constructs a new Subject associated with the specified gaming system model.
+     * Constructs a new Subject bound to the specified {@link AnywareBase} parent.
      *
-     * @param machine the gaming system or romset model to associate
+     * @param ware the parent ware, may be {@code null} for orphan pseudo-subjects
      */
-    protected Subject(final AnywareBase machine) {
-        ware = machine;
+    protected Subject(final AnywareBase ware) {
+        this.ware = ware;
         notes = new ArrayList<>();
+    }
+
+    /**
+     * No-argument constructor for Fory deserialization.
+     * <p>
+     * Required on GraalVM native images (JDK25+): {@code Subject} extends the non-serializable
+     * {@link AbstractList}, so Fory cannot fall back to ObjectStream construction and needs an
+     * accessible no-arg constructor. Fields are injected by the deserializer after instantiation.
+     */
+    protected Subject() {
+        this(null);
     }
 
     /**

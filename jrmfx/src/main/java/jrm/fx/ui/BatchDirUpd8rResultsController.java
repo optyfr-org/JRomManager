@@ -21,6 +21,7 @@ import javafx.stage.Stage;
 import jrm.batch.DirUpdaterResults.DirUpdaterResult;
 import jrm.fx.ui.controls.ButtonCellFactory;
 import jrm.fx.ui.controls.ColoredIntegerCellFactory;
+import jrm.fx.ui.controls.Dialogs;
 import jrm.fx.ui.controls.EllipsisStringCellFactory;
 import jrm.fx.ui.profile.report.ReportLite;
 import jrm.misc.Log;
@@ -125,7 +126,13 @@ public class BatchDirUpd8rResultsController extends BaseController {
     private void showReport(TableCell<DirUpdaterResult, DirUpdaterResult> cell) {
         final var result = resultList.getItems().get(cell.getIndex());
         try {
-            new ReportLite((Stage) resultList.getScene().getWindow(), Report.load(session, result.getDat()));
+            final var report = Report.load(session, result.getDat());
+            if (report == null) {
+                Log.err("No saved report found for " + result.getDat());
+                Dialogs.showAlert("No saved report found for " + result.getDat() + ". Run the batch update first, then retry.");
+                return;
+            }
+            new ReportLite((Stage) resultList.getScene().getWindow(), report);
         } catch (IOException | URISyntaxException e1) /* NOSONAR */ {
             Log.err("Failed to load report for " + result.getDat(), e1);
         }

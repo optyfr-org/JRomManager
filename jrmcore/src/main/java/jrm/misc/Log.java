@@ -110,6 +110,15 @@ public class Log {
     private static @Getter boolean init = false;
 
     /**
+     * Flag set once the logging subsystem is shut down. Any logging call after this point is a
+     * no-op, which prevents {@link java.util.logging.ErrorManager} noise (e.g. NPE on a closed
+     * {@code FileHandler} writer) when shutdown hooks log after the log manager closed handlers.
+     * 
+     * @return {@code true} once shut down, {@code false} otherwise
+     */
+    private static @Getter boolean shutdown = false;
+
+    /**
      * Private constructor to prevent direct instantiation. Registers a fallback console handler on the global logger.
      */
     private Log() {
@@ -145,6 +154,26 @@ public class Log {
     }
 
     /**
+     * Shuts down the logging subsystem: removes and closes all handlers on the global logger and
+     * marks the subsystem shut down so further logging calls are silently ignored.
+     * <p>
+     * Must be called as the last step of application shutdown hooks, after the final log output,
+     * so the JVM log-manager shutdown cannot race with late log records on already-closed handlers.
+     */
+    public static synchronized void shutdown() {
+        shutdown = true;
+        final var logger = Logger.getGlobal();
+        for (final var handler : logger.getHandlers()) {
+            logger.removeHandler(handler);
+            try {
+                handler.close();
+            } catch (final RuntimeException _) {
+                // best effort: never fail shutdown because of logging
+            }
+        }
+    }
+
+    /**
      * Sets the active logging level for all registered handlers and the root logger.
      * 
      * @param level the new logging level
@@ -172,6 +201,8 @@ public class Log {
     public static void info(final Object msg) {
         if (msg == null)
             return;
+        if (shutdown)
+            return;
         if (msg instanceof String str)
             Logger.getGlobal().info(str);
         else
@@ -184,6 +215,8 @@ public class Log {
      * @param msgSupplier the supplier providing the message to log
      */
     public static void info(Supplier<String> msgSupplier) {
+        if (shutdown)
+            return;
         Logger.getGlobal().info(msgSupplier);
     }
 
@@ -194,6 +227,8 @@ public class Log {
      */
     public static void warn(final Object msg) {
         if (msg == null)
+            return;
+        if (shutdown)
             return;
         if (msg instanceof String str)
             Logger.getGlobal().warning(str);
@@ -207,6 +242,8 @@ public class Log {
      * @param msgSupplier the supplier providing the message to log
      */
     public static void warn(Supplier<String> msgSupplier) {
+        if (shutdown)
+            return;
         Logger.getGlobal().warning(msgSupplier);
     }
 
@@ -217,6 +254,8 @@ public class Log {
      */
     public static void err(final Object msg) {
         if (msg == null)
+            return;
+        if (shutdown)
             return;
         if (msg instanceof String str)
             Logger.getGlobal().severe(str);
@@ -230,6 +269,8 @@ public class Log {
      * @param msgSupplier the supplier providing the message to log
      */
     public static void err(Supplier<String> msgSupplier) {
+        if (shutdown)
+            return;
         Logger.getGlobal().severe(msgSupplier);
     }
 
@@ -240,6 +281,8 @@ public class Log {
      * @param e the underlying throwable exception cause
      */
     public static void err(final String msg, final Throwable e) {
+        if (shutdown)
+            return;
         Logger.getGlobal().log(Level.SEVERE, msg, e);
     }
 
@@ -250,6 +293,8 @@ public class Log {
      * @param e the underlying throwable exception cause
      */
     public static void err(final Supplier<String> msgSupplier, final Throwable e) {
+        if (shutdown)
+            return;
         Logger.getGlobal().log(Level.SEVERE, e, msgSupplier);
     }
 
@@ -260,6 +305,8 @@ public class Log {
      */
     public static void debug(final Object msg) {
         if (msg == null)
+            return;
+        if (shutdown)
             return;
         if (msg instanceof String str)
             Logger.getGlobal().fine(str);
@@ -273,6 +320,8 @@ public class Log {
      * @param msgSupplier the supplier providing the message to log
      */
     public static void debug(Supplier<String> msgSupplier) {
+        if (shutdown)
+            return;
         Logger.getGlobal().fine(msgSupplier);
     }
 
@@ -283,6 +332,8 @@ public class Log {
      */
     public static void trace(final Object msg) {
         if (msg == null)
+            return;
+        if (shutdown)
             return;
         if (msg instanceof String str)
             Logger.getGlobal().finest(str);
@@ -296,6 +347,8 @@ public class Log {
      * @param msgSupplier the supplier providing the message to log
      */
     public static void trace(Supplier<String> msgSupplier) {
+        if (shutdown)
+            return;
         Logger.getGlobal().finest(msgSupplier);
     }
 
@@ -306,6 +359,8 @@ public class Log {
      */
     public static void config(final Object msg) {
         if (msg == null)
+            return;
+        if (shutdown)
             return;
         if (msg instanceof String str)
             Logger.getGlobal().config(str);
@@ -319,6 +374,8 @@ public class Log {
      * @param msgSupplier the supplier providing the message to log
      */
     public static void config(Supplier<String> msgSupplier) {
+        if (shutdown)
+            return;
         Logger.getGlobal().config(msgSupplier);
     }
 
@@ -330,6 +387,8 @@ public class Log {
      * @param thrown the throwing exception instance
      */
     public static void throwing(String sourceClass, String sourceMethod, Throwable thrown) {
+        if (shutdown)
+            return;
         Logger.getGlobal().throwing(sourceClass, sourceMethod, thrown);
     }
 }

@@ -30,6 +30,7 @@ import jrm.aui.profile.report.ReportTreeHandler;
 import jrm.aui.progress.StatusHandler;
 import jrm.aui.status.StatusRendererFactory;
 import jrm.locale.Messages;
+import jrm.misc.Log;
 import jrm.profile.Profile;
 import jrm.profile.data.Anyware;
 import jrm.security.Session;
@@ -736,8 +737,8 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
     public void save(final Session session, final File file) {
         try {
             SignedObjectStore.write(session, file, Report.this, SignedObjectStore.Codec.REPORT);
-        } catch (final Exception _) {
-            // Silently fail to maintain stability on faulty file systems
+        } catch (final Exception e) {
+            Log.err(() -> "Failed to save report to " + file, e);
         }
     }
 
@@ -761,9 +762,12 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
             report.fileModified = reportFile.lastModified();
             report.handler = new ReportTreeDefaultHandler(report);
             return report;
-        } catch (final Exception _) {
-            // Returns null when serialized compatibility fails after structural codebase
-            // updates or when deserialization filter rejects malicious content
+        } catch (final Exception e) {
+            // Returns null when the report file is missing (no scan ran for this DAT yet),
+            // when serialized compatibility fails after structural codebase updates,
+            // or when integrity verification rejects the content. Log so a blank viewer
+            // can be traced back to its cause.
+            Log.err(() -> "Failed to load report for " + file, e);
         }
         return null; // NOSONAR
     }

@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
@@ -32,8 +33,19 @@ import jrm.profile.data.Machine;
 import jrm.profile.data.Rom;
 import jrm.profile.data.Sample;
 import jrm.profile.manager.ProfileNFO;
+import jrm.profile.report.ContainerTZip;
 import jrm.profile.report.ContainerUnknown;
+import jrm.profile.report.ContainerUnneeded;
+import jrm.profile.report.EntryAdd;
+import jrm.profile.report.EntryMissing;
+import jrm.profile.report.EntryMissingDuplicate;
+import jrm.profile.report.EntryOK;
+import jrm.profile.report.EntryUnneeded;
+import jrm.profile.report.EntryWrongHash;
+import jrm.profile.report.EntryWrongName;
 import jrm.profile.report.Report;
+import jrm.profile.report.RomSuspiciousCRC;
+import jrm.profile.report.SubjectSet;
 import jtrrntzip.TrrntZipStatus;
 
 /**
@@ -132,6 +144,69 @@ class ForyPersistenceTest {
         final Container container = ((ContainerUnknown) subject).getContainer();
         assertThat(container.getFile()).isEqualTo(reportDir.resolve("roms.zip").toFile());
         assertThat(container.getLastTZipStatus()).contains(TrrntZipStatus.VALIDTRRNTZIP);
+    }
+
+    @Test
+    @DisplayName("Report with every subject and note type should round-trip under REPORT")
+    void reportWithEverySubjectAndNoteTypeShouldRoundTrip(@TempDir final Path reportDir) throws Exception {
+        final Constructor<Profile> profileCtor = Profile.class.getDeclaredConstructor();
+        profileCtor.setAccessible(true);
+        final var profile = profileCtor.newInstance();
+        final var machine = new Machine(profile);
+        machine.setName("pacman");
+        final var rom = new Rom(machine);
+        rom.setName("pacman.6e");
+        machine.getRoms().add(rom);
+
+        final var archive = new Archive(reportDir.resolve("roms.zip").toFile(), new File("roms.zip"), (AnywareBase) null);
+        final var dir = new Directory(reportDir.resolve("dir").toFile(), new File("dir"), (AnywareBase) null);
+        // Physical entries must be parented to a container, as done by DirScan, so name
+        // resolution works during filtered cloning in Report.add.
+        final var entry = new jrm.profile.data.Entry("dup", "dup", 0L, 0L);
+        archive.add(entry);
+
+        final var report = new Report();
+        final var set = new SubjectSet(machine);
+        set.add(new EntryOK(rom));
+        set.add(new EntryMissing(new Rom(machine)));
+        set.add(new EntryMissingDuplicate(new Rom(machine), entry));
+        set.add(new EntryUnneeded(entry));
+        set.add(new EntryWrongHash(new Rom(machine), entry));
+        set.add(new EntryWrongName(new Rom(machine), entry));
+        set.add(new EntryAdd(null, entry));
+        report.add(set);
+        report.add(new RomSuspiciousCRC("deadbeef"));
+        report.add(new ContainerUnknown(archive));
+        report.add(new ContainerUnneeded(dir));
+        report.add(new ContainerTZip(archive));
+
+        final File file = reportDir.resolve("full-report.cache").toFile();
+        SignedObjectStore.write(session, file, report, SignedObjectStore.Codec.REPORT);
+        final Report loaded = (Report) SignedObjectStore.read(session, file, SignedObjectStore.Codec.REPORT);
+
+        assertThat(loaded).isNotNull().hasSize(5);
+        assertThat(loaded.get(0)).isInstanceOf(SubjectSet.class);
+        assertThat(loaded.get(0)).hasSize(7);
+        assertThat(loaded.get(1)).isInstanceOf(RomSuspiciousCRC.class);
+        assertThat(loaded.get(2)).isInstanceOf(ContainerUnknown.class);
+        assertThat(loaded.get(3)).isInstanceOf(ContainerUnneeded.class);
+        assertThat(loaded.get(4)).isInstanceOf(ContainerTZip.class);
+    }
+
+    @Test
+    @DisplayName("Every concrete REPORT subject type must satisfy GraalVM native instantiation rules")
+    void everyReportSubjectTypeMustSatisfyNativeInstantiationRules() {
+        // On GraalVM native images (JDK25+), Fory can only instantiate a registered class when it has
+        // a declared no-arg constructor, or when its entire superclass chain up to Object is
+        // Serializable (ObjectStream fallback). Anything else fails deserialization at runtime.
+        final List<Class<?>> subjects =
+                List.of(SubjectSet.class, ContainerUnknown.class, ContainerUnneeded.class, ContainerTZip.class, RomSuspiciousCRC.class);
+        for (final var type : subjects)
+            assertThat(hasDeclaredNoArgConstructor(type)).as("no-arg constructor for %s", type.getName()).isTrue();
+    }
+
+    private static boolean hasDeclaredNoArgConstructor(final Class<?> type) {
+        return java.util.Arrays.stream(type.getDeclaredConstructors()).anyMatch(c -> c.getParameterCount() == 0);
     }
 
     @Test

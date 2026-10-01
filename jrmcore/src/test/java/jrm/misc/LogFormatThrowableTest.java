@@ -47,6 +47,29 @@ class LogFormatThrowableTest {
     }
 
     @Test
+    @DisplayName("shutdown makes logging a no-op without throwing")
+    void shutdownMakesLoggingNoOp() throws Exception {
+        final var shutdownField = Log.class.getDeclaredField("shutdown");
+        shutdownField.setAccessible(true);
+        final boolean before = shutdownField.getBoolean(null);
+        try {
+            Log.shutdown();
+            assertThat(Log.isShutdown()).isTrue();
+            // Must not throw even with handlers removed (shutdown-hook race scenario).
+            org.assertj.core.api.Assertions.assertThatNoException().isThrownBy(() -> {
+                Log.debug("after shutdown");
+                Log.info("after shutdown");
+                Log.warn("after shutdown");
+                Log.err("after shutdown");
+                Log.config("after shutdown");
+                Log.trace("after shutdown");
+            });
+        } finally {
+            shutdownField.setBoolean(null, before);
+        }
+    }
+
+    @Test
     @DisplayName("Formatter appends throwable summary without stack frames")
     void formatterOmitsStackFrames() {
         final var logRecord = new LogRecord(Level.SEVERE, "failed");

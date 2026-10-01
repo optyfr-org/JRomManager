@@ -28,6 +28,15 @@ public class ContainerTZip extends ContainerSubject {
     }
 
     /**
+     * No-argument constructor for Fory deserialization.
+     * <p>
+     * Required on GraalVM native images (JDK25+); fields are injected by the deserializer after instantiation.
+     */
+    protected ContainerTZip() {
+        super(null);
+    }
+
+    /**
      * Returns a localized string summarizing that the container needs TorrentZip conversion.
      *
      * @return the localized message string

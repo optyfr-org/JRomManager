@@ -135,6 +135,8 @@ public class MainFrame extends Application {
                 Sessions.getSingleSession().getCurrProfile().saveSettings();
             Sessions.getSingleSession().getUser().getSettings().saveSettings();
             Log.info("Shutdown");
+            // Close logging last so late records cannot race the log manager on closed handlers.
+            Log.shutdown();
         }));
     }
 
