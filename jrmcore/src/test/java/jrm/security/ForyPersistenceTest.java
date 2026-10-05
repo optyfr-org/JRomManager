@@ -75,6 +75,13 @@ class ForyPersistenceTest {
     }
 
     @Test
+    @DisplayName("awaitWarmup should return once compilation finished and be idempotent")
+    void awaitWarmupShouldReturnAndBeIdempotent() throws Exception {
+        ForyPersistence.awaitWarmup();
+        org.assertj.core.api.Assertions.assertThatCode(() -> ForyPersistence.awaitWarmup()).doesNotThrowAnyException();
+    }
+
+    @Test
     @DisplayName("should allow persisted object graph with File, Instant, HashMap, and TrrntZipStatus")
     void shouldAllowPersistedObjectGraph() throws Exception {
         final var map = new HashMap<String, Object>();

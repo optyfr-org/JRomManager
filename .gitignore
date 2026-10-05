@@ -16,3 +16,4 @@ jrmstandalone/.classpath
 /.vscode/settings.json
 /jrmcore/cache/
 /jrmcore/settings/.cache-hmac
+/logs/

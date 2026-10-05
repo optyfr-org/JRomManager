@@ -9,11 +9,16 @@
 package jrm.security;
 
 import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.apache.fory.ThreadSafeFory;
 
@@ -89,17 +94,44 @@ public final class ForyPersistence {
     static final int TRNTCHK_DEPTH = 5_000;
 
     // Declared before the codec fields: <clinit> submits warmup tasks while creating them.
-    /** Single daemon thread shared by the three codec warmups; never blocks class initialization. */
-    private static final ExecutorService WARMUP_POOL = Executors.newThreadPerTaskExecutor(new ThreadFactory() {
-        private final AtomicInteger counter = new AtomicInteger();
+    /**
+     * Shared daemon pool for every Fory (de)serialization. {@code ThreadSafeFory} binds one {@code Fory} (and its
+     * JIT-compiled serializers) per thread with no cross-thread code sharing, so running (de)serialization on ad-hoc
+     * threads — e.g. one virtual thread per server load — pays a full ~20s cold compile every time. Pinning the work to
+     * these long-lived platform threads keeps every pooled {@code Fory} warm after the first use. The pool is small on
+     * purpose: (de)serializations are seconds-long and memory-heavy, and each pooled thread holds a full set of
+     * compiled serializers.
+     */
+    private static final int POOL_SIZE = 2;
 
-        @Override
-        public Thread newThread(final Runnable task) {
-            final Thread thread = new Thread(task, "fory-warmup-" + counter.incrementAndGet());
-            thread.setDaemon(true);
-            return thread;
+    // Lazily created on first runtime use (never during image build): a static-final executor
+    // created in <clinit> ends up as a constant in the native-image heap, pulling its
+    // ThreadFactory (ForyPersistence$1) and live ThreadPoolExecutor state into the image,
+    // which Graal rejects because that factory type is runtime-initialized. A null-at-build
+    // field keeps nothing thread-related in the heap; the pool is built on first execute()/warmUp().
+    private static volatile ExecutorService foryPool;
+    private static final AtomicInteger POOL_COUNTER = new AtomicInteger();
+
+    private static ExecutorService pool() {
+        ExecutorService p = foryPool;
+        if (p == null) {
+            synchronized (ForyPersistence.class) {
+                p = foryPool;
+                if (p == null) {
+                    p = Executors.newFixedThreadPool(POOL_SIZE, task -> {
+                        final Thread thread = new Thread(task, "fory-io-" + POOL_COUNTER.incrementAndGet());
+                        thread.setDaemon(true);
+                        return thread;
+                    });
+                    foryPool = p;
+                }
+            }
         }
-    });
+        return p;
+    }
+
+    /** One warmup task per pool thread; each warms all three codecs on its thread. Awaited by {@link #awaitWarmup()}. */
+    private static final List<Future<?>> WARMUP_FUTURES = new CopyOnWriteArrayList<>();
 
     private static final ThreadSafeFory CACHE = create(CACHE_DEPTH, fory -> {
         registerShared(fory);
@@ -129,6 +161,44 @@ public final class ForyPersistence {
             case REPORT -> REPORT;
             case TRNTCHK -> TRNTCHK;
         };
+    }
+
+    /**
+     * Triggers class loading (and therefore the async serializer warmup) without blocking the caller. Fire-and-forget:
+     * use {@link #awaitWarmup()} when the caller must not proceed until compilation finished.
+     */
+    public static void warmUp() {
+        get(SignedObjectStore.Codec.CACHE);
+        get(SignedObjectStore.Codec.REPORT);
+        get(SignedObjectStore.Codec.TRNTCHK);
+    }
+
+    /**
+     * Blocks until the async serializer warmup submitted at class-load time has finished (or failed), so every pool
+     * thread's {@code Fory} is compiled before the first real (de)serialization. Call this once during startup on
+     * processes whose first cache load can arrive before compilation completes — e.g. server boot. A failed warmup is
+     * logged, not thrown: deserialization still works via interpreted serializers.
+     *
+     * @throws InterruptedException if the waiting thread is interrupted
+     */
+    public static void awaitWarmup() throws InterruptedException {
+        // Touching the class fields triggers <clinit> (and the warmup submissions) if not already done.
+        warmUp();
+        final long start = System.nanoTime();
+        for (final Future<?> future : WARMUP_FUTURES) {
+            try {
+                future.get();
+            } catch (final java.util.concurrent.ExecutionException e) {
+                Log.warn(() -> "Fory serializer warmup failed, continuing with interpreted serializers: " + e.getCause());
+            }
+        }
+        final double elapsedMs = (System.nanoTime() - start) / 1_000_000.0;
+        Log.info(() -> "Fory serializer warmup complete (pool threads compiled) in %.1f ms [vm=%s %s, imagecode=%s, cpus=%d]".formatted(
+                elapsedMs,
+                System.getProperty("java.vm.name"),
+                System.getProperty("java.version"),
+                System.getProperty("org.graalvm.nativeimage.imagecode"),
+                Runtime.getRuntime().availableProcessors()));
     }
 
     private static ThreadSafeFory create(final int depth, final Consumer<ThreadSafeFory> register) {
@@ -161,13 +231,49 @@ public final class ForyPersistence {
             fory.ensureSerializersCompiled();
             return;
         }
-        WARMUP_POOL.execute(() -> {
-            try {
-                fory.ensureSerializersCompiled();
-            } catch (final RuntimeException e) {
-                Log.warn(() -> "Fory serializer warmup failed, continuing with interpreted serializers: " + e);
-            }
-        });
+        // POOL_SIZE submissions per codec (3 x POOL_SIZE tasks total): each task warms one codec, and every
+        // task runs on some pool thread, so each thread's ThreadLocal Fory ends up compiled for every codec
+        // once the queue drains, whichever thread picks up which task.
+        for (int i = 0; i < POOL_SIZE; i++) {
+            WARMUP_FUTURES.add(pool().submit(() -> {
+                try {
+                    fory.ensureSerializersCompiled();
+                } catch (final RuntimeException e) {
+                    Log.warn(() -> "Fory serializer warmup failed, continuing with interpreted serializers: " + e);
+                }
+                return null;
+            }));
+        }
+    }
+
+    /**
+     * Runs {@code action} with the codec's {@link ThreadSafeFory} on the shared pool and returns its result.
+     * Dispatching through the pool (instead of calling Fory on the caller's thread) is what keeps deserialization
+     * fast: each pool thread reuses its already-compiled {@code Fory} instead of compiling ~150 serializers inline on
+     * a fresh thread (measured at ~22s for a large profile). Pool threads only run leaf Fory work and never block on
+     * pool futures, so this cannot deadlock.
+     *
+     * @param codec the persistence codec
+     * @param action the Fory call to run
+     * @param <T> the result type
+     * @return the action's result
+     * @throws IOException if the waiting thread is interrupted or the Fory call fails with a checked exception
+     */
+    public static <T> T execute(final SignedObjectStore.Codec codec, final Function<ThreadSafeFory, T> action) throws IOException {
+        final Future<T> future = pool().submit(() -> action.apply(get(codec)));
+        try {
+            return future.get();
+        } catch (final InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IOException("Fory operation interrupted", e);
+        } catch (final ExecutionException e) {
+            final Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException re)
+                throw re;
+            if (cause instanceof Error err)
+                throw err;
+            throw new IOException("Fory operation failed", cause);
+        }
     }
 
     /**

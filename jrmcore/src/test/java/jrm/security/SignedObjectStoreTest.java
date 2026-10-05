@@ -64,6 +64,32 @@ class SignedObjectStoreTest {
     }
 
     @Test
+    @DisplayName("round-trips from fresh threads should all succeed via the shared pool")
+    void roundTripsFromFreshThreadsShouldSucceed() throws Exception {
+        final var original = Map.of("a", 1L, "b", 2L);
+        final File file = tempDir.resolve("shared-pool.cache").toFile();
+        SignedObjectStore.write(session, file, original);
+
+        // Simulates server worker (virtual) threads: each is a fresh thread with no Fory state of its own.
+        final var threads = new Thread[4];
+        final var failures = new java.util.concurrent.ConcurrentLinkedQueue<Throwable>();
+        for (int i = 0; i < threads.length; i++) {
+            threads[i] = Thread.ofPlatform().start(() -> {
+                try {
+                    @SuppressWarnings("unchecked")
+                    final Map<String, Long> loaded = (Map<String, Long>) SignedObjectStore.read(session, file);
+                    assertThat(loaded).containsExactlyInAnyOrderEntriesOf(original);
+                } catch (final Throwable t) {
+                    failures.add(t);
+                }
+            });
+        }
+        for (final Thread thread : threads)
+            thread.join(120_000);
+        assertThat(failures).isEmpty();
+    }
+
+    @Test
     @DisplayName("legacy bare Java stream should be rejected")
     void legacyBareJavaStreamShouldBeRejected() throws Exception {
         final var original = new HashMap<String, String>();

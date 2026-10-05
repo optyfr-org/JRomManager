@@ -55,6 +55,7 @@ import jrm.fullserver.security.SSLReload;
 import jrm.misc.DefaultEnvironmentProperties;
 import jrm.misc.Log;
 import jrm.misc.URIUtils;
+import jrm.security.ForyPersistence;
 import jrm.server.AbstractServer;
 import jrm.server.SessionListener;
 import jrm.server.shared.handlers.ActionServlet;
@@ -701,6 +702,9 @@ public class FullServer extends AbstractServer {
             Log.err("Already initialized");
             return;
         }
+        // Wait for Fory serializer JIT compilation: a profile load arriving
+        // before it finishes pays ~20s of inline compilation in deserialize.
+        ForyPersistence.awaitWarmup();
         jettyServer = new Server(createThreadPool());
 
         final var context = createContext();

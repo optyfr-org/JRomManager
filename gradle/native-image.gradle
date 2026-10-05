@@ -24,8 +24,15 @@ graalvmNative {
     agent {
         enabled = true
         defaultMode = 'standard'
+        // The plugin's default tasksToInstrumentPredicate matches EVERY JavaExec/Test task: without this,
+        // the native-image-agent attaches to interactive runs too (metadataCopy.inputTaskNames does NOT
+        // control instrumentation). The agent's JVMTI tracing adds massive overhead (~30-60s on large
+        // Fory deserializes vs ~1s clean), so restrict instrumentation to Test tasks. To harvest
+        // reachability metadata from a manual run instead, temporarily point this predicate at that
+        // task (e.g. task.name in ['runFullServer']) and re-run.
+        tasksToInstrumentPredicate.set(({ task -> task instanceof org.gradle.api.tasks.testing.Test }) as java.util.function.Predicate)
         metadataCopy {
-            inputTaskNames.addAll('run', 'test')
+            inputTaskNames.addAll('test')
             outputDirectories.add("src/main/resources/META-INF/native-image/${project.group}/${project.name}")
             mergeWithExisting = true
         }

@@ -143,18 +143,19 @@ public abstract class AbstractServer implements Daemon {
     }
 
     /**
-     * Registers a JVM shutdown hook for graceful server termination and then blocks the calling thread until a stop signal is
-     * received.
+     * Blocks the calling thread until a stop signal is received, then shuts the server down exactly once.
      * <p>
-     * The shutdown hook invokes {@link #terminate()} to close all active {@link WebSession WebSession} instances and stop the Jetty
-     * server.
+     * JVM-exit shutdown is owned solely by Jetty's {@code ShutdownThread} (registered via
+     * {@code setStopAtShutdown(true)} in {@code initialize()}): this method registers no hook of its own, so a
+     * {@code stop} command and JVM shutdown can never double-stop the server (the race that used to log
+     * {@code Unable to destroy / STARTED} plus {@code RejectedExecutionException} noise).
      * </p>
      * <p>
      * The blocking behavior depends on the runtime environment:
      * </p>
      * <ul>
      * <li><b>Debug mode or Windows:</b> Reads from {@code System.in} in a loop, waiting for the user to type "stop"
-     * (case-insensitive), then calls {@link System#exit(int)}.</li>
+     * (case-insensitive), then calls {@link #terminate()} in-process and returns, letting the JVM exit normally.</li>
      * <li><b>Production (non-Windows):</b> Calls {@link Server#join() jettyServer.join()} to block until the server thread
      * completes.</li>
      * </ul>
@@ -164,26 +165,25 @@ public abstract class AbstractServer implements Daemon {
      */
     protected static void waitStop() throws InterruptedException, JettyException {
         try {
-            Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                if (isStarted()) {
-                    try {
-                        terminate();
-                        Log.info("Server stopped.");
-                    } catch (Exception _) {
-                        // ignore
-                    }
-                }
-            }));
+            // Jetty's own ShutdownThread (registered via setStopAtShutdown(true) in initialize())
+            // already stops the server at JVM shutdown. Do NOT add a second hook calling terminate():
+            // the two hooks would race and the loser logs "Unable to destroy / STARTED" plus
+            // RejectedExecutionException noise from the half-stopped thread pool.
             if (debug || SystemUtils.IS_OS_WINDOWS) {
                 try (final var sc = new Scanner(System.in)) {
-                    // wait until receive stop command from keyboard
+                    // wait until receive stop command from keyboard, then shut down gracefully:
+                    // terminate() stops Jetty in-process (single stop, no ShutdownThread race),
+                    // so the JVM exits normally with no System.exit() and no second stop attempt.
                     System.out.println("Enter 'stop' to halt: "); // NOSONAR
                     while (!sc.nextLine().equalsIgnoreCase("stop"))
                         Thread.sleep(1000);
-                    System.exit(0);
+                    terminate();
+                    Log.info("Server stopped.");
+                    return;
                 }
             } else if (isStarted())
                 jettyServer.join();
+            Log.info("Server stopped.");
         } catch (InterruptedException e) {
             throw e;
         } catch (Exception e) {

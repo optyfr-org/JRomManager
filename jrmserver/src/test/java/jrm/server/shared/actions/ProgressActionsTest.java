@@ -163,6 +163,46 @@ class ProgressActionsTest {
             final var msg = sentMessages.get(sentMessages.size() - 1);
             assertThat(msg).contains("\"indeterminate\":true");
         }
+
+        @Test
+        @DisplayName("rapid sub-percent updates are throttled to one send")
+        void rapidUpdatesAreThrottled() {
+            final ProgressActions actions = new ProgressActions(mgr);
+            sentMessages.clear();
+            actions.setInfos(1, false);
+            sentMessages.clear();
+            // Large max: 50 updates stay at integer 0% (no force), like per-chunk
+            // bulk-stream reads. First sends, the rest fall in the throttle window.
+            for (int i = 1; i <= 50; i++)
+                actions.setProgress(null, i, 100_000, null);
+            assertThat(sentMessages).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("integer percentage changes are never throttled")
+        void percentageChangesAreNeverThrottled() {
+            final ProgressActions actions = new ProgressActions(mgr);
+            sentMessages.clear();
+            actions.setInfos(1, false);
+            sentMessages.clear();
+            actions.setProgress(null, 1, 100, null);
+            actions.setProgress(null, 2, 100, null);
+            assertThat(sentMessages).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("completion update is always sent even inside throttle window")
+        void completionIsNeverThrottled() {
+            final ProgressActions actions = new ProgressActions(mgr);
+            sentMessages.clear();
+            actions.setInfos(1, false);
+            sentMessages.clear();
+            actions.setProgress(null, 1, 100, null);
+            sentMessages.clear();
+            actions.setProgress(null, 100, 100, null);
+            assertThat(sentMessages).hasSize(1);
+            assertThat(sentMessages.get(0)).contains("\"val\":100");
+        }
     }
 
     @Nested

@@ -28,6 +28,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jrm.misc.DefaultEnvironmentProperties;
 import jrm.misc.Log;
+import jrm.security.ForyPersistence;
 import jrm.server.handlers.SessionServlet;
 import jrm.server.shared.WebSession;
 import jrm.server.shared.handlers.ActionServlet;
@@ -280,6 +281,9 @@ public class Server extends AbstractServer {
      */
     public static void initialize() throws Exception {
         if (jettyServer == null) {
+            // Wait for Fory serializer JIT compilation: a profile load arriving
+            // before it finishes pays ~20s of inline compilation in deserialize.
+            ForyPersistence.awaitWarmup();
             jettyServer = new org.eclipse.jetty.server.Server();
 
             final var context = new ServletContextHandler(ServletContextHandler.SESSIONS);

@@ -192,26 +192,31 @@ public final class SignedObjectStore {
             throw new IOException("Unsupported signed payload version: " + version);
         }
         final int hmacLength = readInt(fileBytes, MAGIC.length + 1);
-        final int dataOffset = MAGIC.length + 1 + 4 + hmacLength;
-        if (hmacLength <= 0 || dataOffset > fileBytes.length) {
+        final int hmacOffset = MAGIC.length + 1 + 4;
+        final long dataOffsetLong = (long) hmacOffset + hmacLength;
+        if (hmacLength <= 0 || dataOffsetLong > fileBytes.length) {
             throw new IOException("Invalid signed payload header");
         }
-        final var expectedHmac = Arrays.copyOfRange(fileBytes, MAGIC.length + 1 + 4, dataOffset);
+        final int dataOffset = (int) dataOffsetLong;
+        // Verify the HMAC in place over [dataOffset, fileBytes.length) so large
+        // profile caches are not copied twice before deserialization. The payload
+        // slice is still copied once: Fory needs an owned byte[] view.
+        verifyHmac(session, fileBytes, dataOffset, fileBytes.length - dataOffset);
         final var serialized = Arrays.copyOfRange(fileBytes, dataOffset, fileBytes.length);
-        verifyHmac(session, serialized, expectedHmac);
         return deserialize(serialized, codec);
     }
 
-    private static Object deserialize(final byte[] serialized, final Codec codec) {
+    private static Object deserialize(final byte[] serialized, final Codec codec) throws IOException {
         final var effective = codec == null ? Codec.CACHE : codec;
-        final ThreadSafeFory fory = ForyPersistence.get(effective);
-        final Object root = fory.deserialize(serialized);
+        // Dispatched to ForyPersistence's shared pool: ThreadSafeFory keeps one Fory (and its compiled
+        // serializers) per thread, so deserializing on a fresh thread would pay a cold JIT compile inline.
+        final Object root = ForyPersistence.execute(effective, fory -> fory.deserialize(serialized));
         afterLoad(root);
         return root;
     }
 
-    private static byte[] serialize(final Object object, final Codec codec) {
-        return ForyPersistence.get(codec).serialize(object);
+    private static byte[] serialize(final Object object, final Codec codec) throws IOException {
+        return ForyPersistence.execute(codec, fory -> fory.serialize(object));
     }
 
     private static void afterLoad(final Object root) {
@@ -237,18 +242,48 @@ public final class SignedObjectStore {
         return Codec.CACHE;
     }
 
-    private static void verifyHmac(final Session session, final byte[] data, final byte[] expectedHmac) {
-        final var actualHmac = computeHmac(session, data);
-        if (!MessageDigest.isEqual(expectedHmac, actualHmac)) {
+    /**
+     * Verifies the HMAC stored at {@code [hmacOffset, dataOffset)} against the payload at
+     * {@code [dataOffset, dataOffset + dataLength)} without copying either region.
+     *
+     * @param session the active user session (owns the HMAC key)
+     * @param fileBytes the full signed envelope
+     * @param dataOffset start of the serialized payload within {@code fileBytes}
+     * @param dataLength length of the serialized payload
+     */
+    private static void verifyHmacRange(final Session session, final byte[] fileBytes, final int hmacOffset, final int dataOffset, final int dataLength) {
+        final byte[] actualHmac = computeHmac(session, fileBytes, dataOffset, dataLength);
+        final int hmacLength = dataOffset - hmacOffset;
+        // Only the small stored HMAC is copied; the payload region is never duplicated.
+        final byte[] expectedHmac = Arrays.copyOfRange(fileBytes, hmacOffset, dataOffset);
+        if (actualHmac.length != hmacLength || !MessageDigest.isEqual(expectedHmac, actualHmac)) {
             throw new SecurityException("Serialized object integrity check failed");
         }
     }
 
+    private static void verifyHmac(final Session session, final byte[] fileBytes, final int dataOffset, final int dataLength) {
+        verifyHmacRange(session, fileBytes, MAGIC.length + 1 + 4, dataOffset, dataLength);
+    }
+
     private static byte[] computeHmac(final Session session, final byte[] data) {
+        return computeHmac(session, data, 0, data.length);
+    }
+
+    /**
+     * Computes the HMAC over {@code data[offset, offset + length)} without copying.
+     *
+     * @param session the active user session (owns the HMAC key)
+     * @param data the buffer holding the payload region
+     * @param offset start of the payload region
+     * @param length length of the payload region
+     * @return the HMAC bytes
+     */
+    private static byte[] computeHmac(final Session session, final byte[] data, final int offset, final int length) {
         try {
             final var mac = Mac.getInstance(CacheIntegrityKey.HMAC_ALGORITHM);
             mac.init(getHmacKey(session));
-            return mac.doFinal(data);
+            mac.update(data, offset, length);
+            return mac.doFinal();
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new IllegalStateException("HMAC computation failed", e);
         }

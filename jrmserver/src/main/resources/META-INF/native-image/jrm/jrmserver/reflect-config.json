@@ -158,5 +158,100 @@
   {
     "name": "com.beust.jcommander.converters.StringConverter",
     "allDeclaredConstructors": true
+  },
+  {
+    "name": "org.eclipse.jetty.http.pathmap.PathSpecSet",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "org.eclipse.jetty.util.AsciiLowerCaseSet",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "org.eclipse.jetty.util.IncludeExclude",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "org.eclipse.jetty.util.IncludeExcludeSet",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "org.eclipse.jetty.ee9.servlet.DefaultServlet",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "jrm.server.shared.handlers.DataSourceServlet",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "jrm.fullserver.handlers.FullDataSourceServlet",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "jrm.server.shared.handlers.ImageServlet",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "jrm.server.handlers.SessionServlet",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "jrm.server.handlers.AbstractSessionServlet",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "jrm.fullserver.handlers.SessionServlet",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "jrm.server.shared.handlers.ActionServlet",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "jrm.server.shared.handlers.UploadServlet",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "jrm.server.shared.handlers.DownloadServlet",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "jrm.server.LocalAdminFilter",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "jrm.server.SessionListener",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true
+  },
+  {
+    "name": "jrm.fullserver.security.Login",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true
   }
 ]

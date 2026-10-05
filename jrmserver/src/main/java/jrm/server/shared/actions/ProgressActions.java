@@ -86,6 +86,17 @@ public class ProgressActions implements ProgressHandler {
     private Gson gson;
 
     /**
+     * Minimum interval between best-effort (non-forced) progress pushes. Bulk readers such as cache loads call
+     * {@code setProgress} per chunk; without a time gate each call pays JSON serialization plus a queue op even when the
+     * message is then dropped by {@code sendOptional}. Forced updates (visibility flips, completion, new integer
+     * percentage) always go through.
+     */
+    private static final long PROGRESS_MIN_INTERVAL_MS = 200;
+
+    /** Last wall-clock time a non-forced progress update was actually sent. Guarded by the instance monitor. */
+    private long lastProgressSentAt = 0;
+
+    /**
      * Data transfer object for the {@code "Progress.setFullProgress"} WebSocket message.
      * <p>
      * This message contains the complete progress state including all three progress bars, thread information, and info/sub-info
@@ -489,9 +500,10 @@ public class ProgressActions implements ProgressHandler {
         try {
             if (pb == 1)
                 cleanup();
-            if (force)
+            if (force) {
                 ws.send(gson.toJson(new SetFullProgress(data)));
-            else if (!data.pb1.visibility && !data.pb2.visibility && !data.pb3.visibility)
+                lastProgressSentAt = System.currentTimeMillis();
+            } else if (!data.pb1.visibility && !data.pb2.visibility && !data.pb3.visibility)
                 ws.send(gson.toJson(new SetFullProgress(data)));
             else if (pb == 1 && data.pb1.visibility && !data.pb1.indeterminate && data.pb1.val > 0 && data.pb1.max == data.pb1.val)
                 ws.send(gson.toJson(new SetFullProgress(data)));
@@ -499,12 +511,28 @@ public class ProgressActions implements ProgressHandler {
                 ws.send(gson.toJson(new SetFullProgress(data)));
             else if (pb == 3 && data.pb3.visibility && !data.pb3.indeterminate && data.pb3.val > 0 && data.pb3.max == data.pb3.val)
                 ws.send(gson.toJson(new SetFullProgress(data)));
-            else
+            else if (shouldSendProgress())
                 ws.sendOptional(gson.toJson(new SetFullProgress(data)));
             data.pb1.msg = null;
         } catch (IOException e) {
             Log.err(e.getMessage(), e);
         }
+    }
+
+    /**
+     * Time gate for best-effort progress pushes. Returns {@code true} at most once per
+     * {@value #PROGRESS_MIN_INTERVAL_MS}ms so per-chunk updates from bulk streams skip JSON serialization and queue
+     * pressure instead of serializing a message that {@code sendOptional} would drop anyway. Callers hold the instance
+     * monitor (all {@code setProgress*} entry points are synchronized).
+     *
+     * @return {@code true} if enough time elapsed since the last best-effort send
+     */
+    private boolean shouldSendProgress() {
+        final long now = System.currentTimeMillis();
+        if (now - lastProgressSentAt < PROGRESS_MIN_INTERVAL_MS)
+            return false;
+        lastProgressSentAt = now;
+        return true;
     }
 
     /**
