@@ -10,6 +10,7 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -82,5 +83,63 @@ class PathAbstractorWriteAccessTest {
     void getAbsolutePathStillResolvesSharedForRead() {
         final Path resolved = PathAbstractor.getAbsolutePath(userSession, "%shared/roms");
         assertThat(resolved.toString().replace('\\', '/')).contains("users/shared");
+    }
+
+    @Nested
+    @DisplayName("single-user server session (unrestricted)")
+    class SingleUserServerTest {
+        private Session singleUserSession;
+
+        @BeforeEach
+        void setUpSingleUser() {
+            singleUserSession = new Session("path-singleuser");
+            singleUserSession.setUser("JRomManager", new String[] { "admin" });
+        }
+
+        @Test
+        @DisplayName("isUnrestricted only for single-user server sessions")
+        void isUnrestrictedFlag() {
+            assertThat(PathAbstractor.isUnrestricted(singleUserSession)).isTrue();
+            assertThat(PathAbstractor.isUnrestricted(adminSession)).isFalse();
+            assertThat(PathAbstractor.isUnrestricted(userSession)).isFalse();
+            assertThat(PathAbstractor.isUnrestricted(null)).isFalse();
+        }
+
+        @Test
+        @DisplayName("every path is writeable")
+        void everythingWriteable() {
+            assertThat(PathAbstractor.isWriteable(singleUserSession, "C:/anywhere/roms")).isTrue();
+            assertThat(PathAbstractor.isWriteable(singleUserSession, "%shared/roms")).isTrue();
+            assertThat(PathAbstractor.isWriteable(singleUserSession, Path.of("/anywhere/roms"))).isTrue();
+            assertThatCode(() -> PathAbstractor.getWritableAbsolutePath(singleUserSession, "C:/anywhere/roms.dat"))
+                    .doesNotThrowAnyException();
+        }
+
+        @Test
+        @DisplayName("absolute paths outside workspace resolve without sandbox checks")
+        void absolutePathsUnrestricted() {
+            final Path outside = tempDir.resolve("elsewhere").resolve("out.dat").toAbsolutePath().normalize();
+            assertThat(PathAbstractor.getAbsolutePath(singleUserSession, outside.toString())).isEqualTo(outside);
+        }
+
+        @Test
+        @DisplayName("placeholder forgery checks still apply")
+        void placeholderForgeryStillRejected() {
+            assertThatThrownBy(() -> PathAbstractor.getAbsolutePath(singleUserSession, "%work/../../outside.dat"))
+                    .isInstanceOf(SecurityException.class);
+            assertThatThrownBy(() -> PathAbstractor.getAbsolutePath(singleUserSession, "%shared/../../outside.dat"))
+                    .isInstanceOf(SecurityException.class);
+        }
+
+        @Test
+        @DisplayName("multi-user sessions still reject sandbox escapes")
+        void multiUserStillSandboxed() {
+            // Must sit outside every allowed root (jrommanager.dir, java.io.tmpdir, user.dir);
+            // a sibling of user.dir qualifies on any OS since the repo is never inside tmpdir.
+            final Path outside = Path.of(System.getProperty("user.dir")).resolveSibling("jrm-sandbox-escape-probe")
+                    .resolve("out.dat").toAbsolutePath().normalize();
+            assertThatThrownBy(() -> PathAbstractor.getAbsolutePath(adminSession, outside.toString()))
+                    .isInstanceOf(SecurityException.class);
+        }
     }
 }

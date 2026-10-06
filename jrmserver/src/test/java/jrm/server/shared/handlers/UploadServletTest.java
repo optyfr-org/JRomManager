@@ -449,6 +449,57 @@ class UploadServletTest {
             assertThat(json).contains("\"status\":3");
             assertThat(Files.readString(workPath.resolve("reports-backup").resolve("uploaded.txt"))).isEqualTo("file content");
         }
+
+        @Test
+        @DisplayName("single-user session accepts absolute parent outside workspace")
+        void singleUserAbsoluteParentAllowed(@TempDir final Path tempDir) throws Exception {
+            final WebSession singleUser = new WebSession("upload-singleuser");
+            singleUser.setUser("JRomManager", new String[] { "admin" });
+            final Path dest = tempDir.resolve("anywhere");
+            Files.createDirectories(dest);
+            final byte[] content = "file content".getBytes(StandardCharsets.UTF_8);
+            final HttpSession httpSession = mock(HttpSession.class);
+            when(httpSession.getAttribute("session")).thenReturn(singleUser);
+            final HttpServletRequest req = mock(HttpServletRequest.class);
+            lenient().when(req.getSession()).thenReturn(httpSession);
+            lenient().when(req.getRequestURI()).thenReturn("/upload/");
+            lenient().when(req.getHeader("x-file-name")).thenReturn("uploaded.txt");
+            lenient().when(req.getHeader("x-file-parent")).thenReturn(dest.toString());
+            lenient().when(req.getHeader("x-file-size")).thenReturn(String.valueOf(content.length));
+            lenient().when(req.getInputStream()).thenReturn(new ServletInputStream() {
+                private final ByteArrayInputStream delegate = new ByteArrayInputStream(content);
+
+                @Override
+                public boolean isFinished() {
+                    return delegate.available() == 0;
+                }
+
+                @Override
+                public boolean isReady() {
+                    return true;
+                }
+
+                @Override
+                public void setReadListener(final jakarta.servlet.ReadListener readListener) {
+                    // no-op
+                }
+
+                @Override
+                public int read() throws IOException {
+                    return delegate.read();
+                }
+            });
+
+            final StringWriter writer = new StringWriter();
+            final HttpServletResponse resp = mock(HttpServletResponse.class);
+            when(resp.getWriter()).thenReturn(new PrintWriter(writer));
+
+            servlet.doPut(req, resp);
+
+            final String json = writer.toString();
+            assertThat(json).contains("\"status\":3");
+            assertThat(Files.readString(dest.resolve("uploaded.txt"))).isEqualTo("file content");
+        }
     }
 
     @Nested

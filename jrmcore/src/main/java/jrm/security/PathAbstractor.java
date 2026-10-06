@@ -73,6 +73,10 @@ public class PathAbstractor {
 
     /**
      * Checks if the specified abstract path string is writeable under the provided session context.
+     * <p>
+     * Single-user server sessions ({@code server && !multiuser}) are unrestricted: they represent the local operator's
+     * own single-user web app, so every path is writeable without role checks. Multi-user server sessions keep the sandbox:
+     * </p>
      * <ul>
      * <li>Paths starting with {@code %work} or {@code %presets} are writeable by all users.</li>
      * <li>Paths starting with {@code %shared}, or absolute paths under the shared root, are writeable only by
@@ -86,6 +90,8 @@ public class PathAbstractor {
      * @return {@code true} if the path is writeable under the session, {@code false} otherwise
      */
     public static boolean isWriteable(Session session, String strpath) {
+        if (isUnrestricted(session))
+            return true;
         if (strpath == null || strpath.isEmpty())
             return session.getUser().isAdmin();
         final String normalized = strpath.replace('\\', '/');
@@ -105,6 +111,8 @@ public class PathAbstractor {
     public static boolean isWriteable(Session session, Path path) {
         if (path == null)
             return false;
+        if (isUnrestricted(session))
+            return true;
         final Path relative = getRelativePath(session, path.toAbsolutePath().normalize());
         final String asString = relative.toString().replace('\\', '/');
         if (asString.startsWith(WORK) || asString.startsWith(PRESETS) || asString.startsWith(SHARED))
@@ -252,6 +260,9 @@ public class PathAbstractor {
      * redundant elements such as "." and "..".
      * <p>
      * The method also ensures that the path is created if it does not exist, and logs any errors that occur during this process.
+     * <p>
+     * Single-user server sessions skip the workspace-containment check entirely and get the plain absolute normalized path, so the
+     * local operator can browse the whole filesystem. The per-placeholder root-boundary forgery checks still apply.
      * 
      * @param session the active user session context
      * @param strpath the abstract path string to resolve
@@ -261,6 +272,8 @@ public class PathAbstractor {
      * @throws SecurityException if the path attempts to traverse outside of its allowed root boundary (forgery check)
      */
     public static Path getAbsolutePath(Session session, final String strpath) throws SecurityException {
+        if (isUnrestricted(session) && !strpath.startsWith(PRESETS) && !strpath.startsWith(WORK) && !strpath.startsWith(SHARED))
+            return Paths.get(strpath).toAbsolutePath().normalize();
         final Path path;
         if (strpath.startsWith(PRESETS)) {
             final var presetsPath = getPresetsPath(session);
@@ -294,6 +307,19 @@ public class PathAbstractor {
             Log.err(e.getMessage(), e);
         }
         return presetsPath;
+    }
+
+    /**
+     * Returns whether the session runs the single-user web app ({@code jrmserver} without multi-user mode) and is therefore exempt
+     * from filesystem sandboxing: it represents the local operator driving their own machine, so path and write checks pass
+     * unconditionally. Desktop/CLI (non-server) sessions are equally unrestricted by construction; multi-user server sessions
+     * ({@code jrmfullserver}) are always sandboxed.
+     *
+     * @param session the active user session context
+     * @return {@code true} for single-user server sessions, {@code false} otherwise
+     */
+    public static boolean isUnrestricted(Session session) {
+        return session != null && session.isServer() && !session.isMultiuser();
     }
 
 }

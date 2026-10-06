@@ -10,9 +10,8 @@ import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jrm.server.shared.WebSession;
-import jrm.server.shared.actions.CatVerActions;
-import jrm.server.shared.actions.NPlayersActions;
-import jrm.server.shared.actions.ProfileActions;
+import jrm.server.shared.ws.ActionInit;
+import jrm.server.shared.ws.WsActionMgr;
 import jrm.server.shared.lpr.LongPollingReqMgr;
 
 /**
@@ -85,7 +84,13 @@ public class ActionServlet extends HttpServlet {
                     if (isJsonContentType(req.getContentType())) {
                         final var buf = new byte[req.getContentLength()];
                         req.getInputStream().read(buf, 0, req.getContentLength());
-                        new LongPollingReqMgr(sess).process(new String(buf, StandardCharsets.UTF_8));
+                        // Route pushes to the live WS manager when a socket is open for this session.
+                        final var msg = new String(buf, StandardCharsets.UTF_8);
+                        final var wsMgr = WsActionMgr.forSession(sess);
+                        if (wsMgr != null && wsMgr.isOpen())
+                            wsMgr.process(msg);
+                        else
+                            new LongPollingReqMgr(sess).process(msg);
                         resp.setContentLength(0);
                         resp.setContentType(APPLICATION_JSON_UTF8);
                         resp.setHeader("X-Content-Type-Options", "nosniff");
@@ -186,14 +191,9 @@ public class ActionServlet extends HttpServlet {
      * @param sess the web session to initialize
      */
     void doInit(WebSession sess) {
-        final var cmd = new LongPollingReqMgr(sess);
-        if (sess.getCurrProfile() != null) {
-            new ProfileActions(cmd).loaded(sess.getCurrProfile());
-            new CatVerActions(cmd).loaded(sess.getCurrProfile());
-            new NPlayersActions(cmd).loaded(sess.getCurrProfile());
-        }
-        if (sess.getWorker() != null && sess.getWorker().isAlive() && sess.getWorker().getProgress() != null)
-            sess.getWorker().getProgress().reload(cmd);
+        // LPR-only: the caller is an HTTP GET whose payloads must land in the lprMsg queue for doLPR.
+        // WS-open seeding goes through ActionSocket.onOpen -> ActionInit directly with the WsActionMgr.
+        ActionInit.init(new LongPollingReqMgr(sess), sess);
     }
 
     /**

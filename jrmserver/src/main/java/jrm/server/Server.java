@@ -169,6 +169,12 @@ public class Server extends AbstractServer {
          */
         @Parameter(names = { "-b", "--bind" }, arity = 1, description = "bind to address or host")
         private String bind = BIND_DEFAULT;
+
+        /**
+         * Enable the optional WebSocket actions channel (LPR stays as fallback).
+         */
+        @Parameter(names = { "--websocket", "--ws" }, description = "Enable websocket actions channel (LPR stays as fallback)")
+        private boolean websocket = false;
     }
 
     /**
@@ -188,6 +194,7 @@ public class Server extends AbstractServer {
         Optional.ofNullable(env.getProperty("jrm.server.debug", jArgs.debug)).ifPresent(v -> jArgs.debug = v);
         Optional.ofNullable(env.getProperty("jrm.server.http", jArgs.httpPort)).ifPresent(v -> jArgs.httpPort = v);
         Optional.ofNullable(env.getProperty("jrm.server.bind", jArgs.bind)).ifPresent(v -> jArgs.bind = v);
+        Optional.ofNullable(env.getProperty("jrm.server.websocket", jArgs.websocket)).ifPresent(v -> jArgs.websocket = v);
     }
 
     /**
@@ -215,6 +222,7 @@ public class Server extends AbstractServer {
             clientPath = jArgs.clientPath;
             bind = jArgs.bind;
             httpPort = jArgs.httpPort;
+            websocketEnabled = jArgs.websocket;
             Optional.ofNullable(jArgs.workPath).map(s -> s.replace("%HOMEPATH%", System.getProperty("user.home"))).ifPresent(s -> System.setProperty("jrommanager.dir", s));
             Locale.setDefault(Locale.US);
             System.setProperty("file.encoding", "UTF-8");
@@ -332,8 +340,10 @@ public class Server extends AbstractServer {
             final var connectionLimit = new NetworkConnectionLimit(connLimit, jettyServer);
             jettyServer.addBean(connectionLimit); // limit simultaneous connections
 
+            jrm.server.shared.ws.WsEndpointRegistrar.registerIfEnabled(context);
             jettyServer.start();
             Log.config("Start server");
+            Log.config("websocket: " + websocketEnabled);
             for (final var connector : jettyServer.getConnectors())
                 Log.config(((ServerConnector) connector).getName() + " with port on " + ((ServerConnector) connector).getPort() + " bind to "
                         + ((ServerConnector) connector).getHost());

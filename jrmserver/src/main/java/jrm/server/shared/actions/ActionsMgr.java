@@ -97,6 +97,9 @@ public interface ActionsMgr extends SessionStub {
                 }
                 session.setLastAction(Instant.now());
                 switch (jso.getString("cmd", "unknown")) {
+                    // No-op heartbeat keeping the HttpSession alive for WS-only clients (WS frames do not touch
+                    // lastAccessedTime; the touch happens via WsActionMgr on push / touch-on-message).
+                    case "Global.ping" -> { /* no reply */ }
                     case "Global.setProperty" -> new GlobalActions(mgr).setProperty(jso);
                     case "Global.getMemory" -> new GlobalActions(mgr).setMemory(jso);
                     case "Global.GC" -> new GlobalActions(mgr).gc(jso);

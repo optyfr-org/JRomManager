@@ -312,7 +312,7 @@ public class UploadServlet extends HttpServlet {
         if (filename == null || filename.isBlank() || filename.contains("/") || filename.contains("\\") || filename.contains("..")) {
             throw new InvalidPathException(String.valueOf(filename), "Invalid filename");
         }
-        if (fileparent == null || fileparent.isBlank() || !fileparent.startsWith("%") || fileparent.contains("\0")) {
+        if (fileparent == null || fileparent.isBlank() || fileparent.contains("\0")) {
             throw new InvalidPathException(String.valueOf(fileparent), "Invalid file parent");
         }
     }

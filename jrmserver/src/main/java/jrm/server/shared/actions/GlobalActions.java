@@ -229,9 +229,12 @@ public class GlobalActions {
     /**
      * Validates path settings via {@link PathAbstractor}: resolve abstract {@code %work}/{@code %shared} placeholders, reject
      * forged/traversal paths, require write access for destinations, and keep destinations inside work (or shared for admins).
+     * Single-user server sessions bypass the sandbox entirely (see {@link PathAbstractor#isUnrestricted}).
      */
     private boolean isValidSandboxPath(String pathString, boolean requireWrite) {
         if (pathString == null || pathString.isBlank())
+            return true;
+        if (PathAbstractor.isUnrestricted(ws.getSession()))
             return true;
         try {
             final var session = ws.getSession();

@@ -68,8 +68,11 @@ public class SessionListener implements HttpSessionListener {
     public void sessionDestroyed(HttpSessionEvent se) {
         Log.debug(() -> "Destroying session " + se.getSession().getId());
         WebSession ws = (WebSession) se.getSession().getAttribute("session");
-        if (ws != null)
+        if (ws != null) {
+            // Idempotent with ActionSocket.onClose via the registered-instance guard.
+            jrm.server.shared.ws.WsActionMgr.closeFor(ws.getSessionId());
             ws.close();
+        }
     }
 
     /**

@@ -45,6 +45,8 @@ public abstract class AbstractSessionServlet extends HttpServlet {
         final var ws = (WebSession) req.getSession().getAttribute("session");
         final var sessionid = req.getSession().getId();
         jso.add("session", sessionid);
+        // Hint only: client autodetects WS support; absent/false means pure LPR.
+        jso.add("websocket", jrm.server.AbstractServer.isWebsocketEnabled());
         final var msgs = new JsonObject();
         List<LanguageRange> lr = LanguageRange.parse(req.getHeader("accept-language"));
         ws.setMsgs(Messages.loadBundle(!lr.isEmpty() ? Locale.lookup(lr, Arrays.asList(Locale.getAvailableLocales())) : Locale.getDefault()));

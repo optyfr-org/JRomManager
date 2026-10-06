@@ -88,7 +88,7 @@ public class Dir2Dat {
      * @param options the scanning option ruleset filter configuration
      * @param type the target DAT file serialization style format
      * @param headers custom key-value pairs to write in the XML DAT header block
-     * @throws IllegalArgumentException if server mode and the destination escapes the write sandbox
+     * @throws IllegalArgumentException if multi-user server mode and the destination escapes the write sandbox
      */
     public Dir2Dat(final Session session, File srcdir, File dstdat, final ProgressHandler progress, Set<Options> options, ExportType type, Map<String, String> headers) {
         this.session = session;
@@ -98,13 +98,14 @@ public class Dir2Dat {
     }
 
     /**
-     * In server mode, destination must be writeable under the session and stay inside the user
-     * work path or (admins only) the shared root. Desktop sessions are unrestricted.
+     * In multi-user server mode, destination must be writeable under the session and stay inside the
+     * user work path or (admins only) the shared root. Desktop sessions and single-user server
+     * sessions are unrestricted (see {@link PathAbstractor#isUnrestricted}).
      */
     private void requireWritableDestination(File dstdat) {
         if (dstdat == null)
             throw new IllegalArgumentException("Destination file is required");
-        if (!session.isServer())
+        if (!session.isServer() || PathAbstractor.isUnrestricted(session))
             return;
         try {
             final Path absolute = dstdat.toPath().toAbsolutePath().normalize();

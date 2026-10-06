@@ -76,6 +76,31 @@ public abstract class AbstractServer implements Daemon {
     protected static boolean debug;
 
     /**
+     * WebSocket actions-channel flag. When {@code true}, the server registers the optional {@code /ws} Jakarta WebSocket endpoint
+     * (client autodetects via the {@code websocket} hint in {@code /session}); classic long-polling stays fully functional as
+     * fallback. Defaults to {@code false}.
+     */
+    protected static boolean websocketEnabled = false;
+
+    /**
+     * Returns whether the optional WebSocket actions channel is enabled.
+     *
+     * @return {@code true} when the {@code /ws} endpoint is registered
+     */
+    public static boolean isWebsocketEnabled() {
+        return websocketEnabled;
+    }
+
+    /**
+     * Sets whether the optional WebSocket actions channel is enabled. Intended for flag parsing and tests.
+     *
+     * @param enabled {@code true} to register the {@code /ws} endpoint
+     */
+    public static void setWebsocketEnabled(final boolean enabled) {
+        websocketEnabled = enabled;
+    }
+
+    /**
      * Protected no-argument constructor. Prevents direct instantiation of this abstract class; subclasses must provide their own
      * constructors.
      */
@@ -207,6 +232,9 @@ public abstract class AbstractServer implements Daemon {
      * @throws Exception if an error occurs while stopping the Jetty server
      */
     public static synchronized void terminate() throws Exception {
+        jrm.server.shared.ws.WsActionMgr.closeAllSockets();
+        jrm.server.shared.lpr.LongPollingReqMgr.saveAllSettings();
+        jrm.server.shared.ws.WsActionMgr.saveAllSettings();
         WebSession.closeAll();
         if (jettyServer != null) {
             if (jettyServer.isStarted())

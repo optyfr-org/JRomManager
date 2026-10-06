@@ -429,6 +429,12 @@ public class FullServer extends AbstractServer {
         @Parameter(names = { "--session-timeout" }, arity = 1, description = "session timeout, default is " + SESSIONTIMEOUT_DEFAULT)
         private int sessionTimeOut = SESSIONTIMEOUT_DEFAULT;
 
+        /**
+         * Enable the optional WebSocket actions channel (LPR stays as fallback).
+         */
+        @Parameter(names = { "--websocket", "--ws" }, description = "Enable websocket actions channel (LPR stays as fallback)")
+        private boolean websocket = false;
+
     }
 
     /**
@@ -455,6 +461,7 @@ public class FullServer extends AbstractServer {
         Optional.ofNullable(env.getProperty("jrm.server.minthreads", jArgs.minThreads)).ifPresent(v -> jArgs.minThreads = v);
         Optional.ofNullable(env.getProperty("jrm.server.maxthreads", jArgs.maxThreads)).ifPresent(v -> jArgs.maxThreads = v);
         Optional.ofNullable(env.getProperty("jrm.server.sessiontimeout", jArgs.sessionTimeOut)).ifPresent(v -> jArgs.sessionTimeOut = v);
+        Optional.ofNullable(env.getProperty("jrm.server.websocket", jArgs.websocket)).ifPresent(v -> jArgs.websocket = v);
     }
 
     /**
@@ -478,6 +485,7 @@ public class FullServer extends AbstractServer {
             cmd.parse(args);
             debug = jArgs.debug;
             clientPath = jArgs.clientPath;
+            websocketEnabled = jArgs.websocket;
             bind = jArgs.bind;
             httpPort = jArgs.httpPort;
             httpsPort = jArgs.httpsPort;
@@ -726,6 +734,7 @@ public class FullServer extends AbstractServer {
 
         jettyServer.start();
         Log.config("Start server");
+        Log.config("websocket: " + websocketEnabled);
         for (final var connector : jettyServer.getConnectors())
             Log.config(((ServerConnector) connector).getName() + " with port on " + ((ServerConnector) connector).getPort() + " binded to "
                     + ((ServerConnector) connector).getHost());
@@ -784,6 +793,8 @@ public class FullServer extends AbstractServer {
 
         context.getSessionHandler().setMaxInactiveInterval(sessionTimeOut);
         context.getSessionHandler().addEventListener(new SessionListener(true));
+
+        jrm.server.shared.ws.WsEndpointRegistrar.registerIfEnabled(context);
 
         return context;
     }

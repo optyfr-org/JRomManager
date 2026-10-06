@@ -91,6 +91,26 @@ class ServerCompositeTest {
     }
 
     @Nested
+    @DisplayName("WS disabled by default")
+    class WsDisabledTest {
+        @Test
+        @DisplayName("/session advertises websocket:false and /ws upgrade fails while LPR works")
+        void wsDisabled() throws Exception {
+            final var sessionReq = client.POST("http://localhost:" + port + "/session");
+            sessionReq.headers(headers -> headers.add("accept-language", "en"));
+            final ContentResponse sessionResp = sessionReq.send();
+            assertThat(sessionResp.getStatus()).isEqualTo(200);
+            assertThat(sessionResp.getContentAsString()).contains("\"websocket\":false");
+
+            final ContentResponse wsResp = client.GET("http://localhost:" + port + "/ws");
+            assertThat(wsResp.getStatus()).isNotEqualTo(101);
+
+            final ContentResponse lprResp = client.GET("http://localhost:" + port + "/actions/init");
+            assertThat(lprResp.getStatus()).isIn(200, 410);
+        }
+    }
+
+    @Nested
     @DisplayName("POST /actions/cmd")
     class PostActionsCmdTest {
         @Test

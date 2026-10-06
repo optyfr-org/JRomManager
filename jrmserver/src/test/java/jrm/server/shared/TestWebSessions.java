@@ -56,6 +56,7 @@ public final class TestWebSessions {
         WebSession.setTerminate(false);
         WebSession.getAllSessions().clear();
         LongPollingReqMgr.getCmds().clear();
+        jrm.server.shared.ws.WsActionMgr.getWsCmds().clear();
         Login.getCache().clear();
         Login.setCachetime(System.currentTimeMillis());
     }

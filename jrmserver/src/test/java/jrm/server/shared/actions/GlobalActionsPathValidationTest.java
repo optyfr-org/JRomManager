@@ -116,6 +116,19 @@ class GlobalActionsPathValidationTest {
         assertThat(webSession.getUser().getSettings().getProperty(SettingsEnum.dir2dat_dst_file)).isNullOrEmpty();
     }
 
+    @Test
+    @DisplayName("single-user server session accepts absolute path outside workspace")
+    void singleUserAcceptsAbsoluteOutside() {
+        final WebSession singleUser = new WebSession("global-path-singleuser");
+        singleUser.setUser("JRomManager", new String[] { "admin" });
+        when(mgr.getSession()).thenReturn(singleUser);
+
+        final Path outside = tempDir.resolve("singleuser-out.dat").toAbsolutePath().normalize();
+        setProperty(SettingsEnum.dir2dat_dst_file.toString(), outside.toString());
+
+        assertThat(singleUser.getUser().getSettings().getProperty(SettingsEnum.dir2dat_dst_file)).isEqualTo(outside.toString());
+    }
+
     private void setProperty(String key, String value) {
         final JsonObject params = new JsonObject();
         params.add(key, value);
