@@ -264,7 +264,9 @@
   {
     "name": "jrm.server.shared.ws.ActionSocket$Configurator",
     "allDeclaredConstructors": true,
-    "allPublicConstructors": true
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
   },
   {
     "name": "jrm.server.shared.ws.WsActionMgr",
@@ -285,7 +287,50 @@
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
-    "allPublicMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "jakarta.websocket.OnMessage",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "jakarta.websocket.OnOpen",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "jakarta.websocket.OnClose",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "jakarta.websocket.OnError",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "jakarta.websocket.server.ServerEndpoint",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "jakarta.websocket.PathParam",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
   {
     "name": "org.eclipse.jetty.ee9.websocket.jakarta.common.decoders.AbstractDecoder",
     "allDeclaredConstructors": true,
@@ -511,6 +556,20 @@
     "allPublicMethods": true
   },
   {
+    "name": "org.eclipse.jetty.ee9.websocket.jakarta.common.messages.AbstractDecodedMessageSink$Basic",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
+    "name": "org.eclipse.jetty.ee9.websocket.jakarta.common.messages.AbstractDecodedMessageSink$Stream",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
     "name": "org.eclipse.jetty.ee9.websocket.jakarta.common.messages.DecodedBinaryMessageSink",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
@@ -581,6 +640,13 @@
     "allPublicMethods": true
   },
   {
+    "name": "org.eclipse.jetty.websocket.core.messages.MessageInputStream$Entry",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
     "name": "org.eclipse.jetty.websocket.core.messages.MessageOutputStream",
     "allDeclaredConstructors": true,
     "allPublicConstructors": true,
@@ -642,5 +708,5 @@
     "allPublicConstructors": true,
     "allDeclaredMethods": true,
     "allPublicMethods": true
-  },
+  }
 ]
