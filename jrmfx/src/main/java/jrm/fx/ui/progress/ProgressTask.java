@@ -343,6 +343,24 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
     }
 
     /**
+     * Writes an info label directly to the given slot, bypassing the calling thread's offset lookup. Used by thread pools to
+     * mark a just-freed slot idle after its worker released the slot.
+     *
+     * @param offset the 0-based slot index to write
+     * @param msg the info label to display (or {@code null} to keep the current label)
+     */
+    @Override
+    public void setProgressAt(final int offset, final String msg) {
+        synchronized (this) {
+            if (offset < 0 || offset >= data.threadCnt)
+                return;
+            if (msg != null)
+                data.infos[offset] = msg;
+        }
+        publish();
+    }
+
+    /**
      * Queues at most one FX pulse that publishes a snapshot of {@link #data}.
      */
     private void publish() {

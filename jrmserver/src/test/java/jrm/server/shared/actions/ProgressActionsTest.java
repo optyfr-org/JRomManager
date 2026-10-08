@@ -203,6 +203,39 @@ class ProgressActionsTest {
             assertThat(sentMessages).hasSize(1);
             assertThat(sentMessages.get(0)).contains("\"val\":100");
         }
+
+        @Test
+        @DisplayName("recycled slot clears subinfo but keeps info label visible")
+        void recycledSlotKeepsInfoLabel() {
+            final ProgressActions actions = new ProgressActions(mgr);
+            sentMessages.clear();
+            actions.setInfos(2, true);
+            final var currentOffset = new java.util.concurrent.atomic.AtomicInteger(0);
+            final var free = new int[][] { {} };
+            actions.setOffsetProvider(new jrm.misc.OffsetProvider() {
+                @Override
+                public int getOffset() {
+                    return currentOffset.get();
+                }
+
+                @Override
+                public int[] freeOffsets() {
+                    return free[0];
+                }
+            });
+            // Thread 0 finishes container A, thread 1 still scans container B.
+            currentOffset.set(0);
+            actions.setProgress("Scanned a.zip", null, null, "sub-a");
+            currentOffset.set(1);
+            actions.setProgress("Scanning b.zip", null, null, "sub-b");
+            // Slot 0 is recycled; next push from thread 1 must keep slot 0's info but drop its subinfo.
+            free[0] = new int[] { 0 };
+            sentMessages.clear();
+            actions.setProgress("Scanning b.zip", 1, 100, null);
+            final var msg = sentMessages.get(sentMessages.size() - 1);
+            assertThat(msg).contains("Scanned a.zip");
+            assertThat(msg).doesNotContain("sub-a");
+        }
     }
 
     @Nested

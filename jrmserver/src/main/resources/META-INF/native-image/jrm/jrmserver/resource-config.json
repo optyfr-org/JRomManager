@@ -17,6 +17,7 @@
     "excludes": []
   },
   "bundles": [
-    {"name": "jrm.resources.Messages"}
+    {"name": "jrm.resources.Messages"},
+    {"name": "sun.security.util.resources.security"}
   ]
 }

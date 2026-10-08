@@ -22,6 +22,7 @@ graalvmNative {
                 '-J--enable-native-access=ALL-UNNAMED',
                 '--enable-url-protocols=http,https',
             )
+            runtimeArgs.addAll('--ws', '-d', '-c', "$rootDir/WebClient/war", '-w', '%HOMEPATH%/.jrommanager')
         }
         fullServer {
             imageName.set('jrmfullserver')
@@ -38,6 +39,7 @@ graalvmNative {
                 '-J--enable-native-access=ALL-UNNAMED',
                 '--enable-url-protocols=http,https',
             )
+            runtimeArgs.addAll('--ws', '-c', "$rootDir/WebClient/war", '-d', '-w', '%HOMEPATH%/.jrommanager')
         }
     }
 }
@@ -115,6 +117,8 @@ run {
         '--add-opens', 'java.base/java.util=ALL-UNNAMED'
     )
     args (
+        '--ws',
+        '-c', "$rootDir/WebClient/war",
         '-w', '%HOMEPATH%/.jrommanager'
     )
     workingDir = project.rootDir
@@ -135,6 +139,8 @@ task runFullServer(type: JavaExec) {
         '--add-opens', 'java.base/java.util=ALL-UNNAMED'
     )
     args (
+        '--ws',
+        '-c', "$rootDir/WebClient/war",
         '-d', '-w', '%HOMEPATH%/.jrommanager'
     )
     workingDir = project.rootDir

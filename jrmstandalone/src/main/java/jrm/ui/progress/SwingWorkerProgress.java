@@ -208,6 +208,21 @@ public abstract class SwingWorkerProgress<T, V> extends SwingWorker<T, V> implem
     }
 
     /**
+     * Writes an info label directly to the given slot, bypassing the calling thread's offset lookup. Used by thread pools to
+     * mark a just-freed slot idle after its worker released the slot.
+     *
+     * @param offset the slot index to write
+     * @param msg the status message
+     */
+    @Override
+    public void setProgressAt(final int offset, final String msg) {
+        if (offset < 0 || offset >= threadCnt)
+            return;
+        cleanup();
+        firePropertyChange(SET_PROGRESS, null, new SetProgress(offset, msg, null, null, null));
+    }
+
+    /**
      * Gets the current thread offset from the offset provider.
      *
      * @return the current offset, or {@code 0} if no provider is set

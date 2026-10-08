@@ -454,24 +454,18 @@ public class ProgressActions implements ProgressHandler {
     }
 
     /**
-     * Cleans up thread info arrays by clearing slots associated with recycled thread offsets.
+     * Clears sub-info entries for freed thread offsets.
      * <p>
-     * This method is called before sending progress updates to ensure that info slots for threads that have completed and recycled
-     * their offsets are cleared. It uses the {@link OffsetProvider} to determine which offsets are available (recycled) and clears
-     * the corresponding entries in the infos and subinfos arrays.
-     * </p>
-     * <p>
-     * This cleanup prevents stale thread messages from remaining visible after threads complete.
+     * Info text is left in place so a finished container's name stays visible while the remaining tasks still process; erasing it on
+     * every slot recycle made the scan labels flash empty (recycled virtual-thread slots outnumber the messages, so most pushes
+     * carried blanked rows). Mirrors {@code ProgressTask.cleanup()} in the FX client.
      * </p>
      */
     private synchronized void cleanup() {
-        if (offsetProvider != null) {
+        if (offsetProvider != null && data.infos.length == data.subinfos.length) {
             for (final var offset : offsetProvider.freeOffsets()) {
-                if (offset < data.infos.length) {
-                    data.infos[offset] = "";
-                    if (data.infos.length == data.subinfos.length)
-                        data.subinfos[offset] = "";
-                }
+                if (offset < data.subinfos.length)
+                    data.subinfos[offset] = "";
             }
         }
     }
@@ -692,6 +686,23 @@ public class ProgressActions implements ProgressHandler {
                 data.subinfos[offset] = submsg;
         }
         sendSetProgress(1, force);
+    }
+
+    /**
+     * Writes an info label directly to the given slot, bypassing the calling thread's offset lookup. Used by thread pools to
+     * mark a just-freed slot idle after its worker released the slot. Forces the push so the idle text is visible even inside
+     * the best-effort throttle window.
+     *
+     * @param offset the 0-based slot index to write
+     * @param msg the info label to display (or {@code null} to keep the current label)
+     */
+    @Override
+    public synchronized void setProgressAt(final int offset, final String msg) {
+        if (offset < 0 || offset >= data.threadCnt)
+            return;
+        if (msg != null)
+            data.infos[offset] = msg;
+        sendSetProgress(1, true);
     }
 
     /**

@@ -14,6 +14,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import jrm.aui.progress.ProgressHandler;
+import jrm.locale.Messages;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -71,6 +72,22 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
 
     private final CalledWith<T> calledWith;
 
+    /** Progress channel coupled with this pool's offset provider. */
+    private final ProgressHandler progress;
+
+    /**
+     * Tasks submitted via {@link #start(Stream)} but not yet picked up by a worker. A freed slot is marked idle only when this
+     * reaches zero: queued work still exists, so the slot will be reused immediately and must keep its label.
+     */
+    private final AtomicInteger pending = new AtomicInteger();
+
+    /**
+     * Set once the {@link #start(Stream)} submission loop has consumed the whole stream. Guards against spurious idle marks
+     * mid-submission: while the stream still yields entries {@code pending} can transiently hit zero even though more tasks are
+     * coming, so idle is only allowed after this flag is set.
+     */
+    private volatile boolean submissionsComplete;
+
     /**
      * Registry logging the starting JMX thread CPU time for each active thread.
      */
@@ -90,6 +107,7 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
         this.adaptive = isAdaptive(nThreads);
         this.interval = 60_000; // check interval for adaptive mode (expressed in milliseconds)
         this.calledWith = cw;
+        this.progress = progress;
         setThreadFactory(new DefaultThreadFactory(name));
         progress.setOffsetProvider(this);
     }
@@ -177,7 +195,11 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
     public void start(final Stream<T> stream) {
         try {
             Objects.requireNonNull(calledWith);
-            stream.forEach(entry -> submit(new CallableWith(entry))); // submit all entries from stream using a task
+            stream.forEach(entry -> {
+                pending.incrementAndGet();
+                submit(new CallableWith(entry)); // submit all entries from stream using a task
+            });
+            submissionsComplete = true;
             shutdown(); // does not accept submission after stream as been consumed
             awaitTermination(1, TimeUnit.DAYS); // wait max for 1 day for all tasks to terminate
         } catch (InterruptedException e) {
@@ -319,11 +341,20 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
 
         @Override
         public Void call() throws Exception {
+            pending.decrementAndGet();
             final var id = slots.allocOffset();
             try {
                 calledWith.call(entry);
             } finally {
-                slots.freeOffset(id);
+                // Mark the just-freed slot idle, but only when the queue holds no more tasks: submissions are complete and
+                // no task waits to be picked up, so the freed slot will not be reused and its frozen stale label would
+                // otherwise linger until the pool terminates. While queued work still exists the slot may be reused
+                // immediately and must keep its label. The queue-depth check runs on the pool worker thread before it
+                // blocks for the next task: a queued task is picked up by this very thread, so a non-zero depth observed
+                // here guarantees reuse that overwrites the kept label.
+                final var offset = slots.freeOffset(id);
+                if (offset >= 0 && submissionsComplete && pending.get() == 0)
+                    progress.setProgressAt(offset, Messages.getString("Progress.Idle")); //$NON-NLS-1$
             }
             return null;
         }

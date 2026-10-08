@@ -41,12 +41,25 @@ public final class ThreadOffsetSlots implements OffsetProvider {
 		}
 	}
 
-	void freeOffset(long id) {
+	/**
+	 * Releases the slot held by the given thread id and reports which offset was freed.
+	 *
+	 * @param id the thread id previously returned by {@link #allocOffset()}
+	 *
+	 * @return the freed offset index, or {@code -1} when the id held no slot
+	 */
+	int freeOffset(long id) {
 		synchronized (activeThreads) {
 			count.incrementAndGet();
-			freeOffsets.add(activeThreads.remove(id));
+			final var offset = activeThreads.remove(id);
+			if (offset == null)
+				return -1;
+			freeOffsets.add(offset);
+			return offset;
 		}
 	}
+
+
 
 	long getMaxActive() {
 		return maxActive.get();

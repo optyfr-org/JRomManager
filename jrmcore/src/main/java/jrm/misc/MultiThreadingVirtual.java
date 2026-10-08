@@ -17,6 +17,7 @@ import java.util.stream.Stream;
 import org.apache.commons.lang3.time.DurationFormatUtils;
 
 import jrm.aui.progress.ProgressHandler;
+import jrm.locale.Messages;
 import lombok.RequiredArgsConstructor;
 
 /**
@@ -52,6 +53,24 @@ public class MultiThreadingVirtual<K> implements ExecutorService, OffsetProvider
 
     private final CalledWith<K> calledWith;
 
+    /** Progress channel coupled with this pool's offset provider. */
+    private final ProgressHandler progress;
+
+    /**
+     * Tasks submitted via {@link #start(Stream)} but not yet picked up by a worker. A freed slot is marked idle only when this
+     * reaches zero: queued work still exists, so the slot will be reused immediately and must keep its label.
+     */
+    private final AtomicInteger pending = new AtomicInteger();
+
+    /**
+     * Set once the {@link #start(Stream)} submission loop has consumed the whole stream. Guards against spurious idle marks
+     * mid-submission: while the stream still yields entries {@code pending} can transiently hit zero even though more tasks are
+     * coming, so idle is only allowed after this flag is set.
+     */
+    private volatile boolean submissionsComplete;
+
+
+
     /**
      * Pool counter incremented sequentially to ensure unique thread naming.
      */
@@ -68,6 +87,7 @@ public class MultiThreadingVirtual<K> implements ExecutorService, OffsetProvider
      */
     public MultiThreadingVirtual(final String name, final ProgressHandler progress, final int nThreads, final CalledWith<K> calledWith) {
         this.calledWith = calledWith;
+        this.progress = progress;
         this.name = name;
         this.threadLimit = getThreadLimit(nThreads);
         this.semaphore = new Semaphore(threadLimit);
@@ -164,7 +184,11 @@ public class MultiThreadingVirtual<K> implements ExecutorService, OffsetProvider
         try {
             Objects.requireNonNull(calledWith);
             final var start = System.currentTimeMillis();
-            stream.forEach(entry -> submit(new CallableWith(entry))); // submit all entries from stream using a task
+            stream.forEach(entry -> {
+                pending.incrementAndGet();
+                submit(new CallableWith(entry)); // submit all entries from stream using a task
+            });
+            submissionsComplete = true;
             shutdown(); // does not accept submission after stream as been consumed
             awaitTermination(1, TimeUnit.DAYS); // wait max for 1 day for all tasks to terminate
             Log.debug(() -> name + "-%d : %d vthreads for %d tasks in %s".formatted(poolNumber.get(), slots.getMaxActive(), slots.getCount(),
@@ -194,14 +218,22 @@ public class MultiThreadingVirtual<K> implements ExecutorService, OffsetProvider
         @Override
         public Void call() throws Exception {
             semaphore.acquire();
+            pending.decrementAndGet();
+            final var id = slots.allocOffset();
             try {
-                final var id = slots.allocOffset();
-                try {
-                    calledWith.call(entry);
-                } finally {
-                    slots.freeOffset(id);
-                }
+                calledWith.call(entry);
             } finally {
+                // Mark the just-freed slot idle, but only when the queue holds no more tasks: submissions are complete and
+                // no task waits to be picked up, so the freed slot will not be reused and its frozen stale label would
+                // otherwise linger until the pool terminates. While queued work still exists the slot may be reused
+                // immediately and must keep its label. The slot index captured at release time is passed explicitly: the
+                // current thread owns no slot anymore, so offset-provider lookups would resolve to {@code -1}/slot 0.
+                // The queue-depth check happens-before the concurrency permit is released: a queued task can only be picked
+                // up after a permit is free, so a non-zero depth observed here guarantees a waiter that will
+                // reuse/overwrite the kept label.
+                final var offset = slots.freeOffset(id);
+                if (offset >= 0 && submissionsComplete && pending.get() == 0)
+                    progress.setProgressAt(offset, Messages.getString("Progress.Idle")); //$NON-NLS-1$
                 semaphore.release();
             }
             return null;

@@ -24,6 +24,21 @@
     "allDeclaredFields": true
   },
   {
+    "name": "jrm.fullserver.security.UserCredential",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true,
+    "allDeclaredFields": true
+  },
+  {
+    "name": "jrm.fullserver.security.CryptCredential",
+    "allDeclaredConstructors": true,
+    "allPublicConstructors": true,
+    "allDeclaredMethods": true,
+    "allPublicMethods": true
+  },
+  {
     "name": "jrm.server.shared.handlers.UploadServlet$Result",
     "allDeclaredConstructors": true,
     "allPublicMethods": true,

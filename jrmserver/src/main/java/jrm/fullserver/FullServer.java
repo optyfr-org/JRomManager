@@ -489,14 +489,14 @@ public class FullServer extends AbstractServer {
             bind = jArgs.bind;
             httpPort = jArgs.httpPort;
             httpsPort = jArgs.httpsPort;
-            keyStorePath = Optional.ofNullable(getCertsPath(jArgs.cert)).filter(p -> p.exists()).orElse(getCertsPath(null));
-            if (Files.exists(getPath(keyStorePath + ".pw")))
-                keyStorePWPath = keyStorePath + ".pw";
-            else if (keyStorePath != null && keyStorePath.getPath() != null && KEY_STORE_PATH_DEFAULT.equals(keyStorePath.getPath().toString())
-                    && Files.exists(getPath(KEY_STORE_PW_PATH_DEFAULT)))
-                keyStorePWPath = KEY_STORE_PW_PATH_DEFAULT;
-            else
-                keyStorePWPath = null;
+            keyStorePath = Optional.ofNullable(getCertsPath(jArgs.cert)).filter(Resource::exists).orElseGet(() -> {
+                try {
+                    return getCertsPath(null);
+                } catch (IOException | URISyntaxException e) {
+                    throw new IllegalStateException("Unable to find localhost certificate", e);
+                }
+            });
+            keyStorePWPath = resolveKeyStorePasswordPath(keyStorePath, jArgs.cert);
             Optional.ofNullable(jArgs.workPath).map(s -> s.replace("%HOMEPATH%", System.getProperty("user.home"))).ifPresent(s -> System.setProperty("jrommanager.dir", s));
             protocols = PROTOCOLS_DEFAULT;
             connLimit = jArgs.connlimit;
@@ -616,14 +616,71 @@ public class FullServer extends AbstractServer {
     private static org.eclipse.jetty.util.ssl.SslContextFactory.Server sslContext() throws IOException {
         var sslContextFactory = new SslContextFactory.Server();
         sslContextFactory.setKeyStoreType("PKCS12");
-        sslContextFactory.setKeyStorePath(keyStorePath.getURI().toString());
+        sslContextFactory.setKeyStoreResource(keyStorePath);
         sslContextFactory.setCipherComparator(HTTP2Cipher.COMPARATOR);
         sslContextFactory.setUseCipherSuitesOrder(true);
 
-        String keyStorePassword = (keyStorePWPath != null && Files.exists(getPath(keyStorePWPath))) ? URIUtils.readString(keyStorePWPath).trim() : "";
+        String keyStorePassword = readKeyStorePassword();
         sslContextFactory.setKeyStorePassword(keyStorePassword);
         sslContextFactory.setKeyManagerPassword(keyStorePassword);
         return sslContextFactory;
+    }
+
+    /**
+     * Resolves the key store password sibling (e.g. {@code localhost.pfx} -> {@code localhost.pw}) as a
+     * {@link Resource}-derived URI string. Works for classpath/resource: URIs in a native image where no
+     * {@link java.nio.file.Path} exists for the key store.
+     */
+    private static String resolveKeyStorePasswordPath(Resource ksPath, String certArg) {
+        if (ksPath == null)
+            return null;
+        final var factory = ResourceFactory.root();
+        for (final var candidate : new String[] { ksPath.getURI() + ".pw", siblingUri(ksPath.getURI().toString(), ".pfx", ".pw"), certArg + ".pw",
+                KEY_STORE_PW_PATH_DEFAULT }) {
+            if (candidate == null)
+                continue;
+            try {
+                final var res = factory.newResource(candidate);
+                if (res != null && res.exists())
+                    return res.getURI().toString();
+            } catch (RuntimeException _) {
+                // unsupported scheme (e.g. jrt: in native image) -> try next candidate
+            }
+        }
+        // Native-image last resort: the bundled pw stream (extracted to temp file by the locator).
+        // The pfx was extracted by ServerResourceLocator, so extract the sibling pw the same way.
+        final var extracted = jrm.server.ServerPaths.extractCertStream(factory, "/certs/localhost.pw", "jrm-certs", ".pw");
+        if (extracted != null && extracted.exists())
+            return extracted.getURI().toString();
+        return null;
+    }
+
+    private static String siblingUri(String uri, String fromSuffix, String toSuffix) {
+        if (uri == null || !uri.endsWith(fromSuffix))
+            return null;
+        return uri.substring(0, uri.length() - fromSuffix.length()) + toSuffix;
+    }
+
+    /**
+     * Reads the key store password via the {@link Resource} API so classpath/resource: URIs work in a native image.
+     * Falls back to the filesystem path form for plain file deployments.
+     */
+    private static String readKeyStorePassword() throws IOException {
+        if (keyStorePWPath == null)
+            return "";
+        try {
+            final var res = ResourceFactory.root().newResource(keyStorePWPath);
+            if (res != null && res.exists())
+                try (final var in = res.newInputStream()) {
+                    return new String(in.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8).trim();
+                }
+        } catch (RuntimeException _) {
+            // fall through to filesystem form below
+        }
+        final var p = getPath(keyStorePWPath);
+        if (p != null && Files.exists(p))
+            return URIUtils.readString(keyStorePWPath).trim();
+        return "";
     }
 
     /**

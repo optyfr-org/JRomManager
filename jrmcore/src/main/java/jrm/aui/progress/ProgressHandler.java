@@ -82,13 +82,29 @@ public interface ProgressHandler {
 
     /**
      * Sets the progress.
-     *
+     * 
      * @param msg the msg
      * @param val the val
      * @param max the max
      * @param submsg the submsg
      */
     public void setProgress(String msg, Integer val, Integer max, String submsg);
+
+    /**
+     * Writes an info label directly to the given slot, bypassing the calling thread's offset lookup. Used by thread pools to
+     * mark a just-freed slot (e.g. idle) after its worker thread released the slot and can no longer resolve it.
+     * <p>
+     * The default implementation routes through {@link #setProgress(String, Integer, Integer, String)} with a {@code null}
+     * value so progress bars are untouched; handlers without per-slot displays may ignore the offset and behave as a plain
+     * message update.
+     * </p>
+     *
+     * @param offset the 0-based slot index to write
+     * @param msg the info label to display (or {@code null} to keep the current label)
+     */
+    public default void setProgressAt(final int offset, final String msg) {
+        setProgress(msg, null, null, null);
+    }
 
     /**
      * Sets the progress 2.

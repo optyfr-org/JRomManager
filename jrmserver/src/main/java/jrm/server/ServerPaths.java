@@ -9,7 +9,7 @@ import java.nio.file.Paths;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.resource.ResourceFactory;
 
-final class ServerPaths {
+public final class ServerPaths {
 	static Path getWorkPath() {
 		String base = System.getProperty("jrommanager.dir");
 		if (base == null)
@@ -33,5 +33,9 @@ final class ServerPaths {
 
 	static Path getPath(String path) {
 		return ServerResourceLocator.resolve(path);
+	}
+
+	public static Resource extractCertStream(ResourceFactory resourceFactory, String classResource, String prefix, String suffix) {
+		return ServerResourceLocator.extractedStreamResource(resourceFactory, classResource, prefix, suffix);
 	}
 }

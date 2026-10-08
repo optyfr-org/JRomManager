@@ -200,8 +200,21 @@ public abstract class AbstractServer implements Daemon {
                     // terminate() stops Jetty in-process (single stop, no ShutdownThread race),
                     // so the JVM exits normally with no System.exit() and no second stop attempt.
                     System.out.println("Enter 'stop' to halt: "); // NOSONAR
-                    while (!sc.nextLine().equalsIgnoreCase("stop"))
+                    while (true) {
+                        // nativeRun (and other launches without a console) provides no stdin:
+                        // hasNextLine() is false at EOF, and nextLine() would throw
+                        // NoSuchElementException("No line found"). Fall back to join() so the
+                        // server keeps running instead of crashing on startup.
+                        if (!sc.hasNextLine()) {
+                            if (isStarted())
+                                jettyServer.join();
+                            Log.info("Server stopped.");
+                            return;
+                        }
+                        if (sc.nextLine().equalsIgnoreCase("stop"))
+                            break;
                         Thread.sleep(1000);
+                    }
                     terminate();
                     Log.info("Server stopped.");
                     return;

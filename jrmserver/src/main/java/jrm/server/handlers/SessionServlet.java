@@ -85,4 +85,24 @@ public class SessionServlet extends AbstractSessionServlet {
         }
     }
 
+    /**
+     * Handles GET keep-alive touches. Merely accessing the {@link jakarta.servlet.http.HttpSession} via
+     * {@link #fillAndSendJSO} refreshes {@code lastAccessedTime}, so WS-only clients can hold their session without
+     * starting jobs or receiving pushes. Rejects unauthenticated sessions with {@code 401}.
+     */
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            final var httpSession = req.getSession(false);
+            if (httpSession == null || httpSession.getAttribute("session") == null) {
+                resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
+            fillAndSendJSO(req, resp, new JsonObject());
+        } catch (Exception e) {
+            Log.err(e.getMessage(), e);
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }

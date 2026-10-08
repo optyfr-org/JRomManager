@@ -54,4 +54,27 @@ public class SessionServlet extends AbstractSessionServlet {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
+
+    /**
+     * Handles GET keep-alive touches. Same contract as
+     * {@link jrm.server.handlers.SessionServlet#doGet(HttpServletRequest, HttpServletResponse)}: refreshes the
+     * {@link jakarta.servlet.http.HttpSession} {@code lastAccessedTime} without starting jobs or pushing messages.
+     */
+    @Override
+    protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
+        try {
+            final var ws = (WebSession) req.getSession(false).getAttribute("session");
+            if (ws == null || !ws.hasUser()) {
+                resp.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return;
+            }
+            final var jso = new JsonObject();
+            jso.add("authenticated", true);
+            jso.add("admin", ws.getUser().isAdmin());
+            fillAndSendJSO(req, resp, jso);
+        } catch (Exception e) {
+            Log.err(e.getMessage(), e);
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+        }
+    }
 }

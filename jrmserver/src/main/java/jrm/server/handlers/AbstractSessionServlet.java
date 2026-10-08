@@ -48,7 +48,8 @@ public abstract class AbstractSessionServlet extends HttpServlet {
         // Hint only: client autodetects WS support; absent/false means pure LPR.
         jso.add("websocket", jrm.server.AbstractServer.isWebsocketEnabled());
         final var msgs = new JsonObject();
-        List<LanguageRange> lr = LanguageRange.parse(req.getHeader("accept-language"));
+        final var acceptLanguage = req.getHeader("accept-language");
+        List<LanguageRange> lr = acceptLanguage != null ? LanguageRange.parse(acceptLanguage) : List.of();
         ws.setMsgs(Messages.loadBundle(!lr.isEmpty() ? Locale.lookup(lr, Arrays.asList(Locale.getAvailableLocales())) : Locale.getDefault()));
         ResourceBundle rb = ws.getMsgs();
         rb.keySet().forEach(k -> {

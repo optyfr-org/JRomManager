@@ -55,7 +55,8 @@ public class ActionSocket {
         webSession.setLastAction(Instant.now());
         if (httpSession != null) {
             try {
-                httpSession.setAttribute("lastWsAction", Instant.now());
+                // setAttribute does not refresh lastAccessedTime; this no-op write does.
+                httpSession.setMaxInactiveInterval(httpSession.getMaxInactiveInterval());
             } catch (final Exception e) {
                 Log.debug(() -> "ws open touch failed: " + e.getMessage());
             }

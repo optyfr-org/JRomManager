@@ -136,14 +136,20 @@ public class WsActionMgr implements ActionsMgr {
     }
 
     /**
-     * Touches the HTTP session so WS-only traffic keeps it alive (WS frames do not update
-     * {@code lastAccessedTime}), and refreshes the {@link WebSession} last-action timestamp.
+     * Refreshes the HTTP session {@code lastAccessedTime} so WS-only traffic keeps it alive (WS frames do not update
+     * it), and refreshes the {@link WebSession} last-action timestamp.
+     * <p>
+     * Merely writing an attribute does <b>not</b> refresh the access clock: Jetty's session scavenger compares
+     * {@code lastAccessedTime} against {@code MaxInactiveInterval}, so this calls
+     * {@link HttpSession#setMaxInactiveInterval} with the current value — a no-op semantically that still marks the
+     * session accessed.
+     * </p>
      */
     void touch() {
         final var h = httpSession;
         if (h != null) {
             try {
-                h.setAttribute("lastWsAction", Instant.now());
+                h.setMaxInactiveInterval(h.getMaxInactiveInterval());
             } catch (final IllegalStateException e) {
                 Log.debug("ws http session already invalidated");
             } catch (final Exception e) {

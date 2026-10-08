@@ -63,4 +63,26 @@ class AbstractSessionServletTest {
         final String json = writer.toString();
         assertThat(json).contains("\"session\"").contains("\"msgs\"").contains("\"settings\"");
     }
+
+    @Test
+    @DisplayName("tolerates missing accept-language header (e.g. curl without -H)")
+    void fillAndSendJSONoAcceptLanguage() throws Exception {
+        final HttpSession httpSession = mock(HttpSession.class);
+        when(httpSession.getAttribute("session")).thenReturn(webSession);
+        when(httpSession.getId()).thenReturn("servlet-test");
+
+        final HttpServletRequest req = mock(HttpServletRequest.class);
+        lenient().when(req.getSession()).thenReturn(httpSession);
+        lenient().when(req.getHeader("accept-language")).thenReturn(null);
+
+        final StringWriter writer = new StringWriter();
+        final HttpServletResponse resp = mock(HttpServletResponse.class);
+        when(resp.getWriter()).thenReturn(new PrintWriter(writer));
+
+        final var servlet = new AbstractSessionServlet() {
+        };
+        servlet.fillAndSendJSO(req, resp, new JsonObject());
+
+        assertThat(writer.toString()).contains("\"session\"");
+    }
 }
