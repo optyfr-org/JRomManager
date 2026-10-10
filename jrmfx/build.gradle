@@ -59,21 +59,19 @@ javafx {
 dependencies {
     implementation project(':jrmcore')
     implementation project(':res-icons')
-    implementation 'com.beust:jcommander:1.+'
-    implementation 'commons-io:commons-io:2.+'
-    implementation 'org.apache.commons:commons-text:1.+'
-    implementation 'org.apache.commons:commons-lang3:3.+'
-    implementation 'com.google.code.gson:gson:latest.release'
-    implementation 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
+    implementation libs.jcommander
+    implementation libs.commons.io
+    implementation libs.commons.text
+    implementation libs.commons.lang3
+    implementation libs.gson
+    implementation libs.minimal.json
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:latest.release'
-    testImplementation 'org.junit.jupiter:junit-jupiter-engine:latest.release'
-    testImplementation 'org.junit.jupiter:junit-jupiter-params:latest.release'
-    testImplementation 'org.assertj:assertj-core:3.27.7'
-    testImplementation 'org.mockito:mockito-core:latest.release'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:latest-release'
-    testImplementation 'io.gitlab.fx-labs:testfx-junit:0.2.0'
-    testImplementation 'io.gitlab.fx-labs:testfx-assertj:0.2.0'
+    testImplementation libs.bundles.junit.jupiter.stack
+    testImplementation libs.assertj.core
+    testImplementation libs.mockito.core
+    testRuntimeOnly libs.junit.platform.launcher
+    testImplementation libs.testfx.junit
+    testImplementation libs.testfx.assertj
 }
 
 application.mainClass = 'jrm.fx.JRomManagerMulti'

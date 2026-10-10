@@ -22,18 +22,16 @@ graalvmNative {
 
 dependencies {
     implementation project(':jrmcore')
-    implementation 'com.beust:jcommander:1.+'
-    implementation 'commons-io:commons-io:[2.7,3.0)'
-    implementation 'org.apache.commons:commons-lang3:[3.18.0,4.0)'
-    implementation 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
-    implementation 'org.jline:jline:4.3.1'
+    implementation libs.jcommander
+    implementation libs.commons.io
+    implementation libs.commons.lang3
+    implementation libs.minimal.json
+    implementation libs.jline
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:latest.release'
-    testImplementation 'org.junit.jupiter:junit-jupiter-engine:latest.release'
-    testImplementation 'org.junit.jupiter:junit-jupiter-params:latest.release'
-    testImplementation 'org.assertj:assertj-core:3.27.7'
-    testImplementation 'org.mockito:mockito-core:latest.release'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:latest-release'
+    testImplementation libs.bundles.junit.jupiter.stack
+    testImplementation libs.assertj.core
+    testImplementation libs.mockito.core
+    testRuntimeOnly libs.junit.platform.launcher
 }
 
 application {

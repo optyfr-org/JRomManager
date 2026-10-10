@@ -5,18 +5,18 @@ apply plugin: 'application'
 dependencies {
     implementation project(':jrmcore')
     implementation project(':res-icons')
-    implementation 'commons-codec:commons-codec:1.+'
-    implementation 'com.beust:jcommander:1.+'
-    implementation 'commons-io:commons-io:2.+'
-    implementation 'org.apache.commons:commons-lang3:3.+'
-    implementation 'one.util:streamex:0.9.+'
-    implementation 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
-    implementation 'com.sun.activation:javax.activation:1.2.+'
-    runtimeOnly 'org.jspecify:jspecify:1.0.1'
+    implementation libs.commons.codec
+    implementation libs.jcommander
+    implementation libs.commons.io
+    implementation libs.commons.lang3
+    implementation libs.streamex
+    implementation libs.minimal.json
+    implementation libs.javax.activation
+    runtimeOnly libs.jspecify
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:latest.release'
-    testImplementation 'org.junit.jupiter:junit-jupiter-engine:latest.release'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:latest-release'
+    testImplementation libs.junit.jupiter.api
+    testImplementation libs.junit.jupiter.engine
+    testRuntimeOnly libs.junit.platform.launcher
 }
 
 application.mainClass = 'jrm.JRomManagerMulti'

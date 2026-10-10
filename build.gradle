@@ -1,10 +1,13 @@
 buildscript {
+    // NOTE: `libs` is not visible inside buildscript. These pins mirror
+    // gradle/libs.versions.toml (aircompressor, bouncycastle) and are kept in
+    // sync by scripts/refresh-locks.sh — do not hand-edit.
     configurations.all {
         resolutionStrategy {
-            force 'io.airlift:aircompressor:[2.0.3,3.0)'
+            force 'io.airlift:aircompressor:2.0.3'
             dependencySubstitution {
-                substitute module('org.bouncycastle:bcpg-jdk15on') using module('org.bouncycastle:bcpg-jdk18on:[1.84,2.0)')
-                substitute module('org.bouncycastle:bcprov-jdk15on') using module('org.bouncycastle:bcprov-jdk18on:[1.84,2.0)')
+                substitute module('org.bouncycastle:bcpg-jdk15on') using module('org.bouncycastle:bcpg-jdk18on:1.86')
+                substitute module('org.bouncycastle:bcprov-jdk15on') using module('org.bouncycastle:bcprov-jdk18on:1.86')
             }
         }
     }
@@ -16,15 +19,15 @@ buildscript {
 plugins {
     id 'java'
     id 'application'
-    id "org.sonarqube" version "7.3.1.8318"
-    id "com.netflix.nebula.ospackage" version "latest.release"
-    id "de.undercouch.download" version "latest.release"
-    id "io.freefair.lombok" version "latest.release"
-    id 'org.openjfx.javafxplugin' version 'latest.release'
-    id "org.beryx.jlink" version "4.1.1" apply false
+    alias(libs.plugins.sonarqube)
+    alias(libs.plugins.nebula.ospackage)
+    alias(libs.plugins.gradle.download.task)
+    alias(libs.plugins.freefair.lombok)
+    alias(libs.plugins.javafx.plugin)
+    alias(libs.plugins.beryx.jlink) apply false
     id 'jacoco'
-    id "io.github.sgtsilvio.gradle.javadoc-links" version "0.10.0"
-    id 'org.graalvm.buildtools.native' version '1.1.14' apply false
+    alias(libs.plugins.javadoc.links)
+    alias(libs.plugins.graalvm.native) apply false
 }
 
 dependencyLocking {
@@ -82,7 +85,7 @@ eclipse {
 }
 
 lombok {
-    version = '1.18.46'
+    version = libs.versions.lombok.get()
 }
 
 ext.props = new Properties()

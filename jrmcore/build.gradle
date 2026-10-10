@@ -2,25 +2,23 @@ apply plugin: "io.freefair.lombok"
 apply plugin: "eclipse"
 
 dependencies {
-    implementation 'com.github.optyfr-org:SevenZipJBindingAllInOne:1.1'
-    implementation 'com.github.optyfr-org:Jtrrntzip:2.0.0'
-    implementation 'commons-codec:commons-codec:1.+'
-    implementation 'commons-io:commons-io:[2.7,3.0)'
-    implementation 'org.apache.commons:commons-text:1.+'
-    implementation 'org.apache.commons:commons-compress:[1.21,2.0)'
-    implementation 'one.util:streamex:0.9.+'
-    runtimeOnly 'org.jspecify:jspecify:1.0.1'
-    implementation 'com.sun.activation:javax.activation:1.2.+'
-    implementation 'com.eclipsesource.minimal-json:minimal-json:0.9.5'
-    implementation 'net.lingala.zip4j:zip4j:latest.release'
-    implementation 'org.apache.fory:fory-core:1.6.1'
+    implementation libs.sevenzipjbinding
+    implementation libs.jtrrntzip
+    implementation libs.commons.codec
+    implementation libs.commons.io
+    implementation libs.commons.text
+    implementation libs.commons.compress
+    implementation libs.streamex
+    runtimeOnly libs.jspecify
+    implementation libs.javax.activation
+    implementation libs.minimal.json
+    implementation libs.zip4j
+    implementation libs.fory.core
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:latest.release'
-    testImplementation 'org.junit.jupiter:junit-jupiter-engine:latest.release'
-    testImplementation 'org.junit.jupiter:junit-jupiter-params:latest.release'
-    testImplementation 'org.assertj:assertj-core:3.27.7'
-    testImplementation 'org.mockito:mockito-core:latest.release'
-    testRuntimeOnly 'org.junit.platform:junit-platform-launcher:latest-release'
+    testImplementation libs.bundles.junit.jupiter.stack
+    testImplementation libs.assertj.core
+    testImplementation libs.mockito.core
+    testRuntimeOnly libs.junit.platform.launcher
 }
 
 jar {
