@@ -20,9 +20,11 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK
-        uses: optyfr-org/composite-actions/setup-gradle@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+        uses: optyfr-org/composite-actions/setup-java-gradle@92860d490a78124539f877e76694c0dc69444e5a
         with:
-          java-distribution: temurin
+          java-distribution: graalvm
+          java-version: 25
+          native: true
 
       - name: Build and analyze
         uses: GabrielBB/xvfb-action@b706e4e27b14669b486812790492dc50ca16b465 # v1.7
