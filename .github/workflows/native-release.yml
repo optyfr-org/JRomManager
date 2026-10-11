@@ -1,0 +1,88 @@
+name: Native Release
+
+# Builds GraalVM native binaries + per-role platform installers
+# (servers MSI/DEB/RPM/DMG, gui MSI/DEB/RPM/DMG) on each OS and uploads
+# them to the tag release. Installers are UNSIGNED (see
+# gradle/packaging-native.gradle signing hooks for the wiring points).
+
+on:
+  workflow_call:
+    inputs:
+      runner:
+        description: GitHub-hosted runner label
+        required: true
+        type: string
+      platform-tag:
+        description: Artifact suffix, e.g. win-x64, linux-x64, macos-x64, macos-aarch64
+        required: true
+        type: string
+      installer-types:
+        description: jpackage installer types for this OS
+        required: true
+        type: string
+      lfs:
+        description: Fetch Git LFS files on checkout
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  native:
+    runs-on: ${{ inputs.runner }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          lfs: ${{ inputs.lfs }}
+          submodules: true
+          persist-credentials: false
+
+      - name: Set up JDK
+        uses: optyfr-org/composite-actions/setup-java-gradle@92860d490a78124539f877e76694c0dc69444e5a
+        with:
+          java-distribution: graalvm
+          java-version: 25
+          native: true
+
+      - name: Install Linux packaging tools
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -y && sudo apt-get install -y dpkg-dev rpm fakeroot
+
+      - name: Install Windows WiX
+        if: runner.os == 'Windows'
+        run: choco install wixtoolset --no-progress -y
+
+      - name: Build native binaries + installers
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INSTALLER_TYPES: ${{ inputs.installer-types }}
+        run: ./gradlew nativeInstallers "-PnativeInstallerTypes=$INSTALLER_TYPES" --stacktrace
+
+      - name: Smoke-test servers binary
+        shell: bash
+        run: |
+          BIN=$(find build/native-app/servers-image-parent -maxdepth 3 -name 'JRomManager-Servers*' -type f | head -1)
+          echo "smoke binary: $BIN"
+          # FullServer parses args via JCommander: --help prints Usage (exit != 0
+          # is expected). A GraalVM failure would show Error/ImageHeap instead.
+          OUT=$("$BIN" --help 2>&1 || true)
+          echo "$OUT" | head -20
+          echo "$OUT" | grep -qi 'usage' || { echo 'smoke FAILED: no Usage output'; exit 1; }
+
+      - name: Release servers installer
+        uses: optyfr-org/composite-actions/upload-release-asset@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+        with:
+          tag: ${{ github.ref_name }}
+          file: build/installer-native/servers/*
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release GUI installer
+        uses: optyfr-org/composite-actions/upload-release-asset@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
+        with:
+          tag: ${{ github.ref_name }}
+          file: build/installer-native/gui/*
+          token: ${{ secrets.GITHUB_TOKEN }}

@@ -28,6 +28,36 @@ graalvmNative {
             resources.includedPatterns.add('com/sun/scenario/.*')
             resources.includedPatterns.add('com/sun/glass/.*')
             resources.includedPatterns.add('javafx/.*')
+            // Per-OS native flags (native installers build on win/linux/macos runners).
+            // Win-only glass/font classes must not be named on other OSes.
+            def os = org.gradle.nativeplatform.platform.internal.DefaultNativePlatform.currentOperatingSystem
+            List<String> osGlassInit = []
+            List<String> prismOrder = ['-Dprism.maxvram=1G']
+            if (os.isWindows()) {
+                osGlassInit = [
+                    '--initialize-at-run-time=com.sun.glass.ui.win.WinApplication',
+                    '--initialize-at-run-time=com.sun.glass.ui.win.WinPlatformFactory',
+                    '--initialize-at-run-time=com.sun.javafx.font.directwrite.DWFactory',
+                ]
+                // The Prism software pipeline loses the green channel in native-image
+                // (all colors render magenta/violet); force the D3D hardware pipeline.
+                prismOrder = ['-Dprism.maxvram=1G', '-Dprism.order=d3d']
+            } else if (os.isLinux()) {
+                osGlassInit = [
+                    '--initialize-at-run-time=com.sun.glass.ui.gtk.GtkApplication',
+                    '--initialize-at-run-time=com.sun.glass.ui.gtk.GtkPlatformFactory',
+                    '--initialize-at-run-time=com.sun.javafx.font.freetype.FTFactory',
+                ]
+                // Headless/smoke runs fall back to software; prefer GPU when present.
+                prismOrder = ['-Dprism.maxvram=1G', '-Dprism.order=es2,sw']
+            } else if (os.isMacOsX()) {
+                osGlassInit = [
+                    '--initialize-at-run-time=com.sun.glass.ui.mac.MacApplication',
+                    '--initialize-at-run-time=com.sun.glass.ui.mac.MacPlatformFactory',
+                    '--initialize-at-run-time=com.sun.javafx.font.coretext.CTFactory',
+                ]
+                prismOrder = ['-Dprism.maxvram=1G', '-Dprism.order=es2,sw']
+            }
             buildArgs.addAll(
                 '-J--add-opens=java.base/java.lang.invoke=ALL-UNNAMED',
                 '-J--add-opens=javafx.controls/javafx.scene.control.skin=ALL-UNNAMED',
@@ -39,14 +69,13 @@ graalvmNative {
                 // JavaFX 25 renamed com.sun.prism.* to com.sun.prism.impl.*.
                 '--initialize-at-run-time=com.sun.glass.ui.Application',
                 '--initialize-at-run-time=com.sun.glass.ui.Screen',
-                '--initialize-at-run-time=com.sun.glass.ui.win.WinApplication',
-                '--initialize-at-run-time=com.sun.glass.ui.win.WinPlatformFactory',
-                '--initialize-at-run-time=com.sun.javafx.font.directwrite.DWFactory',
             )
-            runtimeArgs.add('-Dprism.maxvram=1G')
-            // The Prism software pipeline loses the green channel in native-image
-            // (all colors render magenta/violet); force the D3D hardware pipeline.
-            runtimeArgs.add('-Dprism.order=d3d')
+            buildArgs.addAll(osGlassInit)
+            // Native JavaFX resources per host OS (dll/so/dylib + shaders).
+            resources.includedPatterns.add('.*\\.so$')
+            resources.includedPatterns.add('.*\\.dylib$')
+            if (os.isMacOsX()) resources.includedPatterns.add('.*\\.jnilib$')
+            runtimeArgs.addAll(prismOrder)
         }
     }
 }

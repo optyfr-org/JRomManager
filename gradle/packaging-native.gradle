@@ -1,0 +1,381 @@
+// Native-image installers, one per role, for Windows / Linux / macOS.
+//
+// Roles (answer: "un installeur par rôle"):
+//   servers : jrmserver + jrmfullserver + jrmcli + WebClient/war content
+//   gui     : jrmfx (JavaFX desktop, experimental — see jrmfx/build.gradle)
+//
+// Strategy: GraalVM nativeCompile produces the binaries. jpackage cannot wrap
+// a native binary directly (it always builds a Java launcher + runtime), so
+// each role goes through the documented two-step recipe:
+//   1. jpackage --type app-image with a stub --main-jar  -> stock app-image layout
+//   2. replace the java launcher(s) with the GraalVM native binaries,
+//      drop native resources next to them (WebClient/war client dir, icons)
+//   3. jpackage --app-image <dir> --type <msi|deb|rpm|dmg> -> platform installer
+//
+// Platform installers (answer: "jpackage natif"):
+//   Windows : MSI  (needs WiX 3.x on PATH)
+//   Linux   : DEB + RPM (needs dpkg / rpmbuild)
+//   macOS   : DMG
+//
+// Signing (answer: "non signés"): installers are unsigned. Hook points via
+// project properties (wired when secrets exist, no task rewiring needed):
+//   -PnativeWinSignPfx=<path> -PnativeWinSignPass=<pwd>
+//   -PnativeMacSignIdentity=<name> -PnativeMacNotarizeProfile=<profile>
+// When set, the flags are appended to the step-3 jpackage command lines.
+//
+// CI: .github/workflows/native-release.yml builds the four OS jobs with
+// GraalVM 25 and calls :nativeServersInstaller / :nativeGuiInstaller.
+// Local build (same OS as host):
+//   ./gradlew nativeServersInstaller   (or nativeGuiInstaller)
+//   ./gradlew nativeInstallers         (both roles)
+
+import org.gradle.nativeplatform.platform.internal.DefaultNativePlatform
+
+def currentOs = DefaultNativePlatform.currentOperatingSystem
+def currentArch = DefaultNativePlatform.currentArchitecture
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+static String nativePlatformClassifier(Object os, Object arch) {
+    String osName
+    if (os.isWindows()) osName = 'win'
+    else if (os.isLinux()) osName = 'linux'
+    else if (os.isMacOsX()) osName = 'macos'
+    else osName = os.getName().toLowerCase(Locale.ROOT).replaceAll('[^a-z0-9]+', '-')
+    String archName
+    if (arch.isAmd64()) archName = 'x64'
+    else if (arch.isArm64()) archName = 'aarch64'
+    else if (arch.isI386()) archName = 'x32'
+    else archName = arch.getName().toLowerCase(Locale.ROOT).replaceAll('[^a-z0-9]+', '')
+    return "${osName}-${archName}"
+}
+
+def nativeClassifier = nativePlatformClassifier(currentOs, currentArch)
+def jpackageBin = "${System.getProperty('java.home')}/bin/jpackage"
+
+// Per-OS default installer types, overridable with -PnativeInstallerTypes=msi,exe ...
+def nativeInstallerTypes = (project.findProperty('nativeInstallerTypes') as String)?.split(',')*.trim()?.findAll { it } ?: (
+    currentOs.isWindows() ? ['msi'] :
+    currentOs.isLinux() ? ['deb', 'rpm'] :
+    currentOs.isMacOsX() ? ['dmg'] : ['app-image']
+)
+
+// jpackage input stubs (a minimal jar satisfies --main-jar for the step-1 app-image)
+def nativeStubDir = layout.buildDirectory.dir('native-app/stub')
+def nativeServersImage = layout.buildDirectory.dir('native-app/servers-image')
+def nativeGuiImage = layout.buildDirectory.dir('native-app/gui-image')
+
+// The launcher binaries produced by nativeCompile tasks.
+// Task names are nativeCompile (binary `main`) and nativeFullServerCompile
+// (binary `fullServer`); there is no `nativeMainCompile`.
+// Resolved lazily as task paths: the GraalVM plugin registers these tasks
+// after root script evaluation, so eager tasks.named() fails at configure time.
+def jrmServerBinary = ':jrmserver:nativeCompile'
+def jrmFullServerBinary = ':jrmserver:nativeFullServerCompile'
+def jrmCliBinary = ':jrmcli:nativeCompile'
+def jrmFxBinary = ':jrmfx:nativeCompile'
+// Output dirs of the native binaries (imageName per build.gradle).
+def jrmServerOut = { project(':jrmserver').layout.buildDirectory.dir('native/nativeCompile') }
+def jrmFullServerOut = { project(':jrmserver').layout.buildDirectory.dir('native/nativeFullServerCompile') }
+def jrmCliOut = { project(':jrmcli').layout.buildDirectory.dir('native/nativeCompile') }
+def jrmFxOut = { project(':jrmfx').layout.buildDirectory.dir('native/nativeCompile') }
+
+static List<String> signingArgs(Project project, Object os) {
+    List<String> extra = []
+    if (os.isWindows()) {
+        // Hook: codesigning via jpackage --win-sign-* (WiX + signtool on PATH).
+        String pfx = project.findProperty('nativeWinSignPfx')
+        String pass = project.findProperty('nativeWinSignPass')
+        if (pfx && pass) {
+            extra.addAll(['--win-sign', '--win-sign-pfx', pfx, '--win-sign-storepass', pass,
+                          '--win-sign-desc', project.findProperty('nativeWinSignDesc') ?: 'JRomManager',
+                          '--win-sign-timestamping-authority', 'http://timestamp.digicert.com'])
+        }
+    } else if (os.isMacOsX()) {
+        // Hook: --mac-sign + notarization via stored notarytool profile.
+        String identity = project.findProperty('nativeMacSignIdentity')
+        String profile = project.findProperty('nativeMacNotarizeProfile')
+        if (identity) {
+            extra.addAll(['--mac-sign', '--mac-signing-key-user-name', identity])
+            if (profile) extra.addAll(['--mac-notarize', '--mac-notary-profile', profile])
+        }
+    }
+    return extra
+}
+
+// ---------------------------------------------------------------------------
+// Step 0: stub jar — jpackage step 1 needs a --main-jar; it is discarded after.
+// ---------------------------------------------------------------------------
+tasks.register('nativeStubJar', Jar) {
+    group = 'native-installer'
+    description = 'Minimal stub jar for jpackage app-image scaffolding (discarded afterwards).'
+    archiveFileName = 'stub.jar'
+    destinationDirectory = nativeStubDir
+    // jpackage requires a Main-Class (or --main-class); the stub is discarded in step 2.
+    manifest { attributes('Main-Class': 'jrm.cli.JRomManagerCLI') }
+    from(rootDir) { include 'dist/ver.properties' }
+}
+
+// ---------------------------------------------------------------------------
+// SERVERS role: jrmserver + jrmfullserver + jrmcli + WebClient/war
+// ---------------------------------------------------------------------------
+// Step 1: stock app-image with three --add-launcher entries (java launchers,
+// replaced by native binaries in step 2). The main launcher is jrmfullserver.
+// NOTE: jpackage treats each --arguments occurrence as ONE launcher argument,
+// so multi-token defaults are repeated per token (single-quoted: $APPDIR must
+// stay literal for runtime expansion by the installed launcher).
+List<String> serversArgs = ['--ws', '-c', '$APPDIR/client', '-w', '$APPDIR/work', '-d']
+tasks.register('writeNativeLauncherProps') {
+    group = 'native-installer'
+    description = 'Writes jpackage --add-launcher property files into the stub input dir.'
+    dependsOn tasks.named('nativeStubJar')
+    doLast {
+        def stub = nativeStubDir.get().asFile
+        new File(stub, 'jrmserver-launcher.properties').text = "win-console=true\n"
+        new File(stub, 'jrmcli-launcher.properties').text = "win-console=true\n"
+    }
+}
+tasks.register('nativeServersAppImage', Exec) {
+    group = 'native-installer'
+    description = 'Step 1: stock jpackage app-image scaffolding for the servers role.'
+    dependsOn tasks.named('writeNativeLauncherProps')
+    def out = layout.buildDirectory.dir('native-app/servers-image-parent')
+    // jpackage refuses to overwrite an existing dest; Exec tasks are not incremental.
+    doFirst { project.delete(out.get().asFile); out.get().asFile.mkdirs() }
+    // --add-launcher property files resolve against the working dir, not --input.
+    workingDir nativeStubDir.get().asFile
+    commandLine jpackageBin,
+        '--type', 'app-image',
+        '--input', '.',
+        '--dest', out.get().asFile.absolutePath,
+        '--name', 'JRomManager-Servers',
+        '--main-jar', 'stub.jar',
+        '--java-options', '-Dfile.encoding=UTF-8',
+        '--add-launcher', 'JRomManagerServer=jrmserver-launcher.properties',
+        '--add-launcher', 'JRomManagerCLI=jrmcli-launcher.properties'
+    serversArgs.each { a -> args('--arguments', a) }
+}
+
+// Step 2: swap java launchers for native binaries, drop adjacent resources.
+// Copy tasks with only doLast misuse the type; DefaultTask + project.copy is correct.
+tasks.register('stageNativeServersBinaries') {
+    group = 'native-installer'
+    description = 'Step 2: replaces app-image java launchers with GraalVM native binaries.'
+    dependsOn tasks.named('nativeServersAppImage'), jrmServerBinary, jrmFullServerBinary, jrmCliBinary,
+        project(':WebClient').tasks.named('jar')
+    // locate the produced app-image (jpackage names it after --name).
+    // Launcher layout differs per OS: <image>/bin/<launcher> on linux,
+    // <image>\<launcher>.exe on windows, <image>/Contents/MacOS/<launcher> on macOS.
+    def imageDir = layout.buildDirectory.dir('native-app/servers-image-parent/JRomManager-Servers')
+    doLast {
+        def img = imageDir.get().asFile
+        def binCandidates = [
+            new File(img, 'bin'),
+            img,
+            new File(img, 'Contents/MacOS'),
+        ]
+        File targetDir = binCandidates.find { it.isDirectory() }
+        if (targetDir == null) throw new GradleException("servers app-image has no launcher dir under ${img}")
+        // -PnativeStubBinaries=true: assembly dry-run without nativeCompile.
+        // Copies the java launchers onto themselves (no-op swap) to validate
+        // steps 2-3 wiring. Never used for real installers.
+        boolean stubBinaries = project.hasProperty('nativeStubBinaries')
+        if (stubBinaries) {
+            logger.warn('nativeStubBinaries: installer will contain JAVA launchers, not native binaries')
+        } else {
+            // Resolved eagerly to plain Files: passing Provider<Directory>
+            // into project.copy mis-resolves (observed: source 'D:').
+            File fullOut = jrmFullServerOut().get().asFile
+            File srvOut = jrmServerOut().get().asFile
+            File cliOut = jrmCliOut().get().asFile
+            logger.lifecycle("native stage sources: ${fullOut}, ${srvOut}, ${cliOut}")
+            project.copy {
+                from(fullOut) { include 'jrmfullserver*' }
+                from(srvOut) { include 'jrmserver*' }
+                from(cliOut) { include 'jrmcli*' }
+                into targetDir
+            }
+        }
+        // rename staged natives onto the jpackage launcher names.
+        // Order matters: 'jrmserver*' prefix also matches 'jrmservers...' — the
+        // fullserver rename runs first, then exact Basename matching avoids collisions.
+        if (!stubBinaries) {
+            renameNativeExact(targetDir, 'jrmfullserver', 'JRomManager-Servers')
+            renameNativeExact(targetDir, 'jrmserver', 'JRomManagerServer')
+            renameNativeExact(targetDir, 'jrmcli', 'JRomManagerCLI')
+        }
+        // client content + helper scripts next to the image root (referenced via $APPDIR).
+        // Two separate copies with absolute String paths: nested `into` inside
+        // `from` mis-resolves the destination on Windows (observed: dest 'D:').
+        String clientDest = new File(img, 'client').absolutePath
+        project.copy {
+            from("${rootDir}/WebClient/war")
+            into clientDest
+        }
+        project.copy {
+            from("${rootDir}/dist") {
+                include 'JRomManagerServer.*'
+                include 'JRomManagerFullServer.*'
+                include 'JRomManagerCLI.*'
+            }
+            into img.absolutePath
+        }
+    }
+}
+
+// Exact basename match (minus .exe): 'jrmserver' must not match a file
+// starting with 'jrmserver' that belongs to another binary (e.g. a
+// 'jrmserver-debug' companion or the not-yet-renamed 'jrmfullserver').
+static void renameNativeExact(File dir, String fromBase, String toName) {
+    File found = dir.listFiles()?.find {
+        it.name == fromBase || it.name == fromBase + '.exe'
+    }
+    if (found == null) throw new GradleException("native binary '${fromBase}(.exe)' not staged in ${dir}")
+    boolean isExe = found.name.endsWith('.exe')
+    File dest = new File(dir, toName + (isExe ? '.exe' : ''))
+    removeReadOnly(dest)
+    if (!found.renameTo(dest)) throw new GradleException("cannot rename ${found} to ${dest}")
+    dest.setExecutable(true)
+}
+
+static void renameNative(File dir, String fromPrefix, String toName) {
+    File found = dir.listFiles()?.find { it.name.startsWith(fromPrefix) }
+    if (found == null) throw new GradleException("native binary '${fromPrefix}*' not staged in ${dir}")
+    boolean isExe = found.name.endsWith('.exe')
+    File dest = new File(dir, toName + (isExe ? '.exe' : ''))
+    removeReadOnly(dest)
+    if (!found.renameTo(dest)) throw new GradleException("cannot rename ${found} to ${dest}")
+    dest.setExecutable(true)
+}
+
+// jpackage marks generated launchers read-only; File.delete() fails on them (Windows).
+static void removeReadOnly(File f) {
+    if (f.exists()) {
+        f.setWritable(true)
+        java.nio.file.Files.delete(f.toPath())
+    }
+}
+
+// Step 3: platform installer(s) from the native app-image.
+// 'app-image' in nativeInstallerTypes means repackaging validation only
+// (--app-image cannot combine with --type app-image): the staged image is
+// copied to the installer dir. Used for local wiring tests without WiX/dpkg.
+boolean serversAppImageOnly = nativeInstallerTypes == ['app-image']
+tasks.register('nativeServersInstaller', Exec) {
+    group = 'native-installer'
+    description = "Step 3: servers-role native installer(s) ${nativeInstallerTypes} for ${nativeClassifier}."
+    dependsOn tasks.named('stageNativeServersBinaries')
+    onlyIf { !serversAppImageOnly }
+    def imageDir = layout.buildDirectory.dir('native-app/servers-image-parent/JRomManager-Servers')
+    def outDir = layout.buildDirectory.dir('installer-native/servers')
+    doFirst { project.delete(outDir.get().asFile); outDir.get().asFile.mkdirs() }
+    commandLine jpackageBin,
+        '--name', 'JRomManager-Servers',
+        '--app-version', version.toString(),
+        '--vendor', 'optyfr',
+        '--description', 'JRomManager servers (native): FullServer, Server, CLI',
+        '--copyright', 'GPL-2.0',
+        '--app-image', imageDir.get().asFile.absolutePath,
+        '--dest', outDir.get().asFile.absolutePath
+    nativeInstallerTypes.each { t ->
+        if (t != 'app-image') args('--type', t)
+    }
+    if (currentOs.isWindows()) {
+        args('--icon', file('dist/JRomManager.ico').absolutePath,
+             '--win-menu', '--win-shortcut', '--win-dir-chooser')
+    } else if (currentOs.isLinux()) {
+        args('--icon', file('dist/JRomManager.png').absolutePath,
+             '--linux-package-name', 'jrommanager-native-servers',
+             '--linux-app-category', 'utils',
+             '--linux-menu-group', 'Utility',
+             '--linux-shortcut')
+    } else if (currentOs.isMacOsX()) {
+        args('--icon', file('dist/JRomManager.png').absolutePath,
+             '--mac-package-name', 'JRomManager-Servers')
+    }
+    args(signingArgs(project, currentOs))
+}
+
+// ---------------------------------------------------------------------------
+// GUI role: jrmfx (experimental native JavaFX)
+// ---------------------------------------------------------------------------
+tasks.register('nativeGuiAppImage', Exec) {
+    group = 'native-installer'
+    description = 'Step 1: stock jpackage app-image scaffolding for the gui role.'
+    dependsOn tasks.named('nativeStubJar')
+    def stub = nativeStubDir.get().asFile
+    def out = layout.buildDirectory.dir('native-app/gui-image-parent')
+    doFirst { project.delete(out.get().asFile); out.get().asFile.mkdirs() }
+    commandLine jpackageBin,
+        '--type', 'app-image',
+        '--input', stub.absolutePath,
+        '--dest', out.get().asFile.absolutePath,
+        '--name', 'JRomManager',
+        '--main-jar', 'stub.jar',
+        '--java-options', '-Dfile.encoding=UTF-8 -Dprism.maxvram=1G'
+}
+
+tasks.register('stageNativeGuiBinaries') {
+    group = 'native-installer'
+    description = 'Step 2: replaces app-image java launcher with the GraalVM jrmfx binary.'
+    dependsOn tasks.named('nativeGuiAppImage'), jrmFxBinary
+    def imageDir = layout.buildDirectory.dir('native-app/gui-image-parent/JRomManager')
+    doLast {
+        def img = imageDir.get().asFile
+        def binCandidates = [
+            new File(img, 'bin'),
+            img,
+            new File(img, 'Contents/MacOS'),
+        ]
+        File targetDir = binCandidates.find { it.isDirectory() }
+        if (targetDir == null) throw new GradleException("gui app-image has no launcher dir under ${img}")
+        project.copy {
+            from(jrmFxOut().get().asFile) { include 'jrmfx*' }
+            into targetDir
+        }
+        renameNativeExact(targetDir, 'jrmfx', 'JRomManager')
+    }
+}
+
+boolean guiAppImageOnly = nativeInstallerTypes == ['app-image']
+tasks.register('nativeGuiInstaller', Exec) {
+    group = 'native-installer'
+    description = "Step 3: gui-role native installer(s) ${nativeInstallerTypes} for ${nativeClassifier}."
+    dependsOn tasks.named('stageNativeGuiBinaries')
+    onlyIf { !guiAppImageOnly }
+    def imageDir = layout.buildDirectory.dir('native-app/gui-image-parent/JRomManager')
+    def outDir = layout.buildDirectory.dir('installer-native/gui')
+    doFirst { project.delete(outDir.get().asFile); outDir.get().asFile.mkdirs() }
+    commandLine jpackageBin,
+        '--name', 'JRomManager',
+        '--app-version', version.toString(),
+        '--vendor', 'optyfr',
+        '--description', 'JRomManager desktop (native, JavaFX)',
+        '--copyright', 'GPL-2.0',
+        '--app-image', imageDir.get().asFile.absolutePath,
+        '--dest', outDir.get().asFile.absolutePath
+    nativeInstallerTypes.each { t ->
+        if (t != 'app-image') args('--type', t)
+    }
+    if (currentOs.isWindows()) {
+        args('--icon', file('dist/JRomManager.ico').absolutePath,
+             '--win-menu', '--win-shortcut', '--win-dir-chooser')
+    } else if (currentOs.isLinux()) {
+        args('--icon', file('dist/JRomManager.png').absolutePath,
+             '--linux-package-name', 'jrommanager-native',
+             '--linux-app-category', 'utils',
+             '--linux-menu-group', 'Utility',
+             '--linux-shortcut')
+    } else if (currentOs.isMacOsX()) {
+        args('--icon', file('dist/JRomManager.png').absolutePath,
+             '--mac-package-name', 'JRomManager')
+    }
+    args(signingArgs(project, currentOs))
+}
+
+tasks.register('nativeInstallers') {
+    group = 'native-installer'
+    description = 'Builds both native-role installers for the current OS.'
+    dependsOn tasks.named('nativeServersInstaller'), tasks.named('nativeGuiInstaller')
+}
