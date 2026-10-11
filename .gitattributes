@@ -2,3 +2,14 @@
 *.xml filter=lfs diff=lfs merge=lfs -text
 *.zip filter=lfs diff=lfs merge=lfs
 *.chd filter=lfs diff=lfs merge=lfs
+
+# Build-critical small XML must stay in regular git (never LFS) —
+# otherwise checkouts without LFS (e.g. dependency-submission) get
+# LFS pointer text and Gradle fails with "Content is not allowed in prolog".
+gradle/verification-metadata.xml filter= diff= merge= text
+gradle/**/*.xml filter= diff= merge= text
+**/logback.xml filter= diff= merge= text
+**/web.xml filter= diff= merge= text
+*.lockfile text
+gradle/verification-keyring.keys text
+gradle/libs.versions.toml text
