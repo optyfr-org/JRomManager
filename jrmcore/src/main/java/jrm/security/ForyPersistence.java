@@ -219,7 +219,7 @@ public final class ForyPersistence {
     /**
      * Pre-compiles the registered serializers so steady-state (de)serialization runs at full JIT
      * speed. While a native image is being built (this class is initialized at build time, see
-     * gradle/native-image.gradle) compilation must happen synchronously: the closed-world runtime
+     * buildSrc JrmNative) compilation must happen synchronously: the closed-world runtime
      * cannot JIT-compile new serializers on first use. On a regular JVM it runs on a daemon thread
      * so class initialization stays cheap; until it finishes, Fory transparently falls back to its
      * interpreter.

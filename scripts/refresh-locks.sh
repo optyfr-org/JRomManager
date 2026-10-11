@@ -3,7 +3,7 @@
 #
 # What it does:
 #   1. Re-resolves and re-downloads every dependency (--refresh-dependencies),
-#      covering all projects and configurations via scripts/resolve-all.init.gradle.
+#      covering all projects and configurations via scripts/resolve-all.init.gradle.kts.
 #   2. Regenerates ALL dependency locks (--write-locks): gradle.lockfile and
 #      buildscript-gradle.lockfile.
 #   3. Propagates pins from gradle/libs.versions.toml into the files that need
@@ -27,7 +27,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOML="$ROOT_DIR/gradle/libs.versions.toml"
-INIT="$ROOT_DIR/scripts/resolve-all.init.gradle"
+INIT="$ROOT_DIR/scripts/resolve-all.init.gradle.kts"
 LOCKS=("gradle.lockfile" "buildscript-gradle.lockfile")
 DRY_RUN=0
 OFFLINE=0
@@ -72,7 +72,7 @@ fi
 
 cd "$ROOT_DIR"
 if [[ $DRY_RUN -eq 1 ]]; then
-  log "(dry-run) would run: $GRADLE_BIN ${GRADLE_ARGS[*]} --write-locks -I scripts/resolve-all.init.gradle resolveAllForVerification"
+  log "(dry-run) would run: $GRADLE_BIN ${GRADLE_ARGS[*]} --write-locks -I scripts/resolve-all.init.gradle.kts resolveAllForVerification"
 else
   log "Refreshing dependencies and regenerating locks..."
   "$GRADLE_BIN" "${GRADLE_ARGS[@]}" --write-locks -I "$INIT" resolveAllForVerification
@@ -122,15 +122,22 @@ else
     [[ -n "${V[$k]:-}" ]] || die "version key '$k' missing from $TOML"
   done
   # root buildscript pins (libs catalog not visible in buildscript)
-  patch_file "build.gradle" \
-    "force 'io\.airlift:aircompressor:[^']*'" \
-    "force 'io.airlift:aircompressor:${V[aircompressor]}'"
-  patch_file "build.gradle" \
-    "using module\('org\.bouncycastle:bcpg-jdk18on:[^']*'\)" \
-    "using module('org.bouncycastle:bcpg-jdk18on:${V[bouncycastle]}')"
-  patch_file "build.gradle" \
-    "using module\('org\.bouncycastle:bcprov-jdk18on:[^']*'\)" \
-    "using module('org.bouncycastle:bcprov-jdk18on:${V[bouncycastle]}')"
+  # Kotlin DSL: force("...") and substitute(module("...")).using(module("..."))
+  patch_file "build.gradle.kts" \
+    'force\("io\.airlift:aircompressor:[^"]*"\)' \
+    'force("io.airlift:aircompressor:${V[aircompressor]}")'
+  patch_file "build.gradle.kts" \
+    'substitute\(module\("org\.bouncycastle:bcpg-jdk18on:[^"]*"\)\)' \
+    'substitute(module("org.bouncycastle:bcpg-jdk18on:${V[bouncycastle]}"))'
+  patch_file "build.gradle.kts" \
+    'using\(module\("org\.bouncycastle:bcpg-jdk18on:[^"]*"\)\)' \
+    'using(module("org.bouncycastle:bcpg-jdk18on:${V[bouncycastle]}"))'
+  patch_file "build.gradle.kts" \
+    'substitute\(module\("org\.bouncycastle:bcprov-jdk18on:[^"]*"\)\)' \
+    'substitute(module("org.bouncycastle:bcprov-jdk18on:${V[bouncycastle]}"))'
+  patch_file "build.gradle.kts" \
+    'using\(module\("org\.bouncycastle:bcprov-jdk18on:[^"]*"\)\)' \
+    'using(module("org.bouncycastle:bcprov-jdk18on:${V[bouncycastle]}"))'
   # distributed/binary version pins consumed via ver.properties
   patch_file "dist/ver.properties" \
     "^Commons-Daemon-Version=.*$" \
@@ -146,7 +153,7 @@ fi
 # ---------------------------------------------------------------------------
 log "Resulting changes (TOML + locks + literals):"
 if git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git -C "$ROOT_DIR" status --short -- gradle/libs.versions.toml "${LOCKS[@]}" build.gradle dist/ver.properties || true
+  git -C "$ROOT_DIR" status --short -- gradle/libs.versions.toml "${LOCKS[@]}" build.gradle.kts dist/ver.properties || true
   echo
   git -C "$ROOT_DIR" diff --stat -- gradle/libs.versions.toml "${LOCKS[@]}" || true
 else

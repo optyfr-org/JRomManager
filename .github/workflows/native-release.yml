@@ -3,7 +3,7 @@ name: Native Release
 # Builds GraalVM native binaries + per-role platform installers
 # (servers MSI/DEB/RPM/DMG, gui MSI/DEB/RPM/DMG) on each OS and uploads
 # them to the tag release. Installers are UNSIGNED (see
-# gradle/packaging-native.gradle signing hooks for the wiring points).
+# buildSrc jrm.packaging-native signing hooks for the wiring points).
 
 on:
   workflow_call:

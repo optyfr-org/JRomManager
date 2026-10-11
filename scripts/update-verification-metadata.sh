@@ -30,7 +30,7 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 META="$ROOT_DIR/gradle/verification-metadata.xml"
 KEYRING="$ROOT_DIR/gradle/verification-keyring.keys"
 KEYS_DIR="$ROOT_DIR/gradle/verification-keys"
-INIT="$ROOT_DIR/scripts/resolve-all.init.gradle"
+INIT="$ROOT_DIR/scripts/resolve-all.init.gradle.kts"
 DRY_RUN=0
 OFFLINE=0
 CLEAN=0
@@ -122,7 +122,7 @@ cd "$ROOT_DIR"
 if [[ $OFFLINE -eq 1 ]]; then
   warn "--offline: skipping metadata regeneration (network needed for checksums/signatures)"
 elif [[ $DRY_RUN -eq 1 ]]; then
-  log "(dry-run) would run: $GRADLE_BIN ${GRADLE_ARGS[*]} --write-verification-metadata sha256,sha512,pgp --export-keys -I scripts/resolve-all.init.gradle resolveAllForVerification"
+  log "(dry-run) would run: $GRADLE_BIN ${GRADLE_ARGS[*]} --write-verification-metadata sha256,sha512,pgp --export-keys -I scripts/resolve-all.init.gradle.kts resolveAllForVerification"
 else
   log "Generating verification metadata (sha256,sha512,pgp) + exporting keyring..."
   "$GRADLE_BIN" "${GRADLE_ARGS[@]}" --write-verification-metadata "sha256,sha512,pgp" \
