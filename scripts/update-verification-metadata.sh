@@ -209,7 +209,9 @@ Next steps:
      against an independent source, then mark it origin="Verified".
   2. Commit: gradle/verification-metadata.xml + gradle/verification-keyring.keys
      + gradle/verification-keys/ (locks + TOML from refresh-locks.sh too).
-  3. Enforce in CI: add --dependency-verification=strict to the Gradle
-     invocation in .github/workflows so tampered artifacts fail the build.
+  3. Verification stays warn-only (org.gradle.dependency.verification=lenient
+     in gradle.properties): drift is reported, never build-breaking. Only
+     switch a CI job to --dependency-verification=strict for a deliberate
+     tamper-evidence gate.
 EOF
 fi

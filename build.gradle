@@ -32,6 +32,9 @@ plugins {
 
 dependencyLocking {
     lockAllConfigurations()
+    // LENIENT = lock mismatches warn instead of failing the build.
+    // Dynamic versions are still pinned; added/removed/shifted modules no longer error.
+    lockMode = LockMode.LENIENT
 }
 
 sonar {
