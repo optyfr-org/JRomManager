@@ -1,10 +1,9 @@
 ---
-description: "Generate JUnit tests for Profile code using MAME DAT fixtures — validates XML parsing, data model construction, machine/software relationships, and filtering logic."
-name: "Write Profile Tests"
+name: write-profile-tests
+description: Generate JUnit tests for Profile code using MAME DAT fixtures — validates XML parsing, data model construction, machine/software relationships, and filtering logic.
+disable-model-invocation: true
 argument-hint: "[Profile class or method to test; defaults to Profile.java]"
-agent: agent
 ---
-
 # Write Tests for Profile Code Using DAT Data
 
 ## Inputs

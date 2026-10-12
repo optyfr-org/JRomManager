@@ -1,10 +1,9 @@
 ---
-description: "Generate comprehensive JUnit 5 tests for parser classes — validates file format parsing, data extraction, error handling, and edge cases using real-world fixtures."
-name: "Write Parser Tests"
+name: write-parser-tests
+description: Generate comprehensive JUnit 5 tests for parser classes — validates file format parsing, data extraction, error handling, and edge cases using real-world fixtures.
+disable-model-invocation: true
 argument-hint: "[Parser class to test; e.g., TorrentParser, CHDHeader, Profile]"
-agent: agent
 ---
-
 # Write Tests for Parser Classes
 
 ## Inputs

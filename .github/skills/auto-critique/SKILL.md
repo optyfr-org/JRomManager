@@ -1,10 +1,9 @@
 ---
-description: "Use when you want to auto-critique and refine recently completed work — exhaustively reviews files edited earlier in the conversation against project conventions and correctness, presents structured findings, and on confirmation applies fixes then verifies with compile/lint and SonarQube checks. Useful after a Javadoc, refactor, or feature task to self-review and harden the result."
-name: "Auto Critique"
+name: auto-critique
+description: Use when you want to auto-critique and refine recently completed work — exhaustively reviews files edited earlier in the conversation against project conventions and correctness, presents structured findings, and on confirmation applies fixes then verifies with compile/lint and SonarQube checks. Useful after a Javadoc, refactor, or feature task to self-review and harden the result.
+disable-model-invocation: true
 argument-hint: "[optional: file paths to critique; defaults to files edited earlier in this conversation]"
-agent: agent
 ---
-
 # Auto-Critique and Refine Previous Work
 
 ## Inputs

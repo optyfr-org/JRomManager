@@ -1,10 +1,9 @@
 ---
-description: "Use when creating or updating Javadoc in Java source files — documents classes, methods, and fields (including private and restricted members) with professional Javadoc-compliant English comments, and applies Lombok @Getter/@Setter/@Data field documentation rules."
-name: "Javadoc"
+name: javadoc
+description: Use when creating or updating Javadoc in Java source files — documents classes, methods, and fields (including private and restricted members) with professional Javadoc-compliant English comments, and applies Lombok @Getter/@Setter/@Data field documentation rules.
+disable-model-invocation: true
 argument-hint: "[optional: Java file paths; defaults to active editor file]"
-agent: agent
 ---
-
 # Create or Update Javadoc in Java Source Files
 
 ## Inputs

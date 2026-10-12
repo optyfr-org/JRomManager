@@ -1,10 +1,9 @@
 ---
-description: "Use when creating or updating Javadoc in package-info.java files — generates professional English package-level documentation describing the package purpose, key types, and cross-references."
-name: "Javadoc Package"
+name: javadoc-package
+description: Use when creating or updating Javadoc in package-info.java files — generates professional English package-level documentation describing the package purpose, key types, and cross-references.
+disable-model-invocation: true
 argument-hint: "[optional: package-info.java paths; defaults to active editor file]"
-agent: agent
 ---
-
 # Create or Update Javadoc in `package-info.java`
 
 ## Inputs
