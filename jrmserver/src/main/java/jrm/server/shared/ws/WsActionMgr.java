@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicReference;
 
 import com.eclipsesource.json.Json;
 
@@ -30,7 +31,7 @@ import lombok.Getter;
  * Use {@link #resolveFor(WebSession, ActionsMgr)} or {@link #forSession(WebSession)} for this lookup.
  * </p>
  * <p>
- * Concurrency: registry is a {@link ConcurrentHashMap}; socket/handle references are {@code volatile} with no
+ * Concurrency: registry is a {@link ConcurrentHashMap}; socket/handle references are {@link AtomicReference}s with no
  * {@code synchronized} in the push path (FullServer dispatches on virtual threads; monitor pinning must be avoided).
  * </p>
  */
@@ -43,14 +44,14 @@ public class WsActionMgr implements ActionsMgr {
     @Getter
     private static final Map<String, WsActionMgr> wsCmds = new ConcurrentHashMap<>();
 
-    /** The web session associated with this manager. */
-    private WebSession session;
+    /** The web session associated with this manager. Atomic reference for thread-safe publication across threads. */
+    private final AtomicReference<WebSession> session = new AtomicReference<>();
 
-    /** The live Jakarta WebSocket session. Volatile for safe publication across threads. */
-    private volatile jakarta.websocket.Session wsSession;
+    /** The live Jakarta WebSocket session. Atomic reference for thread-safe publication across threads. */
+    private final AtomicReference<jakarta.websocket.Session> wsSession = new AtomicReference<>();
 
     /** The HTTP session captured at handshake, used only to touch {@code lastAccessedTime}. */
-    private volatile HttpSession httpSession;
+    private final AtomicReference<HttpSession> httpSession = new AtomicReference<>();
 
     /**
      * Creates a manager for the given session and socket. Does not auto-register; callers register via
@@ -64,9 +65,9 @@ public class WsActionMgr implements ActionsMgr {
     public WsActionMgr(final WebSession session, final jakarta.websocket.Session wsSession, final HttpSession httpSession) {
         if (session == null)
             throw new NullPointerException("Session not found");
-        this.session = session;
-        this.wsSession = wsSession;
-        this.httpSession = httpSession;
+        this.session.set(session);
+        this.wsSession.set(wsSession);
+        this.httpSession.set(httpSession);
     }
 
     /**
@@ -85,7 +86,7 @@ public class WsActionMgr implements ActionsMgr {
     public void setSession(final WebSession session) {
         if (session == null)
             throw new NullPointerException("Session not found");
-        this.session = session;
+        this.session.set(session);
         wsCmds.put(session.getSessionId(), this);
     }
 
@@ -98,7 +99,7 @@ public class WsActionMgr implements ActionsMgr {
 
     @Override
     public void send(final String msg) throws IOException {
-        final var s = wsSession;
+        final var s = wsSession.get();
         if (s == null || !s.isOpen())
             return;
         try {
@@ -117,13 +118,13 @@ public class WsActionMgr implements ActionsMgr {
 
     @Override
     public boolean isOpen() {
-        final var s = wsSession;
+        final var s = wsSession.get();
         return s != null && s.isOpen();
     }
 
     @Override
     public WebSession getSession() {
-        return session;
+        return session.get();
     }
 
     /**
@@ -132,7 +133,7 @@ public class WsActionMgr implements ActionsMgr {
      * @return the websocket session, may be null in tests
      */
     public jakarta.websocket.Session getWsSession() {
-        return wsSession;
+        return wsSession.get();
     }
 
     /**
@@ -146,17 +147,17 @@ public class WsActionMgr implements ActionsMgr {
      * </p>
      */
     void touch() {
-        final var h = httpSession;
+        final var h = httpSession.get();
         if (h != null) {
             try {
                 h.setMaxInactiveInterval(h.getMaxInactiveInterval());
-            } catch (final IllegalStateException e) {
+            } catch (final IllegalStateException _) {
                 Log.debug("ws http session already invalidated");
             } catch (final Exception e) {
                 Log.debug(() -> "ws touch failed: " + e.getMessage());
             }
         }
-        final var s = session;
+        final var s = session.get();
         if (s != null)
             s.setLastAction(Instant.now());
     }
@@ -195,7 +196,7 @@ public class WsActionMgr implements ActionsMgr {
      * @param reason the reason phrase
      */
     public void closeSocket(final int code, final String reason) {
-        final var s = wsSession;
+        final var s = wsSession.get();
         if (s != null && s.isOpen()) {
             try {
                 s.close(new CloseReason(CloseReason.CloseCodes.getCloseCode(code), reason));
@@ -228,15 +229,16 @@ public class WsActionMgr implements ActionsMgr {
     }
 
     private void saveSettings() {
-        if (session != null) {
-            if (session.getCurrProfile() != null)
-                session.getCurrProfile().saveSettings();
-            if (session.hasUser())
-                session.getUser().getSettings().saveSettings();
-            session = null;
-            wsSession = null;
-            httpSession = null;
-        }
+        final var s = session.getAndSet(null);
+        if (s == null)
+            return;
+        // Publish cleanup promptly so concurrent readers observe cleared state.
+        wsSession.set(null);
+        httpSession.set(null);
+        if (s.getCurrProfile() != null)
+            s.getCurrProfile().saveSettings();
+        if (s.hasUser())
+            s.getUser().getSettings().saveSettings();
     }
 
     /**

@@ -6,8 +6,11 @@ import java.net.URI;
 import java.net.URL;
 import java.nio.file.FileSystemNotFoundException;
 import java.nio.file.FileSystems;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.Collections;
 
 import org.eclipse.jetty.util.resource.Resource;
@@ -17,6 +20,10 @@ import org.eclipse.jetty.util.resource.Resources;
 import jrm.fullserver.FullServer;
 
 final class ServerResourceLocator {
+	private ServerResourceLocator() {
+		// utility class, no instantiation
+	}
+
 	private static final String IMAGE_CODE = "org.graalvm.nativeimage.imagecode";
 
 	static Resource locateClient(ResourceFactory resourceFactory, String path) throws IOException {
@@ -113,18 +120,32 @@ final class ServerResourceLocator {
 		try (final var in = FullServer.class.getResourceAsStream(classResource)) {
 			if (in == null)
 				return null;
-			final var tmp = java.nio.file.Files.createTempFile(prefix, suffix);
-			try (final var out = java.nio.file.Files.newOutputStream(tmp)) {
+			final var tmp = createPrivateTempFile(prefix, suffix);
+			try (final var out = Files.newOutputStream(tmp, StandardOpenOption.WRITE, StandardOpenOption.TRUNCATE_EXISTING)) {
 				in.transferTo(out);
 			}
 			tmp.toFile().deleteOnExit();
 			final var resource = resourceFactory.newResource(tmp);
 			if (Resources.exists(resource))
 				return resource;
+			Files.deleteIfExists(tmp);
 		} catch (IOException | RuntimeException _) {
 			// extraction failed -> caller falls through to FileNotFoundException
 		}
 		return null;
+	}
+
+	/**
+	 * Creates a temp file with owner-only permissions so a bundled private key (localhost.pfx) is never left
+	 * world-readable in the shared temp directory (java:S5443). Falls back to a default temp file on filesystems
+	 * without POSIX permissions (e.g. Windows).
+	 */
+	private static Path createPrivateTempFile(String prefix, String suffix) throws IOException {
+		try {
+			return Files.createTempFile(prefix, suffix, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rw-------"))); //$NON-NLS-1$
+		} catch (UnsupportedOperationException _) {
+			return Files.createTempFile(prefix, suffix); //NOSONAR
+		}
 	}
 
 	private static String classpathName(String resource) {
