@@ -23,7 +23,6 @@ plugins {
     java
     application
     alias(libs.plugins.sonarqube)
-    alias(libs.plugins.nebula.ospackage)
     alias(libs.plugins.gradle.download.task)
     alias(libs.plugins.freefair.lombok)
     alias(libs.plugins.javafx.plugin)
@@ -126,6 +125,7 @@ apply(plugin = "jrm.packaging-jars")
 apply(plugin = "jrm.packaging-distributions")
 apply(plugin = "jrm.aggregated-javadoc")
 apply(plugin = "jrm.packaging-native")
+apply(plugin = "jrm.packaging-ospackage")
 
 // NOTE: packaging-daemon tasks stay inlined here (not a precompiled plugin):
 // they need the third-party Download task type on the script classpath,
@@ -180,12 +180,6 @@ tasks.register<Exec>("compileDaemonLinux") {
         print((standardOutput as ByteArrayOutputStream).toString().trim())
     }
 }
-
-// NOTE: ospackage stays in Groovy (gradle/packaging-ospackage.gradle): the
-// nebula extension/tasks are Groovy-dynamic (CopySpec-with-Closure methods,
-// dynamic arch/os/type properties) with no Kotlin-friendly static API.
-// Gradle mixes .gradle and .gradle.kts freely via apply(from=).
-apply(from = "gradle/packaging-ospackage.gradle")
 
 jlink {
     mergedModuleName.set("jrm.merged.module")

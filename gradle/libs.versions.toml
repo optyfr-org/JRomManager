@@ -144,6 +144,8 @@ testfx-assertj = { group = "io.gitlab.fx-labs", name = "testfx-assertj", version
 
 [plugins]
 sonarqube = { id = "org.sonarqube", version.ref = "sonarqube" }
+# nebula-ospackage version is consumed by buildSrc (see buildSrc/build.gradle.kts);
+# the plugin itself is applied inside the jrm.packaging-ospackage precompiled plugin.
 nebula-ospackage = { id = "com.netflix.nebula.ospackage", version.ref = "nebula-ospackage" }
 gradle-download-task = { id = "de.undercouch.download", version.ref = "gradle-download-task" }
 freefair-lombok = { id = "io.freefair.lombok", version.ref = "freefair-lombok" }

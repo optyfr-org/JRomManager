@@ -1,34 +1,31 @@
 #!/usr/bin/env bash
-# Regenerate dependency locks while refreshing all dependencies everywhere.
+# Regenerate dependency locks after bumping versions in gradle/libs.versions.toml.
 #
-# What it does:
-#   1. Re-resolves and re-downloads every dependency (--refresh-dependencies),
-#      covering all projects and configurations via scripts/resolve-all.init.gradle.kts.
-#   2. Regenerates ALL dependency locks (--write-locks): gradle.lockfile and
-#      buildscript-gradle.lockfile.
-#   3. Propagates pins from gradle/libs.versions.toml into the files that need
-#      literals (root buildscript pins, dist/ver.properties) and prints the
-#      values to mirror into the WebClient submodule.
-#   4. Prints a summary diff for review.
-#
-# Version bumps are driven by editing gradle/libs.versions.toml first, then
-# running this script to propagate + relock. Afterwards run
-# scripts/update-verification-metadata.sh to re-record checksums/signatures.
+# Flow (TOML is the single source of truth — edit it first by hand):
+#   1. Sync TOML pins into the files that need literals (no catalog access):
+#      root buildscript pins, buildSrc nebula pin, settings foojay pin,
+#      dist/ver.properties. Sync FIRST so the relock below resolves the new pins.
+#   2. Re-resolve + re-download everything (--refresh-dependencies) and rewrite
+#      ALL locks (--write-locks): gradle.lockfile, buildscript-gradle.lockfile.
+#      Covers all projects/configurations via scripts/resolve-all.init.gradle.kts.
+#   3. Print values to mirror into the WebClient submodule + a summary diff.
+#   Afterwards run scripts/update-verification-metadata.sh to re-record
+#   checksums/signatures.
 #
 # Usage:
 #   scripts/refresh-locks.sh [--dry-run] [--offline]
-#     --dry-run   print what would run, change nothing
+#     --dry-run   print what would change, write nothing
 #     --offline   skip network refresh (locks rewrite from cache only)
 #
-# Requirements: bash, JDK 25 toolchain (Gradle foojay auto-provisions it),
+# Requirements: bash, awk, JDK 25 toolchain (Gradle foojay auto-provisions it),
 # network access to Maven Central / JitPack / plugin portal unless --offline.
-# No Python needed. Override the Gradle binary with GRADLE_CMD=... if required.
+# Override the Gradle binary with GRADLE_CMD=... if required.
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TOML="$ROOT_DIR/gradle/libs.versions.toml"
 INIT="$ROOT_DIR/scripts/resolve-all.init.gradle.kts"
-LOCKS=("gradle.lockfile" "buildscript-gradle.lockfile")
+LOCKS=(gradle.lockfile buildscript-gradle.lockfile)
 DRY_RUN=0
 OFFLINE=0
 
@@ -36,7 +33,7 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=1; shift ;;
     --offline) OFFLINE=1; shift ;;
-    -h|--help) sed -n '2,24p' "$0"; exit 0 ;;
+    -h|--help) sed -n '2,28p' "$0"; exit 0 ;;
     *) echo "Unknown argument: $1 (see --help)" >&2; exit 2 ;;
   esac
 done
@@ -50,114 +47,90 @@ die()  { printf '\033[1;31mXX\033[0m %s\n' "$*" >&2; exit 1; }
 [[ -f "$TOML" ]] || die "catalog not found: $TOML"
 [[ -f "$INIT" ]] || die "init script not found: $INIT"
 
+# GNU vs BSD sed (macOS needs -i '').
+if sed --version >/dev/null 2>&1; then SED=(sed -i -E); else SED=(sed -i '' -E); fi
+
+# Print the version for a [versions] key in the TOML; dies if absent.
+# Handles CRLF checkouts (strips trailing \r before matching).
+toml_val() {
+  awk -v key="$1" '
+    { sub(/\r$/, "") }
+    /^\[/ { in_versions = ($0 == "[versions]") }
+    in_versions && $0 ~ "^" key "[[:space:]]*=" {
+      if (match($0, /"[^"]*"/)) { print substr($0, RSTART + 1, RLENGTH - 2); found = 1; exit }
+    }
+    END { if (!found) exit 1 }
+  ' "$TOML" || die "version key '$1' missing from $TOML"
+}
+
+# Sync one literal mirror: replace the quoted (or trailing) version following
+# the LEAD anchor on matching lines of FILE with the TOML value for KEY.
+# The value is expanded by the shell BEFORE sed sees it, so no placeholders
+# can leak into the file.
+mirror() {
+  local file="$1" lead="$2" key="$3"
+  local path="$ROOT_DIR/$file"
+  local ver; ver="$(toml_val "$key")"
+  [[ -f "$path" ]] || die "mirror target missing: $file"
+  if ! grep -Eq "$lead" "$path"; then
+    warn "$file: anchor not found, skipping ($lead)"
+    return 0
+  fi
+  if [[ $DRY_RUN -eq 1 ]]; then
+    log "(dry-run) would set $file [$key] -> $ver"
+    return 0
+  fi
+  "${SED[@]}" "s|(${lead})[^\"']*|\1${ver//&/\\&}|g" "$path"
+  log "synced $file [$key] -> $ver"
+}
+
 # ---------------------------------------------------------------------------
-# 1. Snapshot state for the final diff
+# 1. Sync literals from TOML (before relocking, so locks resolve new pins)
 # ---------------------------------------------------------------------------
-SNAP_DIR="$(mktemp -d)"
-trap 'rm -rf "$SNAP_DIR"' EXIT
-cp "$TOML" "$SNAP_DIR/libs.versions.toml"
-for f in "${LOCKS[@]}"; do
-  [[ -f "$ROOT_DIR/$f" ]] && cp "$ROOT_DIR/$f" "$SNAP_DIR/" || true
-done
+log "Syncing literal mirrors from $TOML..."
+# root buildscript pins (libs catalog not visible in buildscript)
+mirror "build.gradle.kts" 'force\("io\.airlift:aircompressor:' aircompressor
+mirror "build.gradle.kts" 'bcpg-jdk18on:' bouncycastle
+mirror "build.gradle.kts" 'bcprov-jdk18on:' bouncycastle
+# buildSrc nebula pin (buildSrc cannot read the parent catalog)
+mirror "buildSrc/build.gradle.kts" 'gradle-ospackage-plugin:' nebula-ospackage
+# settings foojay pin (settings plugins block cannot read the catalog)
+mirror "settings.gradle.kts" 'foojay-resolver-convention"\) version "' foojay-resolver
+# distributed/binary pin consumed via ver.properties
+mirror "dist/ver.properties" '^Commons-Daemon-Version=' commons-daemon-dist
 
 # ---------------------------------------------------------------------------
 # 2. Refresh + regenerate ALL locks
 # ---------------------------------------------------------------------------
-GRADLE_ARGS=(--no-daemon)
-if [[ $OFFLINE -eq 1 ]]; then
-  GRADLE_ARGS+=(--offline)
-else
-  GRADLE_ARGS+=(--refresh-dependencies)
-fi
-
 cd "$ROOT_DIR"
+if [[ $OFFLINE -eq 1 ]]; then
+  REFRESH=(--offline)
+else
+  REFRESH=(--refresh-dependencies)
+fi
 if [[ $DRY_RUN -eq 1 ]]; then
-  log "(dry-run) would run: $GRADLE_BIN ${GRADLE_ARGS[*]} --write-locks -I scripts/resolve-all.init.gradle.kts resolveAllForVerification"
+  log "(dry-run) would run: $GRADLE_BIN --no-daemon ${REFRESH[*]} --write-locks -I scripts/resolve-all.init.gradle.kts resolveAllForVerification"
 else
   log "Refreshing dependencies and regenerating locks..."
-  "$GRADLE_BIN" "${GRADLE_ARGS[@]}" --write-locks -I "$INIT" resolveAllForVerification
+  "$GRADLE_BIN" --no-daemon "${REFRESH[@]}" --write-locks -I "$INIT" resolveAllForVerification
 fi
 
 # ---------------------------------------------------------------------------
-# 3. Propagate TOML pins into files that need literals (no catalog access)
+# 3. WebClient submodule reminder + summary diff
 # ---------------------------------------------------------------------------
-declare -A V
-parse_toml_versions() {
-  local section="" line t k v
-  while IFS= read -r line || [[ -n "$line" ]]; do
-    t="$(printf '%s' "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-    case "$t" in
-      '['*']') section="$t" ;;
-      \#*|"") ;;
-      *=*)
-        if [[ "$section" == "[versions]" ]]; then
-          k="${t%%=*}"; v="${t#*=}"
-          k="$(printf '%s' "$k" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
-          v="$(printf '%s' "$v" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//' -e 's/^"//' -e 's/"$//')"
-          V["$k"]="$v"
-        fi
-        ;;
-    esac
-  done < "$TOML"
-}
+log "NOTE: WebClient is a separate submodule repo; mirror these TOML pins there:"
+for k in sonarqube foojay-resolver gradle-download-task gwt-gradle gwt smartgwt lombok; do
+  echo "  $k = $(toml_val "$k")"
+done
 
-patch_file() {
-  local file="$1" pattern="$2" replacement="$3"
-  local path="$ROOT_DIR/$file"
-  if ! grep -Eq "$pattern" "$path"; then
-    warn "$file: pattern not found, skipping: $pattern"
-    return 0
-  fi
-  sed -i -E "s|${pattern}|${replacement}|g" "$path"
-  echo "patched $file"
-}
-
-if [[ $DRY_RUN -eq 1 ]]; then
-  log "(dry-run) skipping literal propagation."
-else
-  log "Propagating pins into literal-version files..."
-  parse_toml_versions
-  for k in aircompressor bouncycastle commons-daemon-dist sonarqube foojay-resolver \
-           gradle-download-task gwt-gradle gwt smartgwt lombok; do
-    [[ -n "${V[$k]:-}" ]] || die "version key '$k' missing from $TOML"
-  done
-  # root buildscript pins (libs catalog not visible in buildscript)
-  # Kotlin DSL: force("...") and substitute(module("...")).using(module("..."))
-  patch_file "build.gradle.kts" \
-    'force\("io\.airlift:aircompressor:[^"]*"\)' \
-    'force("io.airlift:aircompressor:${V[aircompressor]}")'
-  patch_file "build.gradle.kts" \
-    'substitute\(module\("org\.bouncycastle:bcpg-jdk18on:[^"]*"\)\)' \
-    'substitute(module("org.bouncycastle:bcpg-jdk18on:${V[bouncycastle]}"))'
-  patch_file "build.gradle.kts" \
-    'using\(module\("org\.bouncycastle:bcpg-jdk18on:[^"]*"\)\)' \
-    'using(module("org.bouncycastle:bcpg-jdk18on:${V[bouncycastle]}"))'
-  patch_file "build.gradle.kts" \
-    'substitute\(module\("org\.bouncycastle:bcprov-jdk18on:[^"]*"\)\)' \
-    'substitute(module("org.bouncycastle:bcprov-jdk18on:${V[bouncycastle]}"))'
-  patch_file "build.gradle.kts" \
-    'using\(module\("org\.bouncycastle:bcprov-jdk18on:[^"]*"\)\)' \
-    'using(module("org.bouncycastle:bcprov-jdk18on:${V[bouncycastle]}"))'
-  # distributed/binary version pins consumed via ver.properties
-  patch_file "dist/ver.properties" \
-    "^Commons-Daemon-Version=.*$" \
-    "Commons-Daemon-Version=${V[commons-daemon-dist]}"
-  echo "NOTE: WebClient is a separate submodule repo; mirror these TOML pins there:"
-  for k in sonarqube foojay-resolver gradle-download-task gwt-gradle gwt smartgwt lombok; do
-    echo "  $k = ${V[$k]}"
-  done
-fi
-
-# ---------------------------------------------------------------------------
-# 4. Summary diff
-# ---------------------------------------------------------------------------
-log "Resulting changes (TOML + locks + literals):"
+log "Resulting changes:"
 if git -C "$ROOT_DIR" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  git -C "$ROOT_DIR" status --short -- gradle/libs.versions.toml "${LOCKS[@]}" build.gradle.kts dist/ver.properties || true
+  git -C "$ROOT_DIR" status --short -- gradle/libs.versions.toml "${LOCKS[@]}" \
+    build.gradle.kts buildSrc/build.gradle.kts settings.gradle.kts dist/ver.properties || true
   echo
   git -C "$ROOT_DIR" diff --stat -- gradle/libs.versions.toml "${LOCKS[@]}" || true
 else
-  diff -u "$SNAP_DIR/libs.versions.toml" "$TOML" || true
+  warn "not a git checkout; review changes manually"
 fi
 
 log "Done. Review the diff, then run scripts/update-verification-metadata.sh"
