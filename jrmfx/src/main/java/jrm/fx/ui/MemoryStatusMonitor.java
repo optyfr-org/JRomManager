@@ -25,7 +25,10 @@ final class MemoryStatusMonitor {
 		final String text = String.format(Messages.getString("MainFrame.MemoryUsage"), String.format(XX_MIB, rt.totalMemory() / 1048576.0),
 				String.format(XX_MIB, (rt.totalMemory() - rt.freeMemory()) / 1048576.0), String.format(XX_MIB, rt.freeMemory() / 1048576.0),
 				String.format(XX_MIB, rt.maxMemory() / 1048576.0));
-		Platform.runLater(() -> status.setText(text));
+		if (Platform.isFxApplicationThread())
+			status.setText(text);
+		else
+			Platform.runLater(() -> status.setText(text));
 	}
 
 	void shutdown() {

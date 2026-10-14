@@ -16,6 +16,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.logging.Level;
 
 import org.junit.jupiter.api.DisplayName;
@@ -23,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import io.gitlab.fxlabs.testfx.junit.jupiter.TestFxApplication;
 import io.gitlab.fxlabs.testfx.junit.jupiter.TestFxRecordedStage;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -331,11 +334,12 @@ class SettingsPanelControllerTest {
 
     @Test
     @DisplayName("Should update memory status")
-    void shouldUpdateMemoryStatus(TestApp application) {
+    void shouldUpdateMemoryStatus(TestApp application) throws Exception {
         SettingsPanelController controller = TestApp.getController();
-        
+
         controller.getMemoryMonitor().updateMemory();
-        
+        waitForFxEvents();
+
         assertThat(controller.status.getText()).as("status text").isNotEmpty();
         assertThat(controller.status.getText()).as("status text").contains("MiB");
     }
@@ -503,11 +507,46 @@ class SettingsPanelControllerTest {
     @DisplayName("performGarbageCollection should refresh the memory status")
     void performGarbageCollectionShouldRefreshMemoryStatus() throws Exception {
         SettingsPanelController controller = TestApp.getController();
-        controller.status.setText("");
+        runOnFxThread(() -> controller.status.setText(""));
 
         invoke("performGarbageCollection", new Class<?>[0], new Object[0]);
+        waitForFxEvents();
 
         assertThat(controller.status.getText()).as("status after GC").contains("MiB");
+    }
+
+    /**
+     * Runs an operation on the JavaFX Application Thread and waits for completion.
+     *
+     * @param operation the runnable to execute on the FX thread
+     * @throws Exception if the operation fails or times out
+     */
+    private static void runOnFxThread(Runnable operation) throws Exception {
+        if (Platform.isFxApplicationThread()) {
+            operation.run();
+            return;
+        }
+        final CompletableFuture<Void> future = new CompletableFuture<>();
+        Platform.runLater(() -> {
+            try {
+                operation.run();
+                future.complete(null);
+            } catch (Throwable t) {
+                future.completeExceptionally(t);
+            }
+        });
+        future.get(5, TimeUnit.SECONDS);
+    }
+
+    /**
+     * Waits until all pending JavaFX events (such as {@code Platform.runLater} updates) have been processed.
+     *
+     * @throws Exception if the wait times out
+     */
+    private static void waitForFxEvents() throws Exception {
+        runOnFxThread(() -> {
+            // no-op barrier: runs after all previously queued FX events
+        });
     }
 
     @Test
