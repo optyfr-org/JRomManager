@@ -13,6 +13,24 @@ import jrm.security.Session;
 
 final class DatDirExpander {
 	record Lists(File[] datlist, File[] dstlist) {
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj)
+				return true;
+			if (obj instanceof Lists o)
+				return Arrays.equals(datlist, o.datlist) && Arrays.equals(dstlist, o.dstlist);
+			return false;
+		}
+
+		@Override
+		public int hashCode() {
+			return 31 * Arrays.hashCode(datlist) + Arrays.hashCode(dstlist);
+		}
+
+		@Override
+		public String toString() {
+			return "Lists[datlist=" + Arrays.toString(datlist) + ", dstlist=" + Arrays.toString(dstlist) + "]";
+		}
 	}
 
 	static Lists expand(final Session session, final File dat, final File dst) throws java.io.IOException {

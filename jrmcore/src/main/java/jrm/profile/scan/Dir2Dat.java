@@ -638,6 +638,8 @@ public class Dir2Dat {
      * @return the platform corrected path representation sequence
      */
     private String normalize(final String entry) {
+        if (entry == null)
+            return "";
         if (File.separatorChar == '/')
             return entry.replace('\\', '/');
         return entry.replace('/', '\\');

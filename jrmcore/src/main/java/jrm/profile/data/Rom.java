@@ -225,12 +225,18 @@ public class Rom extends Entity {
      */
     @Override
     public String getName() {
-        if (parent.getProfile().getSettings() != null && parent.getProfile().getSettings().getMergeMode().isMerge()) {
+        final var p = getParent();
+        if (p == null)
+            return name;
+        final var profile = p.getProfile();
+        final var settings = profile != null ? profile.getSettings() : null;
+        final var mergeMode = settings != null ? settings.getMergeMode() : null;
+        if (mergeMode != null && mergeMode.isMerge()) {
             if (merge == null) {
-                if (isCollisionMode(false) && getParent().isClone()) {
-                    return parent.name + "/" + name;
+                if (isCollisionMode(false) && p.isClone()) {
+                    return p.name + "/" + name;
                 }
-            } else if (Boolean.FALSE.equals(parent.getProfile().getProperty(ProfileSettingsEnum.ignore_merge_name_roms, Boolean.class)))
+            } else if (Boolean.FALSE.equals(profile.getProperty(ProfileSettingsEnum.ignore_merge_name_roms, Boolean.class)))
                 return merge;
         }
         return name;
@@ -242,10 +248,16 @@ public class Rom extends Entity {
      * @return the full hierarchical path/name of the ROM
      */
     public String getFullName() {
-        if (getParent().profile.getSettings() != null && getParent().profile.getSettings().getMergeMode().isMerge()) {
-            if (merge != null && !parent.getProfile().getProperty(ProfileSettingsEnum.ignore_merge_name_roms, Boolean.class))
-                return parent.name + "/" + merge;
-            return parent.name + "/" + name;
+        final var p = getParent();
+        if (p == null)
+            return name;
+        final var profile = p.getProfile();
+        final var settings = profile != null ? profile.getSettings() : null;
+        final var mergeMode = settings != null ? settings.getMergeMode() : null;
+        if (mergeMode != null && mergeMode.isMerge()) {
+            if (merge != null && Boolean.FALSE.equals(profile.getProperty(ProfileSettingsEnum.ignore_merge_name_roms, Boolean.class)))
+                return p.name + "/" + merge;
+            return p.name + "/" + name;
         }
         return name;
     }

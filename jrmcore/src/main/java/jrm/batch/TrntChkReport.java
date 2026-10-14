@@ -428,6 +428,7 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
      * @param filterOptions the filter options to apply
      */
     private TrntChkReport(TrntChkReport report, Set<FilterOptions> filterOptions) {
+        file = null;
         filterPredicate = report.filterPredicate;
         fileModified = report.fileModified;
         uidCnt = new AtomicLong();

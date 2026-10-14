@@ -3,6 +3,8 @@ package jrm.fx.ui;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InaccessibleObjectException;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.transform.TransformerException;
 import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -731,9 +733,12 @@ public class ProfilePanelController implements Initializable {
             if (!imprt.isMame()) {
                 FileUtils.copyFile(imprt.getFile(), targetFile);
             } else {
-                FileUtils.copyFile(imprt.getFile(), targetFile);
+                ProfileNFO.saveJrm(targetFile, imprt.getRomsFile(), imprt.getSlFile());
+                final var nfo = ProfileNFO.load(session, targetFile);
+                nfo.getMame().set(imprt.getOrgFile(), sl);
+                nfo.save(session);
             }
-        } catch (IOException e) {
+        } catch (IOException | ParserConfigurationException | TransformerException e) {
             Log.err(e.getMessage(), e);
         }
     }

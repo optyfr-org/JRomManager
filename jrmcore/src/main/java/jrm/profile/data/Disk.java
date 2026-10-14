@@ -88,12 +88,18 @@ public class Disk extends Entity {
      */
     @Override
     public String getName() {
-        if (getParent().profile.getSettings() != null && getParent().profile.getSettings().getMergeMode().isMerge()) {
+        final var p = getParent();
+        if (p == null)
+            return name + ".chd";
+        final var profile = p.getProfile();
+        final var settings = profile != null ? profile.getSettings() : null;
+        final var mergeMode = settings != null ? settings.getMergeMode() : null;
+        if (mergeMode != null && mergeMode.isMerge()) {
             if (merge == null) {
-                if (isCollisionMode(true) && getParent().isClone()) {
-                    return parent.name + "/" + name + ".chd";
+                if (isCollisionMode(true) && p.isClone()) {
+                    return p.name + "/" + name + ".chd";
                 }
-            } else if (Boolean.FALSE.equals(parent.getProfile().getProperty(ProfileSettingsEnum.ignore_merge_name_disks, Boolean.class)))
+            } else if (Boolean.FALSE.equals(profile.getProperty(ProfileSettingsEnum.ignore_merge_name_disks, Boolean.class)))
                 return merge + ".chd";
         }
         return name + ".chd";

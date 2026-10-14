@@ -245,7 +245,7 @@ class DirItemTest {
         Files.walk(tempDir)
                 .filter(Files::isDirectory)
                 .filter(path -> !path.equals(tempDir))
-                .sorted((a, b) -> b.getNameCount() - a.getNameCount())
+                .sorted(java.util.Comparator.comparingInt(Path::getNameCount).reversed())
                 .forEach(path -> {
                     try {
                         Files.deleteIfExists(path);

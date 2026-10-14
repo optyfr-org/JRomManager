@@ -9,7 +9,7 @@
 package jrm.misc;
 
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -113,7 +113,7 @@ public final class Ideone {
         if (intervals.size() <= 1)
             return intervals;
 
-        Collections.sort(intervals, (i1, i2) -> i1.getStart() - i2.getStart());
+        intervals.sort(Comparator.comparingInt(Ideone.Interval::getStart));
 
         final var first = intervals.get(0);
         int start = first.getStart();
