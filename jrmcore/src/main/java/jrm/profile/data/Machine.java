@@ -669,6 +669,7 @@ public class Machine extends Anyware {
      *
      * @return true if selected
      */
+    @Override
     public boolean isSelected() {
         return profile.getProperty("filter.machine." + getName(), true);
     }
@@ -678,6 +679,7 @@ public class Machine extends Anyware {
      *
      * @param selected the selection state to set
      */
+    @Override
     public void setSelected(final boolean selected) {
         profile.setProperty("filter.machine." + getName(), selected);
     }

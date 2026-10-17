@@ -509,6 +509,7 @@ public class Software extends Anyware {
      * 
      * @return true if selected, false otherwise
      */
+    @Override
     public boolean isSelected() {
         return profile.getProperty("filter.swlist." + getSl().getName() + ".software." + getName(), true);
     }
@@ -518,6 +519,7 @@ public class Software extends Anyware {
      * 
      * @param selected true to select, false to deselect
      */
+    @Override
     public void setSelected(final boolean selected) {
         profile.setProperty("filter.swlist." + getSl().getName() + ".software." + getName(), selected);
     }

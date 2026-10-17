@@ -63,6 +63,7 @@ public class BDictionary implements IBencodable {
      *
      * @return the standard bencoded string representation
      */
+    @Override
     public String bencodedString() {
         final var sb = new StringBuilder();
         sb.append("d"); //$NON-NLS-1$
@@ -80,6 +81,7 @@ public class BDictionary implements IBencodable {
      *
      * @return the bencoded byte array
      */
+    @Override
     public byte[] bencode() {
         // Get the total size of the keys and values.
         final var bytes = new ArrayList<Byte>();

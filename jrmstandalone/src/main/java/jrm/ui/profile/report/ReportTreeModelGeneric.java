@@ -28,6 +28,7 @@ public abstract class ReportTreeModelGeneric<T extends ReportIntf<T>> extends De
         super(root);
     }
 
+    @Override
     public void initClone() {
         setRoot(getNodeInstance(orgRoot.clone(filterOptions)));
     }
@@ -44,6 +45,7 @@ public abstract class ReportTreeModelGeneric<T extends ReportIntf<T>> extends De
      *
      * @return the filter options
      */
+    @Override
     public EnumSet<FilterOptions> getFilterOptions() {
         if (filterOptions.isEmpty())
             return EnumSet.noneOf(FilterOptions.class);
@@ -65,6 +67,7 @@ public abstract class ReportTreeModelGeneric<T extends ReportIntf<T>> extends De
      *
      * @param filterOptions the filter options
      */
+    @Override
     public void filter(final Set<FilterOptions> filterOptions) {
         this.filterOptions = filterOptions;
         setRoot(getNodeInstance(orgRoot.clone(filterOptions)));

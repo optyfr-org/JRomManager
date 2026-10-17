@@ -3,6 +3,7 @@ package jrm.batch;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -143,10 +144,27 @@ public class DirUpdaterResults implements Serializable {
      */
     public static DirUpdaterResults load(final Session session, final File file, final ProgressHandler progress) {
         final var rfile = getFile(session, file);
-        try (final var in = new BufferedInputStream(progress.getInputStream(new FileInputStream(rfile), (int) rfile.length()))) {
-            return (DirUpdaterResults) SignedObjectStore.read(session, in, (int) rfile.length(),
-                    SignedObjectStore.Codec.REPORT);
+        // Own the raw stream: if progress.getInputStream(...) or the
+        // BufferedInputStream ctor throws before the try-with-resources takes
+        // ownership, the raw stream must still be closed. Once wrapped, closing
+        // the outer stream closes the raw one, so close raw only when no
+        // wrapper took ownership (close failure added as suppressed).
+        FileInputStream raw = null;
+        boolean wrapped = false;
+        try {
+            raw = new FileInputStream(rfile);
+            try (final var in = new BufferedInputStream(progress.getInputStream(raw, (int) rfile.length()))) {
+                wrapped = true;
+                return (DirUpdaterResults) SignedObjectStore.read(session, in, (int) rfile.length(),
+                        SignedObjectStore.Codec.REPORT);
+            }
         } catch (final Exception e) {
+            if (!wrapped && raw != null)
+                try {
+                    raw.close();
+                } catch (final IOException ioe) {
+                    e.addSuppressed(ioe);
+                }
             Log.err(e.getMessage(), e);
         }
         return null;

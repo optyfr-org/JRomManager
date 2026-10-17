@@ -60,10 +60,12 @@ public class BatchTrrntChkReportNode extends ReportNodeGeneric<TrntChkReport> {
         return new Enumeration<ChildNode>() {
             private final Iterator<Child> i = report.getNodes().iterator();
 
+            @Override
             public boolean hasMoreElements() {
                 return i.hasNext();
             }
 
+            @Override
             public ChildNode nextElement() {
                 return getNode(i.next());
             }
@@ -124,10 +126,12 @@ public class BatchTrrntChkReportNode extends ReportNodeGeneric<TrntChkReport> {
             return child.getChildren() == null ? null : new Enumeration<ChildNode>() {
                 private final Iterator<Child> i = child.getChildren().iterator();
 
+                @Override
                 public boolean hasMoreElements() {
                     return i.hasNext();
                 }
 
+                @Override
                 public ChildNode nextElement() {
                     return getNode(i.next());
                 }

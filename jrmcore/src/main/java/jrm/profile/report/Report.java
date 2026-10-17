@@ -582,6 +582,7 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
      *
      * @return the registered tree handler instance
      */
+    @Override
     public ReportTreeHandler<Report> getHandler() {
         return handler;
     }
@@ -591,6 +592,7 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
      *
      * @param handler the active UI tree handler
      */
+    @Override
     public void setHandler(ReportTreeHandler<Report> handler) {
         this.handler = handler;
     }

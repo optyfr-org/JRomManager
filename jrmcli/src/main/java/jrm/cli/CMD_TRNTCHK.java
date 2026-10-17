@@ -58,6 +58,7 @@ public enum CMD_TRNTCHK implements CommandNames {
      *
      * @return A stream of all names associated with the command.
      */
+    @Override
     public Stream<String> allStrings() {
         return names.stream();
     }

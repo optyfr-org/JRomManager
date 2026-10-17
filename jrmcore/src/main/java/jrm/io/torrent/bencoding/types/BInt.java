@@ -39,6 +39,7 @@ public class BInt implements IBencodable {
      *
      * @return the standard bencoded string representation
      */
+    @Override
     public String bencodedString() {
         return "i" + value + "e"; //$NON-NLS-1$ //$NON-NLS-2$
     }
@@ -49,6 +50,7 @@ public class BInt implements IBencodable {
      *
      * @return the bencoded byte array
      */
+    @Override
     public byte[] bencode() {
         final byte[] sizeInAsciiBytes = Utils.stringToAsciiBytes(value.toString());
         final var bencoded = new byte[sizeInAsciiBytes.length + 2];

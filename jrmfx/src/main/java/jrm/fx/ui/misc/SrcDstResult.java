@@ -27,7 +27,7 @@ public class SrcDstResult extends AbstractSrcDstResult {
      * @param id the unique identifier
      * @return the unique identifier
      */
-    private @Getter @Setter(value = AccessLevel.PROTECTED) String id = null;
+    private @Getter(onMethod_ = @Override) @Setter(value = AccessLevel.PROTECTED, onMethod_ = @Override) String id = null;
     /** The source path property. */
     private StringProperty src;
     /** The destination path property. */
@@ -69,6 +69,7 @@ public class SrcDstResult extends AbstractSrcDstResult {
      *
      * @return the source path
      */
+    @Override
     public final String getSrc() {
         return this.srcProperty().get();
     }
@@ -78,6 +79,7 @@ public class SrcDstResult extends AbstractSrcDstResult {
      *
      * @param src the source path
      */
+    @Override
     public final void setSrc(final String src) {
         this.srcProperty().set(src);
     }
@@ -98,6 +100,7 @@ public class SrcDstResult extends AbstractSrcDstResult {
      *
      * @return the destination path
      */
+    @Override
     public final String getDst() {
         return this.dstProperty().get();
     }
@@ -107,6 +110,7 @@ public class SrcDstResult extends AbstractSrcDstResult {
      *
      * @param dst the destination path
      */
+    @Override
     public final void setDst(final String dst) {
         this.dstProperty().set(dst);
     }
@@ -127,6 +131,7 @@ public class SrcDstResult extends AbstractSrcDstResult {
      *
      * @return the result message
      */
+    @Override
     public final String getResult() {
         return this.resultProperty().get();
     }
@@ -136,6 +141,7 @@ public class SrcDstResult extends AbstractSrcDstResult {
      *
      * @param result the result message
      */
+    @Override
     public final void setResult(final String result) {
         this.resultProperty().set(result);
     }
@@ -156,6 +162,7 @@ public class SrcDstResult extends AbstractSrcDstResult {
      *
      * @return {@code true} if selected
      */
+    @Override
     public final boolean isSelected() {
         return this.selectedProperty().get();
     }
@@ -165,6 +172,7 @@ public class SrcDstResult extends AbstractSrcDstResult {
      *
      * @param selected {@code true} to select
      */
+    @Override
     public final void setSelected(final boolean selected) {
         this.selectedProperty().set(selected);
     }

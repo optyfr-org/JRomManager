@@ -10,6 +10,7 @@ package jrm.profile;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.IOException;
 import java.util.EnumSet;
 import jrm.aui.progress.ProgressHandler;
 import jrm.locale.Messages;
@@ -181,11 +182,28 @@ final class ProfileLoader {
 	private static Profile loadCache(final Session session, final ProfileNFO nfo, final ProgressHandler handler, Profile profile, final File cachefile) {
 		handler.setInfos(1, null);
 		handler.setProgress(Messages.getString("Profile.LoadingCache"), -1);
-		try (final var in = handler.getInputStream(new FileInputStream(cachefile), (int) cachefile.length())) {
-			profile = (Profile) SignedObjectStore.read(session, in, (int) cachefile.length(), SignedObjectStore.Codec.CACHE);
-			profile.session = session;
-			profile.nfo = nfo;
+		// The raw FileInputStream must not leak if handler.getInputStream(...)
+		// throws before returning a wrapper (e.g. ProgressInputStream ctor ->
+		// setProgress). Track wrapper creation so the raw stream is closed only
+		// when no wrapper took ownership (closing the wrapper closes the raw
+		// stream via FilterInputStream.close(), so it must not be closed twice).
+		FileInputStream raw = null;
+		boolean wrapped = false;
+		try {
+			raw = new FileInputStream(cachefile);
+			try (final var in = handler.getInputStream(raw, (int) cachefile.length())) {
+				wrapped = true;
+				profile = (Profile) SignedObjectStore.read(session, in, (int) cachefile.length(), SignedObjectStore.Codec.CACHE);
+				profile.session = session;
+				profile.nfo = nfo;
+			}
 		} catch (final Exception e) {
+			if (!wrapped && raw != null)
+				try {
+					raw.close();
+				} catch (final IOException ioe) {
+					e.addSuppressed(ioe);
+				}
 			Log.debug(() -> "Failed to load cache file: " + e.getMessage());
 		}
 		return profile;

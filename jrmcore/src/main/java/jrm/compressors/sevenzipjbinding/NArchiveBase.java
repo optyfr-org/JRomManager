@@ -125,6 +125,7 @@ public abstract class NArchiveBase implements Archive, Closeables {
      * 
      * @throws IOException if an error occurs while creating the temporary directory
      */
+    @Override
     public File getTempDir() throws IOException {
         if (tempDir == null)
             tempDir = IOUtils.createTempDirectory("JRM").toFile(); //$NON-NLS-1$

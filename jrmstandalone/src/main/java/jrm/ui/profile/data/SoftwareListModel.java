@@ -97,6 +97,7 @@ public class SoftwareListModel extends AnywareListModel<Software> {
         }
     }
 
+    @Override
     public void reset() {
         softwareList.resetCache();
         fireTableChanged(new TableModelEvent(this));

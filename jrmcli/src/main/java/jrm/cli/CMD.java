@@ -72,6 +72,7 @@ public enum CMD implements CommandNames {
      *
      * @return A stream of all names associated with the command.
      */
+    @Override
     public Stream<String> allStrings() {
         return names.stream();
     }

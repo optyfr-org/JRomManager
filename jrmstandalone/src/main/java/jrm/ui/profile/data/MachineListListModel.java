@@ -52,11 +52,13 @@ public class MachineListListModel extends AnywareListListModel {
             return sllmodel.getValueAt(rowIndex - machineListList.getList().size(), columnIndex);
     }
 
+    @Override
     public void reset() {
         machineListList.resetCache();
         fireTableChanged(new TableModelEvent(this));
     }
 
+    @Override
     public void setFilter(final Set<AnywareStatus> filter) {
         machineListList.setFilterCache(filter);
         reset();

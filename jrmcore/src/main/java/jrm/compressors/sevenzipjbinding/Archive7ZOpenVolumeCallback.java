@@ -55,6 +55,7 @@ public class Archive7ZOpenVolumeCallback implements IArchiveOpenVolumeCallback {
      * 
      * @throws SevenZipException if an error occurs while retrieving the property value (not applicable in this implementation)
      */
+    @Override
     public Object getProperty(PropID propID) throws SevenZipException {
         return null;
     }
@@ -76,6 +77,7 @@ public class Archive7ZOpenVolumeCallback implements IArchiveOpenVolumeCallback {
      * @throws SevenZipException if an error occurs while retrieving the input stream (e.g., if an unexpected exception occurs
      *         during file access)
      */
+    @Override
     public IInStream getStream(String filename) throws SevenZipException {
         try {
             RandomAccessFile randomAccessFile = openedRandomAccessFileList.get(filename);

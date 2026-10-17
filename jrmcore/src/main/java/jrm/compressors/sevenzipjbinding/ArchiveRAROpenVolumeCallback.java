@@ -65,6 +65,7 @@ public class ArchiveRAROpenVolumeCallback implements IArchiveOpenVolumeCallback,
      * 
      * @throws SevenZipException if an error occurs while retrieving the property value (not applicable in this implementation)
      */
+    @Override
     public Object getProperty(PropID propID) throws SevenZipException {
         if (PropID.NAME.equals(propID))
             return name;
@@ -88,6 +89,7 @@ public class ArchiveRAROpenVolumeCallback implements IArchiveOpenVolumeCallback,
      * @throws SevenZipException if an error occurs while retrieving the input stream (e.g., if an unexpected exception occurs
      *         during file access)
      */
+    @Override
     public IInStream getStream(String filename) throws SevenZipException {
         try {
             var randomAccessFile = openedRandomAccessFileList.get(filename);

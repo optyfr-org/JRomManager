@@ -45,11 +45,13 @@ public class SoftwareListListModel extends AnywareListListModel {
         }
     }
 
+    @Override
     public void reset() {
         softwareListList.resetCache();
         fireTableChanged(new TableModelEvent(this));
     }
 
+    @Override
     public void setFilter(final Set<AnywareStatus> filter) {
         softwareListList.setFilterCache(filter);
         reset();

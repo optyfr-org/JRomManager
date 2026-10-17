@@ -109,6 +109,7 @@ public class MachineListModel extends AnywareListModel<Machine> {
         return MachineListRenderer.columnsRenderers[columnIndex];
     }
 
+    @Override
     public void reset() {
         machineList.resetCache();
         fireTableChanged(new TableModelEvent(this));

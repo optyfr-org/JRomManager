@@ -523,6 +523,7 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
      *
      * @return {@code true} if the task can be cancelled
      */
+    @Override
     public boolean canCancel() {
         return canCancel;
     }
@@ -532,6 +533,7 @@ public abstract class ProgressTask<V> extends Task<V> implements ProgressHandler
      *
      * @param canCancel whether the task can be cancelled
      */
+    @Override
     public void canCancel(boolean canCancel) {
         this.canCancel = canCancel;
         Platform.runLater(() -> progress.getController().canCancel(canCancel));

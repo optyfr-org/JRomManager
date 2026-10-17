@@ -60,6 +60,7 @@ public class BByteString implements IBencodable {
      *
      * @return the standard bencoded string representation
      */
+    @Override
     public String bencodedString() {
         return data.length + ":" + new String(data); //$NON-NLS-1$
     }
@@ -70,6 +71,7 @@ public class BByteString implements IBencodable {
      *
      * @return the bencoded byte array
      */
+    @Override
     public byte[] bencode() {
         final byte[] lengthStringAsBytes = Utils.stringToAsciiBytes(Long.toString(data.length));
         final var bencoded = new byte[lengthStringAsBytes.length + 1 + data.length];

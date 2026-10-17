@@ -18,6 +18,12 @@ dependencies {
 
 configurations.all {
     resolutionStrategy {
+        // aircompressor buffer-reuse info leak (< 2.0.3: crafted Snappy/LZ4
+        // input can expose prior output-buffer contents). nebula-ospackage
+        // 12.3.0 pulls 0.27; force the catalog's patched 2.0.3, mirroring the
+        // root buildscript block. buildSrc cannot read the parent catalog, so
+        // keep in sync with gradle/libs.versions.toml (aircompressor).
+        force("io.airlift:aircompressor:2.0.3")
         eachDependency {
             // CVE-2025-48924 (commons-lang3 < 3.18.0: uncontrolled recursion in
             // ClassUtils.getClass on very long inputs). nebula-ospackage 12.3.0

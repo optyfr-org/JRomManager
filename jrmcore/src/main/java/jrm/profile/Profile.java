@@ -264,22 +264,49 @@ public class Profile implements Serializable, StatusRendererFactory {
      */
     boolean internalLoad(final File file, final ProgressHandler handler) {
         handler.setProgress(String.format(Messages.getString("Profile.Parsing"), new PathAbstractor(session).getRelativePath(file.toPath())), -1); //$NON-NLS-1$
-        try (var in = handler.getInputStream(new FileInputStream(file), (int) file.length())) {
-            XMLTools.getSaxParser().parse(in, new ProfileHandler(this, handler));
-            return true;
+        // Own the raw stream: if handler.getInputStream(...) throws before
+        // returning a wrapper, the raw stream must still be closed (closing the
+        // wrapper closes the raw stream via FilterInputStream, so close raw
+        // only when no wrapper took ownership).
+        FileInputStream raw = null;
+        boolean wrapped = false;
+        try {
+            raw = new FileInputStream(file);
+            try (var in = handler.getInputStream(raw, (int) file.length())) {
+                wrapped = true;
+                XMLTools.getSaxParser().parse(in, new ProfileHandler(this, handler));
+                return true;
+            }
         } catch (final ParserConfigurationException | SAXException e) {
+            closeRawIfUnwrapped(raw, wrapped, e);
             handler.addError(e.getMessage());
             Log.err("Parser Exception", e); //$NON-NLS-1$
         } catch (final IOException e) {
+            closeRawIfUnwrapped(raw, wrapped, e);
             handler.addError(e.getMessage());
             Log.err("IO Exception", e); //$NON-NLS-1$
         } catch (final BreakException _) {
             return false;
         } catch (final Exception e) {
+            closeRawIfUnwrapped(raw, wrapped, e);
             handler.addError(e.getMessage());
             Log.err("Other Exception", e); //$NON-NLS-1$
         }
         return false;
+    }
+
+    /**
+     * Closes the raw stream when {@code handler.getInputStream(...)} threw before
+     * a wrapper took ownership of it. No-op once wrapped: closing the wrapper
+     * closes the raw stream via {@code FilterInputStream.close()}.
+     */
+    private static void closeRawIfUnwrapped(final FileInputStream raw, final boolean wrapped, final Exception e) {
+        if (!wrapped && raw != null)
+            try {
+                raw.close();
+            } catch (final IOException ioe) {
+                e.addSuppressed(ioe);
+            }
     }
 
     /**

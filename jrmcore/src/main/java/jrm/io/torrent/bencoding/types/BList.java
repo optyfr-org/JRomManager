@@ -61,6 +61,7 @@ public class BList implements IBencodable {
      *
      * @return the standard bencoded string representation
      */
+    @Override
     public String bencodedString() {
         final var sb = new StringBuilder();
 
@@ -80,6 +81,7 @@ public class BList implements IBencodable {
      *
      * @return the bencoded byte array
      */
+    @Override
     public byte[] bencode() {
         try (final var baos = new ByteArrayOutputStream()) {
             baos.write('l');
