@@ -13,7 +13,7 @@
 
 [versions]
 # --- Gradle plugins (root + WebClient standalone) ---
-sonarqube = "7.3.1.8318"
+sonarqube = "7.5.0.8588"
 nebula-ospackage = "12.3.0"
 gradle-download-task = "5.7.0"
 freefair-lombok = "9.8.0"

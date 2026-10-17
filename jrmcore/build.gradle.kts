@@ -11,6 +11,7 @@ dependencies {
     "implementation"(libs.commons.codec)
     "implementation"(libs.commons.io)
     "implementation"(libs.commons.text)
+    "implementation"(libs.commons.lang3)
     "implementation"(libs.commons.compress)
     "implementation"(libs.streamex)
     "runtimeOnly"(libs.jspecify)

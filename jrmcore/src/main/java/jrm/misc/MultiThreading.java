@@ -17,7 +17,6 @@ import java.util.stream.Stream;
 
 import jrm.aui.progress.ProgressHandler;
 import jrm.locale.Messages;
-import lombok.RequiredArgsConstructor;
 
 /**
  * Custom thread pool executor offering concurrent execution of tasks with an optional adaptive load algorithm. The adaptive
@@ -116,10 +115,10 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
         this.nStartThreads = getNStartThreads(nThreads);
         this.adaptive = isAdaptive(nThreads);
         this.interval = 60_000; // check interval for adaptive mode (expressed in milliseconds)
-        this.calledWith = cw;
-        this.progress = progress;
+        this.calledWith = Objects.requireNonNull(cw);
+        this.progress = Objects.requireNonNull(progress);
         setThreadFactory(new DefaultThreadFactory(name));
-        progress.setOffsetProvider(this);
+        this.progress.setOffsetProvider(this);
     }
 
     /**
@@ -220,8 +219,6 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
         } catch (InterruptedException e) {
             Log.err(e.getMessage(), e);
             Thread.currentThread().interrupt();
-        } catch (NullPointerException e) {
-            Log.err(e.getMessage(), e);
         }
     }
 
@@ -357,13 +354,18 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
      * @param offset the freed offset to report idle
      */
     private void markIdle(final int offset) {
+        if (offset < 0)
+            return;
         if (idleMarked.add(offset))
             progress.setProgressAt(offset, Messages.getString("Progress.Idle")); //$NON-NLS-1$
     }
 
-    @RequiredArgsConstructor
     private class CallableWith implements Callable<Void> {
         private final T entry;
+
+        CallableWith(final T entry) {
+            this.entry = entry;
+        }
 
         @Override
         public Void call() throws Exception {

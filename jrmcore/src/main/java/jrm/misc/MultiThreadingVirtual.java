@@ -20,7 +20,6 @@ import org.apache.commons.lang3.time.DurationFormatUtils;
 
 import jrm.aui.progress.ProgressHandler;
 import jrm.locale.Messages;
-import lombok.RequiredArgsConstructor;
 
 /**
  * An executor service that utilizes lightweight virtual threads to run tasks concurrently.
@@ -96,13 +95,13 @@ public class MultiThreadingVirtual<K> implements ExecutorService, OffsetProvider
      * @param calledWith the executable logic applied to each stream element
      */
     public MultiThreadingVirtual(final String name, final ProgressHandler progress, final int nThreads, final CalledWith<K> calledWith) {
-        this.calledWith = calledWith;
-        this.progress = progress;
+        this.calledWith = Objects.requireNonNull(calledWith);
+        this.progress = Objects.requireNonNull(progress);
         this.name = name;
         this.threadLimit = getThreadLimit(nThreads);
         this.semaphore = new Semaphore(threadLimit);
         this.service = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name(name + "-" + poolNumber.getAndIncrement() + "-thread-", 1).factory());
-        progress.setOffsetProvider(this);
+        this.progress.setOffsetProvider(this);
     }
 
     /**
@@ -211,8 +210,6 @@ public class MultiThreadingVirtual<K> implements ExecutorService, OffsetProvider
         } catch (InterruptedException e) {
             Log.err(e.getMessage(), e);
             Thread.currentThread().interrupt();
-        } catch (NullPointerException e) {
-            Log.err(e.getMessage(), e);
         }
     }
 
@@ -233,17 +230,28 @@ public class MultiThreadingVirtual<K> implements ExecutorService, OffsetProvider
      * @param offset the freed offset to report idle
      */
     private void markIdle(final int offset) {
+        if (offset < 0)
+            return;
         if (idleMarked.add(offset))
             progress.setProgressAt(offset, Messages.getString("Progress.Idle")); //$NON-NLS-1$
     }
 
-    @RequiredArgsConstructor
     private class CallableWith implements Callable<Void> {
         private final K entry;
 
+        CallableWith(final K entry) {
+            this.entry = entry;
+        }
+
         @Override
         public Void call() throws Exception {
-            semaphore.acquire();
+            try {
+                semaphore.acquire();
+            } catch (final InterruptedException e) {
+                pending.decrementAndGet();
+                Thread.currentThread().interrupt();
+                throw e;
+            }
             pending.decrementAndGet();
             final var id = slots.allocOffset();
             try {

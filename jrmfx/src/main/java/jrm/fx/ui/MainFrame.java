@@ -76,10 +76,19 @@ public class MainFrame extends Application {
 
     /**
      * The JavaFX application instance.
+     * Accessed via explicit synchronized getter/setter below
+     * so CodeQL {@code java/unsynchronized-getter} sees a consistent pair.
+     */
+    private static Application application;
+
+    /**
+     * Returns the application instance (thread-safe).
      *
      * @return the application instance
      */
-    private static @Getter Application application;
+    public static synchronized Application getApplication() {
+        return application;
+    }
 
     /**
      * The primary scene.

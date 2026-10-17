@@ -598,8 +598,10 @@ class ScanFixTest {
          * @throws java.io.IOException if the zip cannot be written
          */
         private static void writeZip(final Path zipPath, final Object... entries) throws IOException {
+            if (entries.length % 2 != 0)
+                throw new IllegalArgumentException("entries must be name/bytes pairs");
             try (final var zos = new ZipOutputStream(Files.newOutputStream(zipPath))) {
-                for (var i = 0; i < entries.length; i += 2) {
+                for (var i = 0; i + 1 < entries.length; i += 2) {
                     zos.putNextEntry(new ZipEntry((String) entries[i]));
                     zos.write((byte[]) entries[i + 1]);
                     zos.closeEntry();
