@@ -4,6 +4,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import javafx.application.Platform;
 import javafx.scene.control.TextField;
 import jrm.locale.Messages;
 
@@ -21,9 +22,13 @@ final class MemoryStatusMonitor {
 
 	void updateMemory() {
 		final Runtime rt = Runtime.getRuntime();
-		status.setText(String.format(Messages.getString("MainFrame.MemoryUsage"), String.format(XX_MIB, rt.totalMemory() / 1048576.0),
+		final String text = String.format(Messages.getString("MainFrame.MemoryUsage"), String.format(XX_MIB, rt.totalMemory() / 1048576.0),
 				String.format(XX_MIB, (rt.totalMemory() - rt.freeMemory()) / 1048576.0), String.format(XX_MIB, rt.freeMemory() / 1048576.0),
-				String.format(XX_MIB, rt.maxMemory() / 1048576.0)));
+				String.format(XX_MIB, rt.maxMemory() / 1048576.0));
+		if (Platform.isFxApplicationThread())
+			status.setText(text);
+		else
+			Platform.runLater(() -> status.setText(text));
 	}
 
 	void shutdown() {

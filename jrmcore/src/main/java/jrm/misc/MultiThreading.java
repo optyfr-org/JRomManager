@@ -5,7 +5,9 @@ import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.ThreadMXBean;
 import java.util.HashMap;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -87,6 +89,14 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
      * coming, so idle is only allowed after this flag is set.
      */
     private volatile boolean submissionsComplete;
+
+    /**
+     * Offsets already reported idle. A fast task can finish before {@link #submissionsComplete} is set and skip its idle mark,
+     * so {@link #start(Stream)} sweeps unmarked freed offsets after termination; this set dedupes the sweep against in-task
+     * marks. Within one {@code start()} run an offset marked idle can never be reused (nothing remains queued), so skipping
+     * marked offsets is safe.
+     */
+    private final Set<Integer> idleMarked = ConcurrentHashMap.newKeySet();
 
     /**
      * Registry logging the starting JMX thread CPU time for each active thread.
@@ -202,6 +212,11 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
             submissionsComplete = true;
             shutdown(); // does not accept submission after stream as been consumed
             awaitTermination(1, TimeUnit.DAYS); // wait max for 1 day for all tasks to terminate
+            // A fast task can free its slot before submissionsComplete was set and skip its idle mark, leaving a stale
+            // label frozen on a slot that will never be reused. Termination implies submissionsComplete and an empty
+            // queue, so sweep any freed offset not already marked idle.
+            for (final var offset : freeOffsets())
+                markIdle(offset);
         } catch (InterruptedException e) {
             Log.err(e.getMessage(), e);
             Thread.currentThread().interrupt();
@@ -335,6 +350,17 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
         return slots.freeOffsets();
     }
 
+    /**
+     * Reports an offset idle exactly once per {@link #start(Stream)} run. Within one run an idle-marked offset can never be
+     * reused (nothing remains queued), so the {@code idleMarked} guard cannot suppress a legitimate later mark.
+     *
+     * @param offset the freed offset to report idle
+     */
+    private void markIdle(final int offset) {
+        if (idleMarked.add(offset))
+            progress.setProgressAt(offset, Messages.getString("Progress.Idle")); //$NON-NLS-1$
+    }
+
     @RequiredArgsConstructor
     private class CallableWith implements Callable<Void> {
         private final T entry;
@@ -354,7 +380,7 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
                 // here guarantees reuse that overwrites the kept label.
                 final var offset = slots.freeOffset(id);
                 if (offset >= 0 && submissionsComplete && pending.get() == 0)
-                    progress.setProgressAt(offset, Messages.getString("Progress.Idle")); //$NON-NLS-1$
+                    markIdle(offset);
             }
             return null;
         }
