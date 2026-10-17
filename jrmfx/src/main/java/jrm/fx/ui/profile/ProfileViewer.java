@@ -70,7 +70,10 @@ public class ProfileViewer extends Stage {
             session.getUser().getSettings().setProperty("ProfileViewer.Bounds", Settings.toJson(this));
             hide();
         });
-        final var loader = new FXMLLoader(getClass().getResource("ProfileViewer.fxml").toURI().toURL(), Messages.getBundle());
+        final var resource = ProfileViewer.class.getResource("ProfileViewer.fxml");
+        if (resource == null)
+            throw new IOException("Missing resource: ProfileViewer.fxml");
+        final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
         final var root = loader.<JRMScene>load();
         controller = loader.getController();
         setScene(root);

@@ -169,7 +169,10 @@ public class MainFrame extends Application {
      * @throws IOException        if the FXML cannot be loaded
      */
     private static synchronized TabPane loadMain() throws URISyntaxException, IOException {
-        final var loader = new FXMLLoader(MainFrame.class.getResource("MainFrame.fxml").toURI().toURL(), Messages.getBundle());
+        final var resource = MainFrame.class.getResource("MainFrame.fxml");
+        if (resource == null)
+            throw new IOException("Missing resource: MainFrame.fxml");
+        final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
         final var root = loader.<TabPane>load();
         controller = loader.getController();
         return root;

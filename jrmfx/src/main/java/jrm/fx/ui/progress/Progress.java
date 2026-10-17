@@ -41,7 +41,10 @@ public class Progress extends Stage {
         initModality(Modality.WINDOW_MODAL);
         getIcons().add(parent.getIcons().get(0));
         setOnCloseRequest(_ -> hide());
-        final var loader = new FXMLLoader(getClass().getResource("Progress.fxml").toURI().toURL(), Messages.getBundle());
+        final var resource = Progress.class.getResource("Progress.fxml");
+        if (resource == null)
+            throw new IOException("Missing resource: Progress.fxml");
+        final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
         final var root = loader.<GridPane>load();
         controller = loader.getController();
         controller.setTask(task);

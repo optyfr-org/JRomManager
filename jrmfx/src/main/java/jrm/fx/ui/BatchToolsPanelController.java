@@ -1414,7 +1414,10 @@ public class BatchToolsPanelController extends BaseController {
             setOnShowing(_ -> {
             });
             setOnCloseRequest(_ -> hide());
-            final var loader = new FXMLLoader(getClass().getResource("ScannerPanelSettings.fxml").toURI().toURL(), Messages.getBundle());
+            final var resource = BatchToolsPanelController.class.getResource("ScannerPanelSettings.fxml");
+            if (resource == null)
+                throw new IOException("Missing resource: ScannerPanelSettings.fxml");
+            final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
             final var settings = loader.<ScrollPane>load();
             controller = loader.getController();
             final var root = new BorderPane(settings);

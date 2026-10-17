@@ -49,7 +49,10 @@ public class Keywords extends Stage {
         getIcons().add(parent.getIcons().get(0));
         setOnShowing(_ -> Settings.fromJson(session.getUser().getSettings().getProperty("Keywords.Bounds", null), this));
         setOnCloseRequest(_ -> controller.onClose());
-        final var loader = new FXMLLoader(getClass().getResource("Keywords.fxml").toURI().toURL(), Messages.getBundle());
+        final var resource = Keywords.class.getResource("Keywords.fxml");
+        if (resource == null)
+            throw new IOException("Missing resource: Keywords.fxml");
+        final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
         final var root = loader.<Scene>load();
         controller = loader.getController();
         controller.initKeywords(keywords);

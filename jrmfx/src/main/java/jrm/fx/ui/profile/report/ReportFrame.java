@@ -48,7 +48,10 @@ public class ReportFrame extends Stage implements StatusHandler {
             session.getUser().getSettings().setProperty("ReportFrame.Bounds", Settings.toJson(this));
             hide();
         });
-        final var loader = new FXMLLoader(getClass().getResource("ReportFrame.fxml").toURI().toURL(), Messages.getBundle());
+        final var resource = ReportFrame.class.getResource("ReportFrame.fxml");
+        if (resource == null)
+            throw new IOException("Missing resource: ReportFrame.fxml");
+        final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
         final var root = loader.<BorderPane>load();
         controller = loader.getController();
         setScene(new JRMScene(root));

@@ -53,7 +53,10 @@ class BatchDirUpd8rResults extends Stage {
             session.getUser().getSettings().setProperty("BatchDirUpd8rResults.Bounds", Settings.toJson(this));
             hide();
         });
-        final var loader = new FXMLLoader(getClass().getResource("BatchDirUpd8rResults.fxml").toURI().toURL(), Messages.getBundle());
+        final var resource = BatchDirUpd8rResults.class.getResource("BatchDirUpd8rResults.fxml");
+        if (resource == null)
+            throw new IOException("Missing resource: BatchDirUpd8rResults.fxml");
+        final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
         final var root = loader.<BorderPane>load();
         controller = loader.getController();
         if (results != null && results.getResults() != null)

@@ -44,7 +44,10 @@ class BatchTorrentResults extends Stage {
             session.getUser().getSettings().setProperty("BatchTorrentResults.Bounds", Settings.toJson(this));
             hide();
         });
-        final var loader = new FXMLLoader(getClass().getResource("BatchTorrentResults.fxml").toURI().toURL(), Messages.getBundle());
+        final var resource = BatchTorrentResults.class.getResource("BatchTorrentResults.fxml");
+        if (resource == null)
+            throw new IOException("Missing resource: BatchTorrentResults.fxml");
+        final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
         final var root = loader.<BorderPane>load();
         controller = loader.getController();
 

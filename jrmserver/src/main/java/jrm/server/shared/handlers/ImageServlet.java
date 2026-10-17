@@ -74,8 +74,12 @@ public class ImageServlet extends HttpServlet {
         if (cached != null)
             return cached;
         URI candidate = URI.create("jrt:/jrm.merged.module/jrm/resicons/");
-        if (!URIUtils.URIExists(candidate))
-            candidate = ImageServlet.class.getResource("/jrm/resicons/").toURI();
+        if (!URIUtils.URIExists(candidate)) {
+            final var resource = ImageServlet.class.getResource("/jrm/resicons/");
+            if (resource == null)
+                throw new URISyntaxException("/jrm/resicons/", "Missing resource");
+            candidate = resource.toURI();
+        }
         uri.compareAndSet(null, candidate);
         return uri.get();
     }

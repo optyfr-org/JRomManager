@@ -48,7 +48,10 @@ public class ReportLite extends Stage {
             session.getUser().getSettings().setProperty("ReportLite.Bounds", Settings.toJson(this));
             hide();
         });
-        final var loader = new FXMLLoader(getClass().getResource("ReportLite.fxml").toURI().toURL(), Messages.getBundle());
+        final var resource = ReportLite.class.getResource("ReportLite.fxml");
+        if (resource == null)
+            throw new IOException("Missing resource: ReportLite.fxml");
+        final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
         final var root = loader.<BorderPane>load();
         controller = loader.getController();
         setScene(new JRMScene(root));
