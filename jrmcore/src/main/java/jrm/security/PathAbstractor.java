@@ -274,28 +274,28 @@ public class PathAbstractor {
     public static Path getAbsolutePath(Session session, final String strpath) throws SecurityException {
         if (isUnrestricted(session) && !strpath.startsWith(PRESETS) && !strpath.startsWith(WORK) && !strpath.startsWith(SHARED))
             return Paths.get(strpath).toAbsolutePath().normalize();
-        final Path path;
-        if (strpath.startsWith(PRESETS)) {
-            final var presetsPath = getPresetsPath(session);
-            path = Paths.get(strpath.replace(PRESETS, presetsPath.toString())).toAbsolutePath().normalize();
-            if (!path.startsWith(presetsPath))
-                throw new SecurityException(FORGED_PATH);
-        } else if (strpath.startsWith(WORK)) {
-            final var basepath = session.getUser().getSettings().getWorkPath();
-            path = Paths.get(strpath.replace(WORK, basepath.toString())).toAbsolutePath().normalize();
-            if (!path.startsWith(basepath))
-                throw new SecurityException(FORGED_PATH);
-        } else if (strpath.startsWith(SHARED)) {
-            final var basepath = session.getUser().getSettings().getBasePath().resolve(USERS).resolve(SHARED2);
-            path = Paths.get(strpath.replace(SHARED, basepath.toString())).toAbsolutePath().normalize();
-            if (!path.startsWith(basepath))
-                throw new SecurityException(FORGED_PATH);
-        } else if (session.isServer()) {
-            path = Paths.get(strpath).toAbsolutePath().normalize();
-            if (!path.startsWith(session.getUser().getSettings().getBasePath()) && !path.startsWith(System.getProperty("java.io.tmpdir")) && !path.startsWith(System.getProperty("user.dir")))
-                throw new SecurityException(FORGED_PATH);
-        } else
-            path = Paths.get(strpath);
+        if (strpath.startsWith(PRESETS))
+            return resolveWithinRoot(strpath, PRESETS, getPresetsPath(session));
+        if (strpath.startsWith(WORK))
+            return resolveWithinRoot(strpath, WORK, session.getUser().getSettings().getWorkPath());
+        if (strpath.startsWith(SHARED))
+            return resolveWithinRoot(strpath, SHARED, session.getUser().getSettings().getBasePath().resolve(USERS).resolve(SHARED2));
+        if (session.isServer())
+            return resolveServerPath(session, strpath);
+        return Paths.get(strpath);
+    }
+
+    private static Path resolveWithinRoot(final String strpath, final String placeholder, final Path root) throws SecurityException {
+        final var path = Paths.get(strpath.replace(placeholder, root.toString())).toAbsolutePath().normalize();
+        if (!path.startsWith(root))
+            throw new SecurityException(FORGED_PATH);
+        return path;
+    }
+
+    private static Path resolveServerPath(Session session, final String strpath) throws SecurityException {
+        final var path = Paths.get(strpath).toAbsolutePath().normalize();
+        if (!path.startsWith(session.getUser().getSettings().getBasePath()) && !path.startsWith(System.getProperty("java.io.tmpdir")) && !path.startsWith(System.getProperty("user.dir")))
+            throw new SecurityException(FORGED_PATH);
         return path;
     }
 

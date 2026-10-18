@@ -57,6 +57,9 @@ public abstract class AbstractServer implements Daemon {
     /** Reusable string constant {@code "false"} for servlet init-parameters. */
     private static final String FALSE = "false";
 
+    /** Log message emitted when the server has stopped. */
+    private static final String SERVER_STOPPED = "Server stopped.";
+
     /**
      * Optional filesystem path to the client-side web resources (HTML, CSS, JavaScript). When {@code null}, the server falls back
      * to embedded classpath or module resources.
@@ -195,37 +198,45 @@ public abstract class AbstractServer implements Daemon {
             // the two hooks would race and the loser logs "Unable to destroy / STARTED" plus
             // RejectedExecutionException noise from the half-stopped thread pool.
             if (debug || SystemUtils.IS_OS_WINDOWS) {
-                try (final var sc = new Scanner(System.in)) {
-                    // wait until receive stop command from keyboard, then shut down gracefully:
-                    // terminate() stops Jetty in-process (single stop, no ShutdownThread race),
-                    // so the JVM exits normally with no System.exit() and no second stop attempt.
-                    System.out.println("Enter 'stop' to halt: "); // NOSONAR
-                    while (true) {
-                        // nativeRun (and other launches without a console) provides no stdin:
-                        // hasNextLine() is false at EOF, and nextLine() would throw
-                        // NoSuchElementException("No line found"). Fall back to join() so the
-                        // server keeps running instead of crashing on startup.
-                        if (!sc.hasNextLine()) {
-                            if (isStarted())
-                                jettyServer.join();
-                            Log.info("Server stopped.");
-                            return;
-                        }
-                        if (sc.nextLine().equalsIgnoreCase("stop"))
-                            break;
-                        Thread.sleep(1000);
-                    }
-                    terminate();
-                    Log.info("Server stopped.");
-                    return;
-                }
-            } else if (isStarted())
+                waitStopInteractive();
+                return;
+            }
+            if (isStarted())
                 jettyServer.join();
-            Log.info("Server stopped.");
+            Log.info(SERVER_STOPPED);
         } catch (InterruptedException e) {
             throw e;
         } catch (Exception e) {
             throw new JettyException(e.getMessage(), e);
+        }
+    }
+
+    private static void waitStopInteractive() throws Exception {
+        try (final var sc = new Scanner(System.in)) {
+            // wait until receive stop command from keyboard, then shut down gracefully:
+            // terminate() stops Jetty in-process (single stop, no ShutdownThread race),
+            // so the JVM exits normally with no System.exit() and no second stop attempt.
+            System.out.println("Enter 'stop' to halt: "); // NOSONAR
+            if (!waitForStopCommand(sc)) {
+                // nativeRun (and other launches without a console) provides no stdin:
+                // hasNextLine() is false at EOF, and nextLine() would throw
+                // NoSuchElementException("No line found"). Fall back to join() so the
+                // server keeps running instead of crashing on startup.
+                if (isStarted())
+                    jettyServer.join();
+            } else
+                terminate();
+            Log.info(SERVER_STOPPED);
+        }
+    }
+
+    private static boolean waitForStopCommand(final Scanner sc) throws InterruptedException {
+        while (true) {
+            if (!sc.hasNextLine())
+                return false;
+            if (sc.nextLine().equalsIgnoreCase("stop"))
+                return true;
+            Thread.sleep(1000);
         }
     }
 

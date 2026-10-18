@@ -359,24 +359,30 @@ public class Rom extends Entity {
         for (var depth = 0; depth < Anyware.MAX_PARENT_DEPTH; depth++) {
             if (seen.put(current, Boolean.TRUE) != null)
                 return null;
-            final EntityStatus matchStatus = findMatchingRomStatus(current, rom);
-            if (matchStatus != null)
-                return matchStatus;
-            if (current.parent == null) {
-                if (current.isRomOf() && rom.merge != null)
-                    return EntityStatus.OK;
-                return null;
-            }
-            final var status = findRomStatusMerge(current, rom);
-            if (status != null)
+            final var status = findRomStatusAt(current, rom);
+            if (status != null || isTerminalLevel(current))
                 return status;
-            for (final Rom r : current.getParent().getRoms()) {
-                if (r != rom && rom.equals(r))
-                    return r.getStatus();
-            }
-            if (current.parent.parent == null)
-                return null;
             current = current.getParent();
+        }
+        return null;
+    }
+
+    private static boolean isTerminalLevel(final Anyware current) {
+        return current.parent == null || current.parent.parent == null;
+    }
+
+    private EntityStatus findRomStatusAt(final Anyware current, final Rom rom) {
+        final EntityStatus matchStatus = findMatchingRomStatus(current, rom);
+        if (matchStatus != null)
+            return matchStatus;
+        if (current.parent == null)
+            return current.isRomOf() && rom.merge != null ? EntityStatus.OK : null;
+        final var status = findRomStatusMerge(current, rom);
+        if (status != null)
+            return status;
+        for (final Rom r : current.getParent().getRoms()) {
+            if (r != rom && rom.equals(r))
+                return r.getStatus();
         }
         return null;
     }

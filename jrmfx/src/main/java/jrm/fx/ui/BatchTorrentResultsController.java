@@ -159,21 +159,27 @@ public class BatchTorrentResultsController implements Initializable {
         final var pending = new ArrayDeque<BuildPending>();
         pending.add(new BuildPending(root, children, 0));
         final var seen = new IdentityHashMap<Child, Boolean>();
-        while (!pending.isEmpty()) {
-            final var current = pending.removeFirst();
-            if (current.depth() >= MAX_TREE_DEPTH)
-                continue;
-            for (final var child : current.children()) {
-                if (child == null || seen.put(child, Boolean.TRUE) != null)
-                    continue;
-                final var item = new TreeItem<>(child);
-                current.parent().getChildren().add(item);
-                final var next = child.getChildren();
-                if (next != null && !next.isEmpty())
-                    pending.add(new BuildPending(item, next, current.depth() + 1));
-            }
-        }
+        while (!pending.isEmpty())
+            visitBuildEntry(pending.removeFirst(), pending, seen);
         return root;
+    }
+
+    private static void visitBuildEntry(final BuildPending current, final ArrayDeque<BuildPending> pending, final IdentityHashMap<Child, Boolean> seen) {
+        if (current.depth() >= MAX_TREE_DEPTH)
+            return;
+        for (final var child : current.children()) {
+            if (child == null || seen.put(child, Boolean.TRUE) != null)
+                continue;
+            final var item = new TreeItem<>(child);
+            current.parent().getChildren().add(item);
+            enqueueBuildChildren(item, child, pending, current.depth());
+        }
+    }
+
+    private static void enqueueBuildChildren(final TreeItem<Child> item, final Child child, final ArrayDeque<BuildPending> pending, final int depth) {
+        final var next = child.getChildren();
+        if (next != null && !next.isEmpty())
+            pending.add(new BuildPending(item, next, depth + 1));
     }
 
     /**

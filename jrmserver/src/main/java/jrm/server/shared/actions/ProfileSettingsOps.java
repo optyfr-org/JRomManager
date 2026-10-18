@@ -11,6 +11,8 @@ import jrm.security.PathAbstractor;
 import jrm.server.shared.WebSession;
 
 final class ProfileSettingsOps {
+	private static final String PARAMS = "params";
+
 	private final ProfileActions parent;
 	private final ActionsMgr ws;
 
@@ -22,7 +24,7 @@ final class ProfileSettingsOps {
 	void importSettings(JsonObject jso) {
 		WebSession session = ws.getSession();
 		if (session.getCurrProfile() != null) {
-			final JsonValue jsv = jso.get("params").asObject().get("path");
+			final JsonValue jsv = jso.get(PARAMS).asObject().get("path");
 			if (jsv != null && !jsv.isNull()) {
 				session.getCurrProfile().loadSettings(PathAbstractor.getAbsolutePath(session, jsv.asString()).toFile());
 				session.getCurrProfile().loadCatVer(null);
@@ -37,7 +39,7 @@ final class ProfileSettingsOps {
 	void exportSettings(JsonObject jso) {
 		WebSession session = ws.getSession();
 		if (session.getCurrProfile() != null) {
-			final JsonValue jsv = jso.get("params").asObject().get("path");
+			final JsonValue jsv = jso.get(PARAMS).asObject().get("path");
 			if (jsv != null && !jsv.isNull()) {
 				session.getCurrProfile().saveSettings(PathAbstractor.getAbsolutePath(session, jsv.asString()).toFile());
 			}
@@ -47,7 +49,7 @@ final class ProfileSettingsOps {
 	void setProperty(JsonObject jso) {
 		final var profile = jso.getString("profile", null);
 		ProfileSettings settings = profile != null ? new ProfileSettings() : ws.getSession().getCurrProfile().getSettings();
-		JsonObject pjso = jso.get("params").asObject();
+		JsonObject pjso = jso.get(PARAMS).asObject();
 		try {
 			for (Member m : pjso) {
 				JsonValue value = m.getValue();

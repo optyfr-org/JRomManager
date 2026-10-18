@@ -177,23 +177,29 @@ public class Disk extends Entity {
         for (var depth = 0; depth < Anyware.MAX_PARENT_DEPTH; depth++) {
             if (seen.put(current, Boolean.TRUE) != null)
                 return null;
-            if (current.parent == null) {
-                if (current.isRomOf() && disk.merge != null)
-                    return EntityStatus.OK;
-                return null;
-            }
-            if (current.profile.getSettings().getMergeMode().isMerge()) {
-                final var status = findDiskStatusInClones(current, disk);
-                if (status != null)
-                    return status;
-            }
-            for (final Disk d : current.getParent().getDisks()) {
-                if (d != disk && disk.equals(d))
-                    return d.getStatus();
-            }
-            if (current.parent.parent == null)
-                return null;
+            final var status = findDiskStatusAt(current, disk);
+            if (status != null || isTerminalLevel(current))
+                return status;
             current = current.getParent();
+        }
+        return null;
+    }
+
+    private static boolean isTerminalLevel(final Anyware current) {
+        return current.parent == null || current.parent.parent == null;
+    }
+
+    private static EntityStatus findDiskStatusAt(final Anyware current, final Disk disk) {
+        if (current.parent == null)
+            return current.isRomOf() && disk.merge != null ? EntityStatus.OK : null;
+        if (current.profile.getSettings().getMergeMode().isMerge()) {
+            final var status = findDiskStatusInClones(current, disk);
+            if (status != null)
+                return status;
+        }
+        for (final Disk d : current.getParent().getDisks()) {
+            if (d != disk && disk.equals(d))
+                return d.getStatus();
         }
         return null;
     }

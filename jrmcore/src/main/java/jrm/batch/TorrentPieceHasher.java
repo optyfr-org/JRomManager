@@ -26,6 +26,8 @@ import jrm.misc.Log;
 import jrm.misc.UnitRenderer;
 
 final class TorrentPieceHasher<T extends AbstractSrcDstResult> implements UnitRenderer, StatusRendererFactory {
+	private static final String PIECE_PROGRESSION = "TorrentChecker.PieceProgression";
+
 	private final TorrentChecker<T> checker;
 
 	TorrentPieceHasher(TorrentChecker<T> checker) {
@@ -40,7 +42,7 @@ final class TorrentPieceHasher<T extends AbstractSrcDstResult> implements UnitRe
 			data.toGo = data.pieceLength;
 			checker.processing.addAndGet(data.pieces.size());
 			progress.setProgress(src.getAbsolutePath(), -1, null, "");
-			progress.setProgress2(String.format(checker.session.getMsgs().getString("TorrentChecker.PieceProgression"), checker.current.get(), checker.processing.get()), -1, checker.processing.get());
+			progress.setProgress2(String.format(checker.session.getMsgs().getString(PIECE_PROGRESSION), checker.current.get(), checker.processing.get()), -1, checker.processing.get());
 			data.pieceCnt++;
 			data.block = report.add(String.format("Piece %d", data.pieceCnt));
 			data.block.getData().setLength(data.pieceLength);
@@ -49,7 +51,7 @@ final class TorrentPieceHasher<T extends AbstractSrcDstResult> implements UnitRe
 				if (progress.isCancel())
 					return "cancelled...";
 			}
-			progress.setProgress2(String.format(checker.session.getMsgs().getString("TorrentChecker.PieceProgression"), checker.current.get(), checker.processing.get()), checker.current.get(), checker.processing.get());
+			progress.setProgress2(String.format(checker.session.getMsgs().getString(PIECE_PROGRESSION), checker.current.get(), checker.processing.get()), checker.current.get(), checker.processing.get());
 
 			final long lastPieceLen = data.pieceLength - data.toGo;
 			if (lastPieceLen > 0) {
@@ -105,7 +107,7 @@ final class TorrentPieceHasher<T extends AbstractSrcDstResult> implements UnitRe
 				hashStream(data.md, data.buffer, in, data.toGo);
 				flen -= data.toGo;
 				data.toGo = data.pieceLength;
-				progress.setProgress2(String.format(checker.session.getMsgs().getString("TorrentChecker.PieceProgression"), checker.current.get(), checker.processing.get()), checker.current.get(), checker.processing.get());
+				progress.setProgress2(String.format(checker.session.getMsgs().getString(PIECE_PROGRESSION), checker.current.get(), checker.processing.get()), checker.current.get(), checker.processing.get());
 				finalizePiece(data, report, data.pieceLength);
 				if (flen > 0) {
 					revalidateRemainingFile(data, resolved, tfile);

@@ -58,30 +58,8 @@ final class RomsScan {
 
 		final var scanData = new ScanRomsData(roms, container);
 
-		for (final Rom rom : roms) {
-			rom.setStatus(jrm.profile.data.EntityStatus.KO);
-
-			final var entries = findEntriesByHash(scanData, rom);
-			Entry foundEntry = entries != null ? scanRomsEntries(archive, reportSubject, estimatedRomsSize, scanData, rom, entries) : null;
-
-			final Entry wrongHash = foundEntry == null ? checkWrongHash(scanData, rom) : null;
-
-			if (foundEntry == null) {
-				scan.report.getStats().incMissingRomsCnt();
-
-				foundEntry = searchRomInAllScans(rom);
-				if (foundEntry != null) {
-					scan.report.getStats().incFixableRomsCnt();
-					reportSubject.add(new EntryAdd(rom, foundEntry));
-					OpenContainer.getInstance(scanData.addSet, archive, scan.format, estimatedRomsSize).addAction(new AddEntry(rom, foundEntry));
-				} else
-					reportSubject.add(wrongHash != null ? new EntryWrongHash(rom, wrongHash) : new EntryMissing(rom));
-			} else {
-				rom.setStatus(jrm.profile.data.EntityStatus.OK);
-				reportSubject.add(new EntryOK(rom));
-				scanData.found.add(foundEntry);
-			}
-		}
+		for (final Rom rom : roms)
+			scanSingleRom(rom, archive, reportSubject, estimatedRomsSize, scanData);
 
 		removeUnneededEntries(archive, reportSubject, container, estimatedRomsSize, scanData);
 
@@ -91,6 +69,41 @@ final class RomsScan {
 		ContainerAction.addToList(scan.addActions, scanData.addSet.get());
 		ContainerAction.addToList(scan.deleteActions, scanData.deleteSet.get());
 		ContainerAction.addToList(scan.renameAfterActions, scanData.renameAfterSet.get());
+	}
+
+	private void scanSingleRom(final Rom rom, final Container archive, final SubjectSet reportSubject, final long estimatedRomsSize, final ScanRomsData scanData) {
+		rom.setStatus(jrm.profile.data.EntityStatus.KO);
+
+		final var entries = findEntriesByHash(scanData, rom);
+		Entry foundEntry = entries != null ? scanRomsEntries(archive, reportSubject, estimatedRomsSize, scanData, rom, entries) : null;
+
+		final Entry wrongHash = foundEntry == null ? checkWrongHash(scanData, rom) : null;
+
+		if (foundEntry == null)
+			foundEntry = handleMissingRom(rom, archive, reportSubject, estimatedRomsSize, scanData, wrongHash);
+		else
+			handleFoundRom(rom, reportSubject, scanData, foundEntry);
+	}
+
+	private Entry handleMissingRom(final Rom rom, final Container archive, final SubjectSet reportSubject, final long estimatedRomsSize, final ScanRomsData scanData,
+			final Entry wrongHash) {
+		scan.report.getStats().incMissingRomsCnt();
+
+		final Entry foundEntry = searchRomInAllScans(rom);
+		if (foundEntry != null) {
+			scan.report.getStats().incFixableRomsCnt();
+			reportSubject.add(new EntryAdd(rom, foundEntry));
+			OpenContainer.getInstance(scanData.addSet, archive, scan.format, estimatedRomsSize).addAction(new AddEntry(rom, foundEntry));
+			return foundEntry;
+		}
+		reportSubject.add(wrongHash != null ? new EntryWrongHash(rom, wrongHash) : new EntryMissing(rom));
+		return null;
+	}
+
+	private void handleFoundRom(final Rom rom, final SubjectSet reportSubject, final ScanRomsData scanData, final Entry foundEntry) {
+		rom.setStatus(jrm.profile.data.EntityStatus.OK);
+		reportSubject.add(new EntryOK(rom));
+		scanData.found.add(foundEntry);
 	}
 
 	private Entry checkWrongHash(final ScanRomsData scanData, final Rom rom) {

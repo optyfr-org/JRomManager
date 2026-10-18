@@ -85,7 +85,7 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
      *
      * @return the list of Subject instances
      */
-    @Getter List<Subject> subjects;
+    @Getter private List<Subject> subjects;
 
     /**
      * Map indexing scanned report subjects by their case-insensitive full names for fast retrieval.

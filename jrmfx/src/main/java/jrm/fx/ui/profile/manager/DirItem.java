@@ -67,34 +67,43 @@ public class DirItem extends TreeItem<Dir> {
         final var pending = new ArrayDeque<Pending>();
         pending.add(new Pending(dir, node, 0));
         final var visited = new HashSet<String>();
-        while (!pending.isEmpty()) {
-            final var current = pending.removeFirst();
-            if (current.depth() >= MAX_DIR_DEPTH)
-                continue;
-            final var currentDir = current.dir();
-            if (currentDir == null)
-                continue;
-            final var dirfile = currentDir.getFile();
-            if (dirfile == null || !dirfile.isDirectory())
-                continue;
-            final String canonical;
-            try {
-                canonical = dirfile.getCanonicalPath();
-            } catch (final IOException _) {
-                continue;
-            }
-            if (!visited.add(canonical))
-                continue;
-            final File[] listFiles = dirfile.listFiles();
-            if (listFiles == null)
-                continue;
-            for (final File file : listFiles) {
-                if (file != null && file.isDirectory()) {
-                    final var childDir = new Dir(file);
-                    final var child = new DirItem(childDir);
-                    current.node().getChildren().add(child);
-                    pending.add(new Pending(childDir, child, current.depth() + 1));
-                }
+        while (!pending.isEmpty())
+            visitDirEntry(pending.removeFirst(), pending, visited);
+    }
+
+    private static void visitDirEntry(final Pending current, final ArrayDeque<Pending> pending, final HashSet<String> visited) {
+        if (current.depth() >= MAX_DIR_DEPTH)
+            return;
+        final var currentDir = current.dir();
+        if (currentDir == null)
+            return;
+        final var dirfile = currentDir.getFile();
+        if (dirfile == null || !dirfile.isDirectory())
+            return;
+        final String canonical = canonicalPath(dirfile);
+        if (canonical == null || !visited.add(canonical))
+            return;
+        enqueueSubDirs(current, pending, dirfile);
+    }
+
+    private static String canonicalPath(final File dirfile) {
+        try {
+            return dirfile.getCanonicalPath();
+        } catch (final IOException _) {
+            return null;
+        }
+    }
+
+    private static void enqueueSubDirs(final Pending current, final ArrayDeque<Pending> pending, final File dirfile) {
+        final File[] listFiles = dirfile.listFiles();
+        if (listFiles == null)
+            return;
+        for (final File file : listFiles) {
+            if (file != null && file.isDirectory()) {
+                final var childDir = new Dir(file);
+                final var child = new DirItem(childDir);
+                current.node().getChildren().add(child);
+                pending.add(new Pending(childDir, child, current.depth() + 1));
             }
         }
     }

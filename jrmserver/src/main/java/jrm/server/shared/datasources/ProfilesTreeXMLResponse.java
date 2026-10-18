@@ -101,32 +101,39 @@ public class ProfilesTreeXMLResponse extends XMLResponse {
         final var pending = new ArrayDeque<OutputPending>();
         pending.add(new OutputPending(node, parentID, 0));
         final var seen = new IdentityHashMap<Node<Dir>, Boolean>();
-        while (!pending.isEmpty()) {
-            final var current = pending.removeFirst();
-            if (current.depth() > DirTree.MAX_DIR_DEPTH)
-                continue;
-            final var n = current.node();
-            if (n == null || seen.put(n, Boolean.TRUE) != null)
-                continue;
-            final var strID = id.toString();
-            if (id.get() > 0) {
-                request.getSession().putProfileList(id.get(), n.getData().getFile().toPath());
-                writer.writeStartElement(RECORD);
-                writer.writeAttribute("ID", id.toString());
-                writer.writeAttribute("Path", pathAbstractor.getRelativePath(n.getData().getFile().toPath()).toString());
-                writer.writeAttribute(TITLE, n.getData().getFile().getName());
-                writer.writeAttribute(IS_FOLDER, "true");
-                if (current.parentID() != null)
-                    writer.writeAttribute(PARENT_ID, current.parentID());
-                writer.writeEndElement();
-            } else
-                request.getSession().newProfileList();
-            id.incrementAndGet();
-            if (current.depth() >= DirTree.MAX_DIR_DEPTH)
-                continue;
-            for (final var child : n)
-                pending.add(new OutputPending(child, strID, current.depth() + 1));
-        }
+        while (!pending.isEmpty())
+            visitOutputEntry(writer, pending.removeFirst(), pending, seen, id);
+    }
+
+    private void visitOutputEntry(XMLStreamWriter writer, final OutputPending current, final ArrayDeque<OutputPending> pending, final IdentityHashMap<Node<Dir>, Boolean> seen,
+            AtomicInteger id) throws XMLStreamException {
+        if (current.depth() > DirTree.MAX_DIR_DEPTH)
+            return;
+        final var n = current.node();
+        if (n == null || seen.put(n, Boolean.TRUE) != null)
+            return;
+        final var strID = id.toString();
+        writeOutputRecord(writer, current, n, id);
+        id.incrementAndGet();
+        if (current.depth() >= DirTree.MAX_DIR_DEPTH)
+            return;
+        for (final var child : n)
+            pending.add(new OutputPending(child, strID, current.depth() + 1));
+    }
+
+    private void writeOutputRecord(XMLStreamWriter writer, final OutputPending current, final Node<Dir> n, AtomicInteger id) throws XMLStreamException {
+        if (id.get() > 0) {
+            request.getSession().putProfileList(id.get(), n.getData().getFile().toPath());
+            writer.writeStartElement(RECORD);
+            writer.writeAttribute("ID", id.toString());
+            writer.writeAttribute("Path", pathAbstractor.getRelativePath(n.getData().getFile().toPath()).toString());
+            writer.writeAttribute(TITLE, n.getData().getFile().getName());
+            writer.writeAttribute(IS_FOLDER, "true");
+            if (current.parentID() != null)
+                writer.writeAttribute(PARENT_ID, current.parentID());
+            writer.writeEndElement();
+        } else
+            request.getSession().newProfileList();
     }
 
     /**

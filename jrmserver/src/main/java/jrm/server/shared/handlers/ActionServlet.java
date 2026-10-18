@@ -72,38 +72,49 @@ public class ActionServlet extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException {
         try {
-            if ("/actions/cmd".equals(req.getRequestURI())) {
-                final WebSession sess = requireAuthenticatedSession(req, resp);
-                if (sess == null)
-                    return;
-                if (req.getContentLengthLong() < 0)
-                    resp.setStatus(HttpServletResponse.SC_LENGTH_REQUIRED);
-                else if (req.getContentLength() < 0)
-                    resp.setStatus(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
-                else if (req.getContentLength() > 0) {
-                    if (isJsonContentType(req.getContentType())) {
-                        final var buf = new byte[req.getContentLength()];
-                        req.getInputStream().read(buf, 0, req.getContentLength());
-                        // Route pushes to the live WS manager when a socket is open for this session.
-                        final var msg = new String(buf, StandardCharsets.UTF_8);
-                        final var wsMgr = WsActionMgr.forSession(sess);
-                        if (wsMgr != null && wsMgr.isOpen())
-                            wsMgr.process(msg);
-                        else
-                            new LongPollingReqMgr(sess).process(msg);
-                        resp.setContentLength(0);
-                        resp.setContentType(APPLICATION_JSON_UTF8);
-                        resp.setHeader("X-Content-Type-Options", "nosniff");
-                        resp.setStatus(HttpServletResponse.SC_OK);
-                    } else
-                        resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-                } else
-                    resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            } else
+            if (!"/actions/cmd".equals(req.getRequestURI())) {
                 resp.setStatus(HttpServletResponse.SC_NOT_IMPLEMENTED);
+                return;
+            }
+            final WebSession sess = requireAuthenticatedSession(req, resp);
+            if (sess == null)
+                return;
+            if (req.getContentLengthLong() < 0) {
+                resp.setStatus(HttpServletResponse.SC_LENGTH_REQUIRED);
+                return;
+            }
+            if (req.getContentLength() < 0) {
+                resp.setStatus(HttpServletResponse.SC_REQUEST_ENTITY_TOO_LARGE);
+                return;
+            }
+            if (req.getContentLength() == 0) {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+            if (!isJsonContentType(req.getContentType())) {
+                resp.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
+            processCmdRequest(req, resp, sess);
         } catch (Exception _) {
             resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
+    }
+
+    private static void processCmdRequest(HttpServletRequest req, HttpServletResponse resp, final WebSession sess) throws IOException {
+        final var buf = new byte[req.getContentLength()];
+        req.getInputStream().read(buf, 0, req.getContentLength());
+        // Route pushes to the live WS manager when a socket is open for this session.
+        final var msg = new String(buf, StandardCharsets.UTF_8);
+        final var wsMgr = WsActionMgr.forSession(sess);
+        if (wsMgr != null && wsMgr.isOpen())
+            wsMgr.process(msg);
+        else
+            new LongPollingReqMgr(sess).process(msg);
+        resp.setContentLength(0);
+        resp.setContentType(APPLICATION_JSON_UTF8);
+        resp.setHeader("X-Content-Type-Options", "nosniff");
+        resp.setStatus(HttpServletResponse.SC_OK);
     }
 
     /**

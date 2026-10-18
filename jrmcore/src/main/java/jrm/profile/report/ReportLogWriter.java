@@ -111,7 +111,7 @@ final class ReportLogWriter {
 		if (modes.contains(ReportMode.GROUP_BY_TYPE_AND_STATUS))
 			writeGroupedReport(reportWriter, modes);
 		else
-			report.subjects.stream().filter(new ReportSubjectFilter(modes)).sorted(Subject.getComparator())
+			report.getSubjects().stream().filter(new ReportSubjectFilter(modes)).sorted(Subject.getComparator())
 					.forEachOrdered(subject -> writeReport(reportWriter, subject, modes));
 	}
 
@@ -123,7 +123,7 @@ final class ReportLogWriter {
 	}
 
 	private void writeGroupedSubjects(PrintWriter reportWriter, EnumSet<ReportMode> modes) {
-		final Map<ReportMode, List<Subject>> grouped = report.subjects.stream()
+		final Map<ReportMode, List<Subject>> grouped = report.getSubjects().stream()
 				.collect(Collectors.groupingBy(this::classifySubject));
 		grouped.forEach((mode, list) -> {
 			reportWriter.println();
@@ -145,7 +145,7 @@ final class ReportLogWriter {
 	}
 
 	private void writeGroupedNotes(PrintWriter reportWriter, EnumSet<ReportMode> modes) {
-		final Map<String, List<Note>> grouped = report.subjects.stream().flatMap(s -> s.stream())
+		final Map<String, List<Note>> grouped = report.getSubjects().stream().flatMap(s -> s.stream())
 				.collect(Collectors.groupingBy(Note::getAbbrv));
 		grouped.forEach((abbrv, list) -> {
 			reportWriter.println();

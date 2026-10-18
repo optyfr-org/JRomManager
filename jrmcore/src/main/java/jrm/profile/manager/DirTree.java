@@ -49,31 +49,40 @@ public class DirTree extends Tree<Dir> {
         final var pending = new ArrayDeque<Pending>();
         pending.add(new Pending(node, 0));
         final var visited = new HashSet<String>();
-        while (!pending.isEmpty()) {
-            final var current = pending.removeFirst();
-            if (current.depth() >= MAX_DIR_DEPTH)
-                continue;
-            final var data = current.node().getData();
-            if (data == null)
-                continue;
-            final var dirfile = data.getFile();
-            if (dirfile == null || !dirfile.isDirectory())
-                continue;
-            final String canonical;
-            try {
-                canonical = dirfile.getCanonicalPath();
-            } catch (final IOException _) {
-                continue;
-            }
-            if (!visited.add(canonical))
-                continue;
-            final File[] listFiles = dirfile.listFiles();
-            if (listFiles == null)
-                continue;
-            for (final File file : listFiles) {
-                if (file != null && file.isDirectory())
-                    pending.add(new Pending(current.node().addChild(new Dir(file)), current.depth() + 1));
-            }
+        while (!pending.isEmpty())
+            visitDirEntry(pending.removeFirst(), pending, visited);
+    }
+
+    private static void visitDirEntry(final Pending current, final ArrayDeque<Pending> pending, final HashSet<String> visited) {
+        if (current.depth() >= MAX_DIR_DEPTH)
+            return;
+        final var data = current.node().getData();
+        if (data == null)
+            return;
+        final var dirfile = data.getFile();
+        if (dirfile == null || !dirfile.isDirectory())
+            return;
+        final String canonical = canonicalPath(dirfile);
+        if (canonical == null || !visited.add(canonical))
+            return;
+        enqueueSubDirs(current, pending, dirfile);
+    }
+
+    private static String canonicalPath(final File dirfile) {
+        try {
+            return dirfile.getCanonicalPath();
+        } catch (final IOException _) {
+            return null;
+        }
+    }
+
+    private static void enqueueSubDirs(final Pending current, final ArrayDeque<Pending> pending, final File dirfile) {
+        final File[] listFiles = dirfile.listFiles();
+        if (listFiles == null)
+            return;
+        for (final File file : listFiles) {
+            if (file != null && file.isDirectory())
+                pending.add(new Pending(current.node().addChild(new Dir(file)), current.depth() + 1));
         }
     }
 

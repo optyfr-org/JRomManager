@@ -20,35 +20,48 @@ public final class DatFileSearch {
 		final var pending = new ArrayDeque<PendingDat>();
 		pending.add(new PendingDat(file, 0));
 		final var visited = new HashSet<String>();
-		while (!pending.isEmpty()) {
-			final var current = pending.removeFirst();
-			final File currentFile = current.file();
-			if (currentFile == null)
-				continue;
-			if (currentFile.isFile()) {
-				if (FilenameUtils.isExtension(currentFile.getName(), "xml", "dat") || MameExecutable.isLaunchable(currentFile))
-					files.add(currentFile);
-				continue;
-			}
-			if (current.depth() >= MAX_DAT_SEARCH_DEPTH || !currentFile.isDirectory())
-				continue;
-			final String canonical;
-			try {
-				canonical = currentFile.getCanonicalPath();
-			} catch (final IOException e) {
-				Log.warn(e.getMessage());
-				continue;
-			}
-			if (!visited.add(canonical))
-				continue;
-			try (final var stream = Files.newDirectoryStream(currentFile.toPath())) {
-				for (final var path : stream)
-					pending.add(new PendingDat(path.toFile(), current.depth() + 1));
-			} catch (IOException e) {
-				Log.warn(e.getMessage());
-			}
-		}
+		while (!pending.isEmpty())
+			visitDatEntry(pending.removeFirst(), pending, visited, files);
 		return files;
+	}
+
+	private static void visitDatEntry(final PendingDat current, final ArrayDeque<PendingDat> pending, final HashSet<String> visited, final List<File> files) {
+		final File currentFile = current.file();
+		if (currentFile == null)
+			return;
+		if (currentFile.isFile()) {
+			collectDatFile(currentFile, files);
+			return;
+		}
+		if (current.depth() >= MAX_DAT_SEARCH_DEPTH || !currentFile.isDirectory())
+			return;
+		final String canonical = canonicalPath(currentFile);
+		if (canonical == null || !visited.add(canonical))
+			return;
+		enqueueDatChildren(current, pending);
+	}
+
+	private static void collectDatFile(final File file, final List<File> files) {
+		if (FilenameUtils.isExtension(file.getName(), "xml", "dat") || MameExecutable.isLaunchable(file))
+			files.add(file);
+	}
+
+	private static String canonicalPath(final File file) {
+		try {
+			return file.getCanonicalPath();
+		} catch (final IOException e) {
+			Log.warn(e.getMessage());
+			return null;
+		}
+	}
+
+	private static void enqueueDatChildren(final PendingDat current, final ArrayDeque<PendingDat> pending) {
+		try (final var stream = Files.newDirectoryStream(current.file().toPath())) {
+			for (final var path : stream)
+				pending.add(new PendingDat(path.toFile(), current.depth() + 1));
+		} catch (IOException e) {
+			Log.warn(e.getMessage());
+		}
 	}
 
 	private record PendingDat(File file, int depth) {
