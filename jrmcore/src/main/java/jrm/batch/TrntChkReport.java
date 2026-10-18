@@ -245,6 +245,7 @@ public final class TrntChkReport implements Serializable, StatusRendererFactory,
             all.put(uid, this);
             this.parent = parent;
             this.data = new ChildData();
+            this.children = null; // intentionally no children yet; created on demand in add()
         }
 
         /**
