@@ -111,12 +111,31 @@ public abstract class Note implements StatusRendererFactory, Serializable {
 
     /**
      * Computes the identity hash code of this instance.
+     * <p>
+     * Notes are mutable identity-tracked leaf nodes (transient {@code parent}/{@code id} are
+     * assigned post-construction, payload fields vary by subclass), so identity semantics apply:
+     * this pairs with {@link #equals(Object)} below, which makes the reference comparison explicit.
      *
      * @return the identity hash code
      */
     @Override
     public int hashCode() {
         return System.identityHashCode(this);
+    }
+
+    /**
+     * Compares this note by reference identity.
+     * <p>
+     * Required alongside {@link #hashCode()} (java:S1206): it documents that the identity
+     * semantics are deliberate — notes carry mutable scan state and are held in
+     * identity-ordered lists, so content equality would be unstable and wrong.
+     *
+     * @param obj the object to compare with
+     * @return {@code true} only if {@code obj} is this same instance
+     */
+    @Override
+    public boolean equals(final Object obj) {
+        return this == obj;
     }
 
     /**

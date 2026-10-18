@@ -17,6 +17,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -116,24 +117,24 @@ public final class ForyPersistence {
     // created in <clinit> ends up as a constant in the native-image heap, pulling its
     // ThreadFactory (ForyPersistence$1) and live ThreadPoolExecutor state into the image,
     // which Graal rejects because that factory type is runtime-initialized. A null-at-build
-    // field keeps nothing thread-related in the heap; the pool is built on first execute()/warmUp().
-    private static volatile ExecutorService foryPool;
+    // holder keeps nothing thread-related in the heap; the pool is built on first execute()/warmUp().
+    // The holder itself is an immutable AtomicReference (java:S3077): publication is via compareAndSet,
+    // so concurrent first callers either win or observe the winner's fully constructed pool.
+    private static final AtomicReference<ExecutorService> FORY_POOL = new AtomicReference<>();
     private static final AtomicInteger POOL_COUNTER = new AtomicInteger();
 
     private static ExecutorService pool() {
-        ExecutorService p = foryPool;
+        ExecutorService p = FORY_POOL.get();
         if (p == null) {
-            synchronized (ForyPersistence.class) {
-                p = foryPool;
-                if (p == null) {
-                    p = Executors.newFixedThreadPool(POOL_SIZE, task -> {
-                        final Thread thread = new Thread(null, task, "fory-io-" + POOL_COUNTER.incrementAndGet(), FORY_THREAD_STACK_SIZE);
-                        thread.setDaemon(true);
-                        return thread;
-                    });
-                    foryPool = p;
-                }
-            }
+            final ExecutorService created = Executors.newFixedThreadPool(POOL_SIZE, task -> {
+                final Thread thread = new Thread(null, task, "fory-io-" + POOL_COUNTER.incrementAndGet(), FORY_THREAD_STACK_SIZE);
+                thread.setDaemon(true);
+                return thread;
+            });
+            if (FORY_POOL.compareAndSet(null, created))
+                return created;
+            created.shutdown();
+            p = FORY_POOL.get();
         }
         return p;
     }

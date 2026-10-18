@@ -172,12 +172,36 @@ public abstract class Subject extends AbstractList<Note> implements StatusRender
 
     /**
      * Returns the identity-based hash code of this instance.
+     * <p>
+     * Subjects are mutable list-nodes tracked by reference (ware, notes, status and id all change
+     * over a scan), so identity semantics apply: this pairs with {@link #equals(Object)} below,
+     * which intentionally preserves {@link Object} identity comparison rather than inheriting
+     * {@link java.util.AbstractList#equals(Object)} content comparison.
      *
      * @return the identity hash code
      */
     @Override
     public int hashCode() {
         return System.identityHashCode(this);
+    }
+
+    /**
+     * Compares this subject by reference identity.
+     * <p>
+     * Required alongside {@link #hashCode()}: without it, {@code Subject} would inherit
+     * {@link java.util.AbstractList#equals(Object)} (content comparison of notes) while using an
+     * identity hash code, violating the equals/hashCode contract — two content-equal subjects
+     * would compare equal yet hash differently. Subjects carry mutable scan state
+     * ({@code ware}, {@code notes}, {@code status}, {@code id}, {@code parent}) and are held in
+     * identity-keyed structures ({@link Report#subjectHash}, {@code insertObjectCache}), so
+     * reference equality is the correct semantic.
+     *
+     * @param obj the object to compare with
+     * @return {@code true} only if {@code obj} is this same instance
+     */
+    @Override
+    public boolean equals(final Object obj) {
+        return this == obj;
     }
 
     /**
