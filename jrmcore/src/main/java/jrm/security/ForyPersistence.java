@@ -104,6 +104,14 @@ public final class ForyPersistence {
      */
     private static final int POOL_SIZE = 2;
 
+    /**
+     * Stack size for pool threads running Fory (de)serialization. A 500-deep {@code TrntChkReport} child chain
+     * needs ~4MB of interpreted-serializer recursion ({@code AbstractObjectSerializer} keeps several frames per
+     * nesting level); 16MB leaves headroom for deeper trees and the peer-reported profile graphs without
+     * measurably increasing committed memory (stacks commit lazily).
+     */
+    private static final long FORY_THREAD_STACK_SIZE = 16L * 1024 * 1024;
+
     // Lazily created on first runtime use (never during image build): a static-final executor
     // created in <clinit> ends up as a constant in the native-image heap, pulling its
     // ThreadFactory (ForyPersistence$1) and live ThreadPoolExecutor state into the image,
@@ -119,7 +127,7 @@ public final class ForyPersistence {
                 p = foryPool;
                 if (p == null) {
                     p = Executors.newFixedThreadPool(POOL_SIZE, task -> {
-                        final Thread thread = new Thread(task, "fory-io-" + POOL_COUNTER.incrementAndGet());
+                        final Thread thread = new Thread(null, task, "fory-io-" + POOL_COUNTER.incrementAndGet(), FORY_THREAD_STACK_SIZE);
                         thread.setDaemon(true);
                         return thread;
                     });
