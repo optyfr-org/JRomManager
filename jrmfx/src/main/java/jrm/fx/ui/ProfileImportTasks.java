@@ -48,7 +48,7 @@ final class ProfileImportTasks {
 	final class ImportDatTask extends ProgressTask<Void> {
 		private final List<File> files;
 		private final boolean sl;
-		final List<ImportWithBaseFile> imprts = new ArrayList<>();
+		final List<ImportWithBaseFile> imports = new ArrayList<>();
 
 		ImportDatTask(Stage owner, List<File> files, boolean sl) throws IOException, URISyntaxException {
 			super(owner);
@@ -61,7 +61,7 @@ final class ProfileImportTasks {
 			for (final var basefile : files) {
 				for (final var file : DatFileSearch.searchDats(basefile, new ArrayList<>())) {
 					setProgress(Messages.getString("MainFrame.ImportingFromMame"), -1);
-					imprts.add(new ImportWithBaseFile(new Import(controller.session, file, sl, this), basefile));
+					imports.add(new ImportWithBaseFile(new Import(controller.session, file, sl, this), basefile));
 				}
 			}
 			return null;
@@ -71,7 +71,7 @@ final class ProfileImportTasks {
 		protected void succeeded() {
 			this.close();
 			var rejected = 0;
-			for (final var imprt : imprts) {
+			for (final var imprt : imports) {
 				if (imprt.imprt.getFile() == null) {
 					rejected++;
 					continue;

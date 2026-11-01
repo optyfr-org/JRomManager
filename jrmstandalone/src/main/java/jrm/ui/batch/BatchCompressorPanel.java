@@ -271,10 +271,10 @@ public class BatchCompressorPanel extends JPanel implements StatusRendererFactor
         /**
          * Del.
          *
-         * @param sdrl the data to delete
+         * @param fileResults the data to delete
          */
-        public void del(final List<FileResult> sdrl) {
-            for (final FileResult sdr : sdrl)
+        public void del(final List<FileResult> fileResults) {
+            for (final FileResult sdr : fileResults)
                 model.getData().remove(sdr);
             model.fireTableChanged(new TableModelEvent(model));
             callback.call(model.getData());

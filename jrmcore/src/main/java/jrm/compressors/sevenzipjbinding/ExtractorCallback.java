@@ -38,7 +38,7 @@ public abstract class ExtractorCallback implements IArchiveExtractCallback {
      * A mapping of archive entry indices to RandomAccessFile instances used for writing extracted data during the extraction
      * process. This allows for managing the output streams associated with each entry being extracted.
      */
-    private final Map<Integer, RandomAccessFile> rafs;
+    private final Map<Integer, RandomAccessFile> randomAccessFiles;
     /**
      * A flag indicating whether the current entry being processed should be skipped during extraction. This is typically set based
      * on whether the entry is a folder or if the extraction mode does not require extracting the entry.
@@ -56,13 +56,13 @@ public abstract class ExtractorCallback implements IArchiveExtractCallback {
      * @param nArchive the base archive instance associated with this callback
      * @param baseDir the base directory where extracted files should be moved after extraction
      * @param tmpfiles a mapping of archive entry indices to temporary files for writing extracted data
-     * @param rafs a mapping of archive entry indices to RandomAccessFile instances for writing extracted data
+     * @param randomAccessFiles a mapping of archive entry indices to RandomAccessFile instances for writing extracted data
      */
-    protected ExtractorCallback(NArchiveBase nArchive, File baseDir, Map<Integer, File> tmpfiles, Map<Integer, RandomAccessFile> rafs) {
+    protected ExtractorCallback(NArchiveBase nArchive, File baseDir, Map<Integer, File> tmpfiles, Map<Integer, RandomAccessFile> randomAccessFiles) {
         this.nArchive = nArchive;
         this.baseDir = baseDir;
         this.tmpfiles = tmpfiles;
-        this.rafs = rafs;
+        this.randomAccessFiles = randomAccessFiles;
     }
 
     /**
@@ -95,7 +95,7 @@ public abstract class ExtractorCallback implements IArchiveExtractCallback {
             Log.err("Extraction error");
         else {
             try {
-                rafs.get(index).close();
+                randomAccessFiles.get(index).close();
                 String path = (String) this.nArchive.getIInArchive().getProperty(index, PropID.PATH);
                 File tmpfile = tmpfiles.get(index);
                 File dstfile = resolveContainedFile(baseDir, path);
@@ -141,7 +141,7 @@ public abstract class ExtractorCallback implements IArchiveExtractCallback {
             @Override
             public int write(byte[] data) throws SevenZipException {
                 try {
-                    rafs.get(index).write(data);
+                    randomAccessFiles.get(index).write(data);
                     return data.length;
                 } catch (IOException e) {
                     Log.err(e.getMessage(), e);

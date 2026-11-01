@@ -18,7 +18,7 @@ public class MachineListListModel extends AnywareListListModel {
     private final MachineListList machineListList;
 
     /** The nested software list list model for displaying software lists. */
-    private final SoftwareListListModel sllmodel;
+    private final SoftwareListListModel softwareListListModel;
 
     /**
      * Constructs a new machine list list model.
@@ -27,12 +27,12 @@ public class MachineListListModel extends AnywareListListModel {
      */
     public MachineListListModel(MachineListList machineListList) {
         this.machineListList = machineListList;
-        sllmodel = new SoftwareListListModel(machineListList.getSoftwareListList());
+        softwareListListModel = new SoftwareListListModel(machineListList.getSoftwareListList());
     }
 
     @Override
     public int getRowCount() {
-        return machineListList.getList().size() + sllmodel.getRowCount();
+        return machineListList.getList().size() + softwareListListModel.getRowCount();
     }
 
     @Override
@@ -49,7 +49,7 @@ public class MachineListListModel extends AnywareListListModel {
                     return null;
             }
         } else
-            return sllmodel.getValueAt(rowIndex - machineListList.getList().size(), columnIndex);
+            return softwareListListModel.getValueAt(rowIndex - machineListList.getList().size(), columnIndex);
     }
 
     @Override

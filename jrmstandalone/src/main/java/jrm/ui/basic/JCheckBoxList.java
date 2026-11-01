@@ -24,7 +24,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 
-import jrm.misc.Ideone;
+import jrm.misc.IntervalMerger;
 
 /**
  * A list component that renders each item as a tristate checkbox.
@@ -139,14 +139,14 @@ public class JCheckBoxList<E> extends JList<E> {
      * @param selected {@code true} to select matching items, {@code false} to deselect them
      */
     public void select(Predicate<E> predicate, boolean selected) {
-        Ideone ideone = new Ideone();
+        IntervalMerger intervalMerger = new IntervalMerger();
         for (int i = 0; i < checkboxes.length; i++) {
             if (predicate.test(getModel().getElementAt(i))) {
                 checkboxes[i].setSelected(selected);
-                ideone.add(i, i + 1);
+                intervalMerger.add(i, i + 1);
             }
         }
-        ideone.merge().forEach(i -> {
+        intervalMerger.merge().forEach(i -> {
             for (final ListSelectionListener l : getListSelectionListeners())
                 l.valueChanged(new ListSelectionEvent(this, i.getStart(), i.getEnd() - 1, false));
         });

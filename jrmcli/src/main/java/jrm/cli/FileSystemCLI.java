@@ -97,7 +97,7 @@ public class FileSystemCLI {
     @Parameters(separators = " =")
     static class RmArgs {
         @Parameter(names = { "--recursive", "-r" }, description = "Recursive delete")
-        boolean recurisve;
+        boolean recursive;
 
         @Parameter(description = "Files")
         List<String> files = new ArrayList<>();
@@ -107,7 +107,7 @@ public class FileSystemCLI {
         final var jArgs = new RmArgs();
         JCommander.newBuilder().addObject(jArgs).build().parse(Arrays.copyOfRange(args, 1, args.length));
         for (final String arg : jArgs.files)
-            recursiveDelete(Paths.get(arg), jArgs.recurisve);
+            recursiveDelete(Paths.get(arg), jArgs.recursive);
         return 0;
     }
 

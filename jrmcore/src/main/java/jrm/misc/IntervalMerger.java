@@ -20,7 +20,7 @@ import java.util.List;
  * 
  * @author Gosu
  */
-public final class Ideone {
+public final class IntervalMerger {
     /**
      * Internal list storing intervals to be merged.
      */
@@ -78,8 +78,8 @@ public final class Ideone {
         }
     }
 
-    /** Constructs a new Ideone instance with an empty list of intervals. */
-    public Ideone() {
+    /** Constructs a new IntervalMerger instance with an empty list of intervals. */
+    public IntervalMerger() {
         /* default constructor */
     }
 
@@ -113,7 +113,7 @@ public final class Ideone {
         if (intervals.size() <= 1)
             return intervals;
 
-        intervals.sort(Comparator.comparingInt(Ideone.Interval::getStart));
+        intervals.sort(Comparator.comparingInt(IntervalMerger.Interval::getStart));
 
         final var first = intervals.get(0);
         int start = first.getStart();

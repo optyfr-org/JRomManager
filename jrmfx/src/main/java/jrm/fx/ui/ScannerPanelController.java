@@ -733,7 +733,7 @@ public class ScannerPanelController extends BaseController implements ProfileLoa
                 if (profile != null && session.getCurrProfile() != null) {
                     profileinfoLbl.getChildren().setAll(NeutralToNodeFormatter.toNodes(session.getCurrProfile().getName()));
                     systemsFilter.setItems(FXCollections.observableList(session.getCurrProfile().getSystems().getSystems()));
-                    sourcesFilter.setItems(FXCollections.observableList(session.getCurrProfile().getSources().getSrces()));
+                    sourcesFilter.setItems(FXCollections.observableList(session.getCurrProfile().getSources().getSources()));
                     initProfileSettings(session);
                     MainFrame.getController().getTabPane().getSelectionModel().select(1);
                     MainFrame.getController().getProfilePanelController().refreshList();
@@ -1198,14 +1198,14 @@ public class ScannerPanelController extends BaseController implements ProfileLoa
     /**
      * Opens a directory chooser for a destination and saves the selected path to the profile.
      *
-     * @param tf          the text field to display the chosen path
-     * @param ppt         the profile settings key to persist the path under
-     * @param defPptName   the default directory settings key
+     * @param textField          the text field to display the chosen path
+     * @param settingsKey        the profile settings key to persist the path under
+     * @param defaultSettingsKey the default directory settings key
      */
-    private void chooseAnyDest(TextField tf, ProfileSettingsEnum ppt, String defPptName) {
+    private void chooseAnyDest(TextField textField, ProfileSettingsEnum settingsKey, String defaultSettingsKey) {
         final var workdir = session.getUser().getSettings().getWorkPath().toFile();
-        final var defdir = PathAbstractor.getAbsolutePath(session, session.getUser().getSettings().getProperty(defPptName, workdir.getAbsolutePath())).toFile();
-        chooseDir(tf, tf.getText(), defdir, dir -> applyChosenDir(tf, ppt, defPptName, dir));
+        final var defdir = PathAbstractor.getAbsolutePath(session, session.getUser().getSettings().getProperty(defaultSettingsKey, workdir.getAbsolutePath())).toFile();
+        chooseDir(textField, textField.getText(), defdir, dir -> applyChosenDir(textField, settingsKey, defaultSettingsKey, dir));
     }
 
     /**

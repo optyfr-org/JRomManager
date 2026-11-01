@@ -141,15 +141,15 @@ public class GlobalActions {
      * <li>If a file path property fails validation, it is rejected and logged</li>
      * </ul>
      *
-     * @param jso the incoming JSON message containing property updates
+     * @param message the incoming JSON message containing property updates
      */
-    public void setProperty(JsonObject jso) {
+    public void setProperty(JsonObject message) {
         final Session session = ws.getSession();
         if (session == null || !session.hasUser()) {
             Log.err("Rejected Global.setProperty: no authenticated user");
             return;
         }
-        JsonObject pjso = jso.get(PARAMS).asObject();
+        JsonObject pjso = message.get(PARAMS).asObject();
         final var accepted = new JsonObject();
         for (Member m : pjso) {
             applyProperty(session, accepted, m);

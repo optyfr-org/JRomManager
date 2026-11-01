@@ -253,12 +253,12 @@ public class ScannerPanel extends JPanel implements ProfileLoader {
      * Scan.
      */
     private void scan(final Session session, final boolean automate) {
-        String txtdstdir = scannerDirPanel.txtRomsDest.getText();
-        if (txtdstdir.isEmpty()) {
+        String destinationDirText = scannerDirPanel.txtRomsDest.getText();
+        if (destinationDirText.isEmpty()) {
             scannerDirPanel.btnRomsDest.doClick();
-            txtdstdir = scannerDirPanel.txtRomsDest.getText();
+            destinationDirText = scannerDirPanel.txtRomsDest.getText();
         }
-        if (txtdstdir.isEmpty())
+        if (destinationDirText.isEmpty())
             return;
 
         new SwingWorkerProgress<Void, Void>(SwingUtilities.getWindowAncestor(this)) {

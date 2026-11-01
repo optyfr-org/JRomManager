@@ -51,7 +51,7 @@
 												<Insets top="5.0" />
 											</VBox.margin>
 										</CheckBox>
-										<CheckBox fx:id="addShamd" mnemonicParsing="false" text="%MainFrame.chckbxAddShamd.text">
+										<CheckBox fx:id="addSha1" mnemonicParsing="false" text="%MainFrame.chckbxAddShamd.text">
 											<VBox.margin>
 												<Insets top="5.0" />
 											</VBox.margin>

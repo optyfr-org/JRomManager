@@ -61,8 +61,8 @@ public class CatVerActions {
      *        </pre>
      */
     public void load(JsonObject jso) {
-        JsonValue jsv = jso.get("params").asObject().get("path");
-        ws.getSession().getCurrProfile().setProperty(ProfileSettingsEnum.filter_catver_ini, jsv != null && !jsv.isNull() ? jsv.asString() : null); // $NON-NLS-1$
+        JsonValue jsonValue = jso.get("params").asObject().get("path");
+        ws.getSession().getCurrProfile().setProperty(ProfileSettingsEnum.filter_catver_ini, jsonValue != null && !jsonValue.isNull() ? jsonValue.asString() : null); // $NON-NLS-1$
         ws.getSession().getCurrProfile().loadCatVer(null);
         ws.getSession().getCurrProfile().saveSettings();
         loaded(ws.getSession().getCurrProfile());

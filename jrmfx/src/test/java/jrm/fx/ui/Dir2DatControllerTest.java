@@ -105,7 +105,7 @@ class Dir2DatControllerTest {
             CheckBox matchCurrentProfile = new CheckBox();
             CheckBox doNotScan = new CheckBox();
             CheckBox junkSubfolders = new CheckBox();
-            CheckBox addShamd = new CheckBox();
+            CheckBox addSha1 = new CheckBox();
             CheckBox addMd = new CheckBox();
             CheckBox deepScanFor = new CheckBox();
             CheckBox scanSubfolders = new CheckBox();
@@ -140,7 +140,7 @@ class Dir2DatControllerTest {
             injectField(controller, "matchCurrentProfile", matchCurrentProfile);
             injectField(controller, "doNotScan", doNotScan);
             injectField(controller, "junkSubfolders", junkSubfolders);
-            injectField(controller, "addShamd", addShamd);
+            injectField(controller, "addSha1", addSha1);
             injectField(controller, "addMd", addMd);
             injectField(controller, "deepScanFor", deepScanFor);
             injectField(controller, "scanSubfolders", scanSubfolders);
@@ -170,7 +170,7 @@ class Dir2DatControllerTest {
             // Initialize controller
             VBox root = new VBox();
             root.getChildren().addAll(includeEmptyDirs, matchCurrentProfile, doNotScan, junkSubfolders,
-                    addShamd, addMd, deepScanFor, scanSubfolders, name, description, version, author,
+                    addSha1, addMd, deepScanFor, scanSubfolders, name, description, version, author,
                     comment, category, date, email, homepage, url, srcDir, dstDat, srcDirBtn, dstDatBtn,
                     generate, formatMame, formatLogiqxDat, formatSWList);
             
@@ -325,7 +325,7 @@ class Dir2DatControllerTest {
         runOnFxThread(() -> {
             String[] fieldNames = {
                 "includeEmptyDirs", "matchCurrentProfile", "doNotScan", "junkSubfolders",
-                "addShamd", "addMd", "deepScanFor", "scanSubfolders",
+                "addSha1", "addMd", "deepScanFor", "scanSubfolders",
                 "name", "description", "version", "author", "comment", "category",
                 "date", "email", "homepage", "url", "srcDir", "dstDat",
                 "srcDirBtn", "dstDatBtn", "generate",

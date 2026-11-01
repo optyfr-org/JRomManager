@@ -228,21 +228,21 @@ final class DirScanLister {
 	private void listFilesDest(final File file, final BasicFileAttributes attr) {
 		final var type = attr.isRegularFile() ? Container.getType(file) : Type.DIR;
 		final var fname = type == Type.UNK ? (FilenameUtils.getBaseName(file.getName()) + Ext.FAKE) : file.getName();
-		var c = containersByName.get(fname);
-		if (null == c || ((c.getModified() != attr.lastModifiedTime().toMillis() || (c instanceof Archive && c.getSize() != attr.size())) && !c.isUp2date())) {
+		var container = containersByName.get(fname);
+		if (null == container || ((container.getModified() != attr.lastModifiedTime().toMillis() || (container instanceof Archive && container.getSize() != attr.size())) && !container.isUp2date())) {
 			if (attr.isRegularFile()) {
 				if (type != Container.Type.UNK)
-					c = new Archive(file, ds.getRelativePath(file), attr);
+					container = new Archive(file, ds.getRelativePath(file), attr);
 				else
-					c = new FakeDirectory(file, ds.getRelativePath(file), attr);
+					container = new FakeDirectory(file, ds.getRelativePath(file), attr);
 			} else
-				c = new Directory(file, ds.getRelativePath(file), attr);
-			c.setUp2date(true);
-			containers.add(c);
-			containersByName.put(fname, c);
-		} else if (!c.isUp2date()) {
-			c.setUp2date(true);
-			containers.add(c);
+				container = new Directory(file, ds.getRelativePath(file), attr);
+			container.setUp2date(true);
+			containers.add(container);
+			containersByName.put(fname, container);
+		} else if (!container.isUp2date()) {
+			container.setUp2date(true);
+			containers.add(container);
 		}
 	}
 }

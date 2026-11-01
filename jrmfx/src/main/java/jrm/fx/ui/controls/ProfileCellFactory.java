@@ -23,11 +23,11 @@ public class ProfileCellFactory extends NameCellFactory<ProfileNFO> {
     public ProfileCellFactory() {
         super(new StringConverter<>() {
 
-            ProfileNFO nfo;
+            ProfileNFO profileNfo;
 
             @Override
             public String toString(ProfileNFO nfo) {
-                this.nfo = nfo;
+                this.profileNfo = nfo;
                 if (nfo != null)
                     return nfo.getName();
                 return null;
@@ -35,9 +35,9 @@ public class ProfileCellFactory extends NameCellFactory<ProfileNFO> {
 
             @Override
             public ProfileNFO fromString(String string) {
-                if (nfo != null)
-                    nfo.setNewName(string);
-                return nfo;
+                if (profileNfo != null)
+                    profileNfo.setNewName(string);
+                return profileNfo;
             }
 
         });

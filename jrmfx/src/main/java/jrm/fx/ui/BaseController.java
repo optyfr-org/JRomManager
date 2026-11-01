@@ -56,14 +56,14 @@ abstract class BaseController implements Initializable {
      *
      * @param parent       the parent control for dialog positioning
      * @param initialValue the initial directory path, or {@code null}
-     * @param defdir       the default directory, or {@code null}
-     * @param cb           the callback receiving the selected path
+     * @param defaultDir   the default directory, or {@code null}
+     * @param callback     the callback receiving the selected path
      */
-    protected void chooseDir(Control parent, String initialValue, File defdir, Callback cb) {
-        final var chooser = initDirectoryChooser(initialValue, defdir);
+    protected void chooseDir(Control parent, String initialValue, File defaultDir, Callback callback) {
+        final var chooser = initDirectoryChooser(initialValue, defaultDir);
         final var chosen = chooser.showDialog(parent.getScene().getWindow());
         if (chosen != null)
-            cb.call(PathAbstractor.getRelativePath(session, chosen.toPath()));
+            callback.call(PathAbstractor.getRelativePath(session, chosen.toPath()));
     }
 
     /**

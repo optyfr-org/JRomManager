@@ -91,7 +91,7 @@ class SoftwareParseHelper {
 			if ("name".equals(attributes.getQName(i)))
 				ctx.state.currPart.setName(attributes.getValue(i).trim());
 			else if ("interface".equals(attributes.getQName(i)))
-				ctx.state.currPart.setIntrface(attributes.getValue(i).trim());
+				ctx.state.currPart.setInterfaceName(attributes.getValue(i).trim());
 		}
 	}
 

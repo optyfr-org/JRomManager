@@ -20,7 +20,7 @@ import jrm.profile.report.ReportIntf;
  */
 public abstract class ReportTreeModelGeneric<T extends ReportIntf<T>> extends DefaultTreeModel implements ReportTreeHandler<T> {
     /** The original unfiltered report root. */
-    protected transient T orgRoot;
+    protected transient T originalRoot;
     /** The current set of filter options applied to the tree. */
     protected transient Set<FilterOptions> filterOptions = new HashSet<>();
 
@@ -30,14 +30,14 @@ public abstract class ReportTreeModelGeneric<T extends ReportIntf<T>> extends De
 
     @Override
     public void initClone() {
-        setRoot(getNodeInstance(orgRoot.clone(filterOptions)));
+        setRoot(getNodeInstance(originalRoot.clone(filterOptions)));
     }
 
     public abstract ReportNodeGeneric<T> getNodeInstance(T report);
 
     @Override
     public T getOriginalReport() {
-        return orgRoot;
+        return originalRoot;
     }
 
     /**
@@ -70,7 +70,7 @@ public abstract class ReportTreeModelGeneric<T extends ReportIntf<T>> extends De
     @Override
     public void filter(final Set<FilterOptions> filterOptions) {
         this.filterOptions = filterOptions;
-        setRoot(getNodeInstance(orgRoot.clone(filterOptions)));
+        setRoot(getNodeInstance(originalRoot.clone(filterOptions)));
     }
 
     @SuppressWarnings("unchecked")

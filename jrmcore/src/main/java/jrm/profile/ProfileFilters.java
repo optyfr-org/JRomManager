@@ -44,16 +44,16 @@ final class ProfileFilters {
 		profile.systems.add(SystmDevice.DEVICE);
 		final ArrayList<Machine> machines = new ArrayList<>();
 		profile.sources = new Sources();
-		final var srces = new TreeMap<String, Source>();
+		final var sourcesByName = new TreeMap<String, Source>();
 		profile.machineListList.get(0).forEach(m -> {
 			if (m.isIsbios())
 				machines.add(m);
-			java.util.Optional.ofNullable(m.getSourcefile()).ifPresent(s -> srces.compute(s, (k, v) -> v == null ? new Source(k) : v.inc()));
+			java.util.Optional.ofNullable(m.getSourcefile()).ifPresent(s -> sourcesByName.compute(s, (k, v) -> v == null ? new Source(k) : v.inc()));
 		});
 		machines.sort((a, b) -> a.getName().compareTo(b.getName()));
 		machines.forEach(profile.systems::add);
-		srces.forEach((_, src) -> profile.sources.add(src));
-		profile.machineListList.get(0).stream().filter(m -> m.getSourcefile() != null).forEach(m -> m.setSource(srces.get(m.getSourcefile())));
+		sourcesByName.forEach((_, src) -> profile.sources.add(src));
+		profile.machineListList.get(0).stream().filter(m -> m.getSourcefile() != null).forEach(m -> m.setSource(sourcesByName.get(m.getSourcefile())));
 
 		final ArrayList<SoftwareList> softwarelists = new ArrayList<>();
 		profile.machineListList.getSoftwareListList().forEach(softwarelists::add);

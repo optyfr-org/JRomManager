@@ -88,9 +88,9 @@ public final class MameLauncher {
 	}
 
 	private static void getMameArgsSoftware(final Anyware ware, final Profile profile, final ProfileNFOMame mame, final ArrayList<String> args) throws HeadlessException {
-		Log.debug(() -> ((Software) ware).getSl().getBaseName() + ", " + ((Software) ware).getCompatibility());
+		Log.debug(() -> ((Software) ware).getSoftwareList().getBaseName() + ", " + ((Software) ware).getCompatibility());
 		final var machines = new javafx.scene.control.ChoiceDialog<Machine>(null,
-				profile.getMachineListList().getSortedMachines(((Software) ware).getSl().getBaseName(), ((Software) ware).getCompatibility()));
+				profile.getMachineListList().getSortedMachines(((Software) ware).getSoftwareList().getBaseName(), ((Software) ware).getCompatibility()));
 		final var machine = machines.showAndWait();
 		machine.ifPresent(m -> {
 			final var device = MameLaunch.deviceInstance(ware, m);

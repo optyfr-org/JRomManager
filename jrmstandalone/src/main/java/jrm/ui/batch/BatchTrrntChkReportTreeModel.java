@@ -10,7 +10,7 @@ import jrm.ui.profile.report.ReportTreeModelGeneric;
 public class BatchTrrntChkReportTreeModel extends ReportTreeModelGeneric<TrntChkReport> {
     public BatchTrrntChkReportTreeModel(final TrntChkReport root) {
         super(new BatchTrrntChkReportNode(root));
-        orgRoot = root;
+        originalRoot = root;
         root.setHandler(this);
         initClone();
     }
@@ -18,8 +18,8 @@ public class BatchTrrntChkReportTreeModel extends ReportTreeModelGeneric<TrntChk
     public BatchTrrntChkReportTreeModel(final ReportTreeHandler<TrntChkReport> handler) {
         super(new BatchTrrntChkReportNode(handler.getFilteredReport()));
         getFilteredReport().setHandler(this);
-        orgRoot = handler.getOriginalReport();
-        orgRoot.setHandler(this);
+        originalRoot = handler.getOriginalReport();
+        originalRoot.setHandler(this);
     }
 
     @Override

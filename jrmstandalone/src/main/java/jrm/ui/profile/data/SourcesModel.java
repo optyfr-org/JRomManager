@@ -26,12 +26,12 @@ public class SourcesModel extends AbstractListModel<Source> {
 
     @Override
     public int getSize() {
-        return sources.getSrces().size();
+        return sources.getSources().size();
     }
 
     @Override
     public Source getElementAt(int index) {
-        return sources.getSrces().get(index);
+        return sources.getSources().get(index);
     }
 
 }

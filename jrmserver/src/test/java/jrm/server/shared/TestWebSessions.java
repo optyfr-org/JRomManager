@@ -55,7 +55,7 @@ public final class TestWebSessions {
     public static void resetStaticState() {
         WebSession.setTerminate(false);
         WebSession.getAllSessions().clear();
-        LongPollingReqMgr.getCmds().clear();
+        LongPollingReqMgr.getActiveManagers().clear();
         jrm.server.shared.ws.WsActionMgr.getWsCmds().clear();
         Login.getCache().clear();
         Login.setCachetime(System.currentTimeMillis());

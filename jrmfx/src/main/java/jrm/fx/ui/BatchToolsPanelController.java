@@ -881,7 +881,7 @@ public class BatchToolsPanelController extends BaseController {
             final AbstractSrcDstResult sdr = tvBatchToolsDat2DirDst.getItems().get(cell.getIndex());
             final var results = DirUpdaterResults.load(session, new File(sdr.getSrc()));
             try {
-                new BatchDirUpd8rResults((Stage) tvBatchToolsDat2DirDst.getScene().getWindow(), results);
+                new BatchDirUpdaterResultsStage((Stage) tvBatchToolsDat2DirDst.getScene().getWindow(), results);
             } catch (URISyntaxException | IOException e1) {
                 Log.err(e1.getMessage(), e1);
             }
@@ -1108,7 +1108,7 @@ public class BatchToolsPanelController extends BaseController {
     /**
      * Builds a torrent check task.
      * 
-     * @param sdrl the list of source-destination results
+     * @param srcDstResults the list of source-destination results
      * @param mode the torrent check mode
      * @param updater the result column updater
      * @param opts the options
@@ -1118,13 +1118,13 @@ public class BatchToolsPanelController extends BaseController {
      * @throws IOException if an I/O error occurs
      * @throws URISyntaxException if the URI syntax is invalid
      */
-    private ProgressTask<TorrentChecker<SrcDstResult>> buildTorrentTask(final List<SrcDstResult> sdrl, TrntChkMode mode, ResultColUpdater updater, EnumSet<Options> opts)
+    private ProgressTask<TorrentChecker<SrcDstResult>> buildTorrentTask(final List<SrcDstResult> srcDstResults, TrntChkMode mode, ResultColUpdater updater, EnumSet<Options> opts)
             throws IOException, URISyntaxException {
         return new ProgressTask<TorrentChecker<SrcDstResult>>((Stage) tvBatchToolsDat2DirDst.getScene().getWindow()) {
 
             @Override
             protected TorrentChecker<SrcDstResult> call() throws Exception {
-                return new TorrentChecker<>(session, this, sdrl, mode, updater, opts);
+                return new TorrentChecker<>(session, this, srcDstResults, mode, updater, opts);
             }
 
             @Override

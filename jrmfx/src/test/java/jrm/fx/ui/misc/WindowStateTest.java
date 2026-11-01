@@ -29,7 +29,7 @@ class WindowStateTest {
         assertThat(state.getY()).isEqualTo(0.0);
         assertThat(state.getW()).isEqualTo(0.0);
         assertThat(state.getH()).isEqualTo(0.0);
-        assertThat(state.isM()).isFalse();
+        assertThat(state.isMaximized()).isFalse();
         assertThat(state.isF()).isFalse();
         assertThat(state.isI()).isFalse();
     }
@@ -89,9 +89,9 @@ class WindowStateTest {
     @DisplayName("Should set and get maximized state")
     void shouldSetAndGetMaximizedState() {
         WindowState state = new WindowState();
-        state.setM(true);
+        state.setMaximized(true);
         
-        assertThat(state.isM()).isTrue();
+        assertThat(state.isMaximized()).isTrue();
     }
 
     /**
@@ -130,7 +130,7 @@ class WindowStateTest {
         state.setY(250.0);
         state.setW(1024.0);
         state.setH(768.0);
-        state.setM(true);
+        state.setMaximized(true);
         state.setF(false);
         state.setI(false);
         
@@ -138,7 +138,7 @@ class WindowStateTest {
         assertThat(state.getY()).isEqualTo(250.0);
         assertThat(state.getW()).isEqualTo(1024.0);
         assertThat(state.getH()).isEqualTo(768.0);
-        assertThat(state.isM()).isTrue();
+        assertThat(state.isMaximized()).isTrue();
         assertThat(state.isF()).isFalse();
         assertThat(state.isI()).isFalse();
     }

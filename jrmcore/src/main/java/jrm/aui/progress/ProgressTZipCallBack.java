@@ -11,16 +11,16 @@ import jtrrntzip.LogCallback;
 public final class ProgressTZipCallBack implements LogCallback, StatusRendererFactory {
 
     /** The ProgressHandler used to report progress updates. */
-    ProgressHandler ph;
+    ProgressHandler progressHandler;
 
     /**
      * Constructs a new ProgressTZipCallBack with the specified ProgressHandler. The constructor initializes the ProgressHandler for
      * reporting progress updates during the TZip operation.
      *
-     * @param ph the ProgressHandler used to report progress updates
+     * @param progressHandler the ProgressHandler used to report progress updates
      */
-    public ProgressTZipCallBack(ProgressHandler ph) {
-        this.ph = ph;
+    public ProgressTZipCallBack(ProgressHandler progressHandler) {
+        this.progressHandler = progressHandler;
     }
 
     /**
@@ -32,7 +32,7 @@ public final class ProgressTZipCallBack implements LogCallback, StatusRendererFa
     @Override
     public void statusCallBack(int percent) {
         if (hasProgress())
-            ph.setProgress(null, null, null, progress(200, percent, 100, null));
+            progressHandler.setProgress(null, null, null, progress(200, percent, 100, null));
     }
 
     /**

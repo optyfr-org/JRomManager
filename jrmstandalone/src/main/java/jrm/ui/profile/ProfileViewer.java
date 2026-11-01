@@ -235,7 +235,7 @@ public class ProfileViewer extends JDialog {
         Popup.addPopup(tableW, popupWMenu);
 
         final var mntmCollectKeywords = new JMenuItem(Messages.getString("ProfileViewer.mntmCollectKeywords.text")); //$NON-NLS-1$
-        mntmCollectKeywords.addActionListener(_ -> new KW().filter(((AnywareListModel<Anyware>) tableW.getModel()).getList()));
+        mntmCollectKeywords.addActionListener(_ -> new KeywordsFilter().filter(((AnywareListModel<Anyware>) tableW.getModel()).getList()));
         popupWMenu.add(mntmCollectKeywords);
 
         final var mntmSelectNone = new JMenuItem(Messages.getString("ProfileViewer.mntmSelectNone.text")); //$NON-NLS-1$
@@ -665,7 +665,7 @@ public class ProfileViewer extends JDialog {
         }
     }
 
-    private class KW extends Keywords {
+    private class KeywordsFilter extends Keywords {
         @SuppressWarnings("unchecked")
         final AnywareListModel<Anyware> list = (AnywareListModel<Anyware>) tableW.getModel();
 

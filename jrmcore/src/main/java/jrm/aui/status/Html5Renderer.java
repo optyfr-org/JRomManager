@@ -19,13 +19,13 @@ public class Html5Renderer extends Html4Renderer {
      * Generates an HTML5 progress bar using the &lt;progress&gt; element.
      *
      * @param width the width of the progress bar in pixels
-     * @param i the current progress value
-     * @param max the maximum progress value
+     * @param current the current progress value
+     * @param maximum the maximum progress value
      * 
      * @return a string containing the HTML representation of the progress bar
      */
     @Override
-    protected String internalProgress(final int width, final long i, final long max) {
-        return String.format("<progress style=\"width:%dpx\" value=\"%d\" max=\"%d\"></progress>", width, i, max);
+    protected String internalProgress(final int width, final long current, final long maximum) {
+        return String.format("<progress style=\"width:%dpx\" value=\"%d\" max=\"%d\"></progress>", width, current, maximum);
     }
 }

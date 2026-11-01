@@ -225,20 +225,20 @@ public interface SQLUtils extends SqlIdentifiers {
     }
 
     /**
-     * Parses a string into a Number. This method is a convenience overload of the val method that defaults the strict parameter to
+     * Parses a string into a Number. This method is a convenience overload of the parseNumber method that defaults the strict parameter to
      * false, meaning that it will manually parse the string by iterating through its characters and building a valid number string,
      * allowing for a single dot and optional signs at the beginning. It returns the parsed Number, or null if the string cannot be
      * parsed.
      * <p>
-     * Note: If strict parsing is desired, the val method with the strict parameter should be used, which utilizes
+     * Note: If strict parsing is desired, the parseNumber method with the strict parameter should be used, which utilizes
      * NumberUtils.createNumber for more flexible number formats.
      * 
-     * @param str The string to parse.
+     * @param text The string to parse.
      * 
      * @return The parsed Number, or null if the string cannot be parsed.
      */
-    public default Number val(String str) {
-        return val(str, false);
+    public default Number parseNumber(String text) {
+        return parseNumber(text, false);
     }
 
     /**
@@ -247,19 +247,19 @@ public interface SQLUtils extends SqlIdentifiers {
      * through its characters and building a valid number string, allowing for a single dot and optional signs at the beginning.
      * This method returns the parsed Number, or null if the string cannot be parsed.
      * 
-     * @param str The string to parse.
+     * @param text The string to parse.
      * @param strict Whether to use strict parsing with NumberUtils.createNumber or to manually parse the string.
      * 
      * @return The parsed Number, or null if the string cannot be parsed.
      */
-    public default Number val(String str, boolean strict) {
+    public default Number parseNumber(String text, boolean strict) {
         if (strict)
-            return NumberUtils.createNumber(str);
+            return NumberUtils.createNumber(text);
         final var validStr = new StringBuilder();
         var seenDot = false; // when this is true, dots are not allowed
         var seenDigit = false; // when this is true, signs are not allowed
-        for (var i = 0; i < str.length(); i++) {
-            final var c = str.charAt(i);
+        for (var i = 0; i < text.length(); i++) {
+            final var c = text.charAt(i);
             if (c == '.' && !seenDot) {
                 seenDot = true;
                 validStr.append(c);

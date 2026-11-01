@@ -46,13 +46,13 @@ final class ProfileViewerWareRelations {
 
 	String getWLHave(final AnywareList<? extends Anyware> list) {
 		return haveCache.computeIfAbsent(list.getName(), _ -> {
-			final long[] ht = { 0, 0 };
+			final long[] haveTotalCounts = { 0, 0 };
 			list.getFilteredStream().forEach(t -> {
 				if (t.getStatus() == AnywareStatus.COMPLETE)
-					ht[0]++;
-				ht[1]++;
+					haveTotalCounts[0]++;
+				haveTotalCounts[1]++;
 			});
-			return String.format("%d/%d", ht[0], ht[1]);
+			return String.format("%d/%d", haveTotalCounts[0], haveTotalCounts[1]);
 		});
 	}
 

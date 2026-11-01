@@ -20,7 +20,7 @@ public abstract class ReportTreeGenericHandler<T extends ReportIntf<T>> implemen
      * The original report that serves as the root of the tree. It is initialized in the constructor and remains unchanged
      * throughout the lifecycle of the handler.
      */
-    protected T orgRoot;
+    protected T originalRoot;
     /**
      * The filtered version of the original report. It is initialized as a clone of the original report and can be updated based on
      * the specified filter options.
@@ -42,7 +42,7 @@ public abstract class ReportTreeGenericHandler<T extends ReportIntf<T>> implemen
      * @param root the original report to be used as the root of the tree
      */
     protected ReportTreeGenericHandler(final T root) {
-        this.orgRoot = root;
+        this.originalRoot = root;
         root.setHandler(this);
         initClone();
     }
@@ -54,7 +54,7 @@ public abstract class ReportTreeGenericHandler<T extends ReportIntf<T>> implemen
      */
     @Override
     public void initClone() {
-        filteredRoot = orgRoot.clone(filterOptions);
+        filteredRoot = originalRoot.clone(filterOptions);
     }
 
     /**
@@ -105,6 +105,6 @@ public abstract class ReportTreeGenericHandler<T extends ReportIntf<T>> implemen
      */
     @Override
     public T getOriginalReport() {
-        return orgRoot;
+        return originalRoot;
     }
 }

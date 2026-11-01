@@ -79,11 +79,11 @@ public class Software extends Anyware {
     /**
      * The software list from which this software originated.
      * 
-     * @param sl the software list to set
+     * @param softwareList the software list to set
      * 
      * @return the software list
      */
-    private @Getter @Setter SoftwareList sl = null;
+    private @Getter @Setter SoftwareList softwareList = null;
 
     /**
      * The Supported values definition.
@@ -227,11 +227,11 @@ public class Software extends Anyware {
         /**
          * The interface used to load this part.
          * 
-         * @param intrface the interface to set
+         * @param interfaceName the interface to set
          * 
          * @return the interface string
          */
-        private @Getter @Setter String intrface;
+        private @Getter @Setter String interfaceName;
 
         /**
          * The {@link List} of {@link DataArea}s.
@@ -279,7 +279,7 @@ public class Software extends Anyware {
      */
     @Override
     public String getFullName() {
-        return sl.name + File.separator + name;
+        return softwareList.name + File.separator + name;
     }
 
     /**
@@ -291,7 +291,7 @@ public class Software extends Anyware {
      */
     @Override
     public String getFullName(final String filename) {
-        return sl.name + File.separator + filename;
+        return softwareList.name + File.separator + filename;
     }
 
     /**
@@ -331,7 +331,7 @@ public class Software extends Anyware {
      */
     @Override
     public Systm getSystem() {
-        return sl;
+        return softwareList;
     }
 
     /**
@@ -357,7 +357,7 @@ public class Software extends Anyware {
         for (final Part part : parts) {
             writer.writeStartElement("part",
                     new SimpleAttribute("name", part.name),
-                    new SimpleAttribute("interface", part.intrface)
+                    new SimpleAttribute("interface", part.interfaceName)
             );
             exportRoms(writer, entries, part, modes);
             exportDisks(writer, entries, part, modes);
@@ -511,7 +511,7 @@ public class Software extends Anyware {
      */
     @Override
     public boolean isSelected() {
-        return profile.getProperty("filter.swlist." + getSl().getName() + ".software." + getName(), true);
+        return profile.getProperty("filter.swlist." + getSoftwareList().getName() + ".software." + getName(), true);
     }
 
     /**
@@ -521,7 +521,7 @@ public class Software extends Anyware {
      */
     @Override
     public void setSelected(final boolean selected) {
-        profile.setProperty("filter.swlist." + getSl().getName() + ".software." + getName(), selected);
+        profile.setProperty("filter.swlist." + getSoftwareList().getName() + ".software." + getName(), selected);
     }
 
 }

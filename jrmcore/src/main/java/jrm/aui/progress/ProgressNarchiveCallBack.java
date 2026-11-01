@@ -11,7 +11,7 @@ import net.sf.sevenzipjbinding.SevenZipException;
  */
 public final class ProgressNarchiveCallBack implements IProgress, StatusRendererFactory {
     /** The ProgressHandler used to report progress updates. */
-    ProgressHandler ph;
+    ProgressHandler progressHandler;
     /** The total amount of work to be completed, used for calculating progress. */
     long total;
 
@@ -19,10 +19,10 @@ public final class ProgressNarchiveCallBack implements IProgress, StatusRenderer
      * Constructs a new ProgressNarchiveCallBack with the specified ProgressHandler. The constructor initializes the ProgressHandler
      * and sets the total to 0.
      *
-     * @param ph the ProgressHandler used to report progress updates
+     * @param progressHandler the ProgressHandler used to report progress updates
      */
-    public ProgressNarchiveCallBack(ProgressHandler ph) {
-        this.ph = ph;
+    public ProgressNarchiveCallBack(ProgressHandler progressHandler) {
+        this.progressHandler = progressHandler;
     }
 
     /**
@@ -51,7 +51,7 @@ public final class ProgressNarchiveCallBack implements IProgress, StatusRenderer
     @Override
     public void setCompleted(long complete) throws SevenZipException {
         if (hasProgress())
-            ph.setProgress(null, null, null, progress(200, (int) complete, (int) total, null)); // $NON-NLS-1$
+            progressHandler.setProgress(null, null, null, progress(200, (int) complete, (int) total, null)); // $NON-NLS-1$
     }
 
 }

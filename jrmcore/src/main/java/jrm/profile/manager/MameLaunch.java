@@ -129,9 +129,9 @@ public class MameLaunch {
         if (!(ware instanceof Software software) || machine == null || software.getParts().isEmpty()) {
             return null;
         }
-        final var expected = software.getParts().get(0).getIntrface();
+        final var expected = software.getParts().get(0).getInterfaceName();
         for (final var dev : machine.getDevices()) {
-            if (Objects.equals(expected, dev.getIntrface()) && dev.getInstance() != null) {
+            if (Objects.equals(expected, dev.getInterfaceName()) && dev.getInstance() != null) {
                 return dev.getInstance().getName();
             }
         }

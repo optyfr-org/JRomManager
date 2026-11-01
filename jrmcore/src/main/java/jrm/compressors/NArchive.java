@@ -382,10 +382,10 @@ abstract class NArchive extends NArchiveBase {
          * @param nArchive the base archive instance associated with this callback
          * @param baseDir the base directory where extracted files should be moved after extraction
          * @param tmpfiles a mapping of archive entry indices to temporary files for writing extracted data
-         * @param rafs a mapping of archive entry indices to RandomAccessFile instances for writing extracted data
+         * @param randomAccessFiles a mapping of archive entry indices to RandomAccessFile instances for writing extracted data
          */
-        private ExtractorCallbackWithProgress(NArchiveBase nArchive, File baseDir, Map<Integer, File> tmpfiles, Map<Integer, RandomAccessFile> rafs) {
-            super(nArchive, baseDir, tmpfiles, rafs);
+        private ExtractorCallbackWithProgress(NArchiveBase nArchive, File baseDir, Map<Integer, File> tmpfiles, Map<Integer, RandomAccessFile> randomAccessFiles) {
+            super(nArchive, baseDir, tmpfiles, randomAccessFiles);
         }
 
         /**

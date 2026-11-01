@@ -42,7 +42,7 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
     /**
      * Thread management bean used to inspect CPU execution metrics per thread.
      */
-    private static final ThreadMXBean tmxb = ManagementFactory.getThreadMXBean();
+    private static final ThreadMXBean threadMxBean = ManagementFactory.getThreadMXBean();
 
     /**
      * Operating system monitoring bean utilized to query system-wide CPU loads.
@@ -227,7 +227,7 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
         super.beforeExecute(t, r);
         if (adaptive) {
             synchronized (this) {
-                startCPUTimeByThread.computeIfAbsent(t, _ -> tmxb.getCurrentThreadCpuTime());
+                startCPUTimeByThread.computeIfAbsent(t, _ -> threadMxBean.getCurrentThreadCpuTime());
             }
         }
     }
@@ -257,7 +257,7 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
             adaptiveLoad(load);
         time = System.currentTimeMillis();
         startCPUTimeByThread.entrySet().removeIf(e -> !e.getKey().isAlive()); // cleanup dead thread from list
-        startCPUTimeByThread.forEach((k, _) -> startCPUTimeByThread.put(k, tmxb.getThreadCpuTime(k.threadId()))); // reset
+        startCPUTimeByThread.forEach((k, _) -> startCPUTimeByThread.put(k, threadMxBean.getThreadCpuTime(k.threadId()))); // reset
                                                                                                                   // startCPUTime
     }
 
@@ -303,7 +303,7 @@ public final class MultiThreading<T> extends ThreadPoolExecutor implements Offse
         double load;
         // Compute cumulated CPUTime of all alive threads (number between 0.0 and n with
         // n the count of active threads)
-        load = (startCPUTimeByThread.entrySet().stream().filter(e -> e.getKey().isAlive()).mapToLong(e -> tmxb.getThreadCpuTime(e.getKey().threadId()) - e.getValue()).sum()
+        load = (startCPUTimeByThread.entrySet().stream().filter(e -> e.getKey().isAlive()).mapToLong(e -> threadMxBean.getThreadCpuTime(e.getKey().threadId()) - e.getValue()).sum()
                 / 1_000_000.0 /*
                                * ns to ms
                                */) / elapsed;

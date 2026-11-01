@@ -41,18 +41,18 @@ class LongPollingReqMgrTest {
         @DisplayName("send adds message to lprMsg queue")
         void sendAddsMessage() throws IOException {
             mgr.send("hello");
-            assertThat(webSession.getLprMsg()).contains("hello");
+            assertThat(webSession.getLongPollingMessages()).contains("hello");
         }
 
         @Test
         @DisplayName("sendOptional adds only when queue is empty")
         void sendOptionalOnlyWhenEmpty() throws IOException {
             mgr.sendOptional("first");
-            assertThat(webSession.getLprMsg()).contains("first");
+            assertThat(webSession.getLongPollingMessages()).contains("first");
 
             mgr.sendOptional("second");
             // Queue already has "first", so "second" should not be added
-            assertThat(webSession.getLprMsg()).containsExactly("first");
+            assertThat(webSession.getLongPollingMessages()).containsExactly("first");
         }
     }
 

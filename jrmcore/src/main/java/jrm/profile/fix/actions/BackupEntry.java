@@ -59,7 +59,7 @@ public class BackupEntry extends EntryAction {
     }
 
     @Override
-    public boolean doAction(Session session, ZipFile zipf, ZipParameters zipp, ProgressHandler handler, int i, int max) {
+    public boolean doAction(Session session, ZipFile zipf, ZipParameters zipp, ProgressHandler handler, int index, int total) {
         final var dstPathCrc = entry.getCrc() + '_' + entry.getSize();
         final String dstPath;
         if (entry.getSha1() != null)
@@ -68,7 +68,7 @@ public class BackupEntry extends EntryAction {
             dstPath = entry.getMd5();
         else
             dstPath = entry.getCrc() + '_' + entry.getSize();
-        handler.setProgress(null, null, null, progress(i, max, String.format(BACKUP_OF_S, entry.getName()))); // $NON-NLS-1$
+        handler.setProgress(null, null, null, progress(index, total, String.format(BACKUP_OF_S, entry.getName()))); // $NON-NLS-1$
         String srcname = null;
         try {
             if (!dstPath.equals(dstPathCrc)) {

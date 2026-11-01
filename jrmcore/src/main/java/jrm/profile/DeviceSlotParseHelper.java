@@ -37,7 +37,7 @@ class DeviceSlotParseHelper {
 			switch (attributes.getQName(i)) {
 				case "type" -> ctx.state.currDevice.setType(value.trim());
 				case "tag" -> ctx.state.currDevice.setTag(value.trim());
-				case "interface" -> ctx.state.currDevice.setIntrface(value.trim());
+				case "interface" -> ctx.state.currDevice.setInterfaceName(value.trim());
 				case "fixed_image" -> ctx.state.currDevice.setFixedImage(value.trim());
 				case "mandatory" -> ctx.state.currDevice.setMandatory(value.trim());
 				default -> { /* skip unknown */ }

@@ -46,10 +46,10 @@ class WindowState {
     /**
      * Whether the window was maximized.
      *
-     * @param m whether maximized
+     * @param maximized whether maximized
      * @return whether maximized
      */
-    private boolean m = false;
+    private boolean maximized = false;
     /**
      * Whether the window was full-screen.
      *
@@ -71,7 +71,7 @@ class WindowState {
      * @param window the window to capture
      */
     private WindowState(Stage window) {
-        m = window.isMaximized();
+        maximized = window.isMaximized();
         f = window.isFullScreen();
         i = window.isIconified();
         window.setIconified(false);
@@ -103,7 +103,7 @@ class WindowState {
         window.setY(y);
         window.setWidth(w);
         window.setHeight(h);
-        window.setMaximized(m);
+        window.setMaximized(maximized);
         window.setFullScreen(f);
         window.setIconified(i);
     }

@@ -227,7 +227,7 @@ public class ActionServlet extends HttpServlet {
             return;
         }
         try {
-            var msg = sess.getLprMsg().poll(20, TimeUnit.SECONDS);
+            var msg = sess.getLongPollingMessages().poll(20, TimeUnit.SECONDS);
             if (msg == null && WebSession.isTerminate())
                 resp.setStatus(HttpServletResponse.SC_GONE);
             else if (msg == null)
@@ -236,7 +236,7 @@ public class ActionServlet extends HttpServlet {
                 final var msgs = new ArrayList<String>();
                 msgs.add(msg);
                 while (msgs.size() < 100) {
-                    if (null == (msg = sess.getLprMsg().poll()))
+                    if (null == (msg = sess.getLongPollingMessages().poll()))
                         break;
                     msgs.add(msg);
                 }

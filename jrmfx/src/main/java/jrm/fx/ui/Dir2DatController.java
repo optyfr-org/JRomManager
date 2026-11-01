@@ -51,7 +51,7 @@ public class Dir2DatController extends BaseController {
     CheckBox junkSubfolders;
     /** FXML UI component for the add SHA1 checkbox. */
     @FXML
-    CheckBox addShamd;
+    CheckBox addSha1;
     /** FXML UI component for the add MD5 checkbox. */
     @FXML
     CheckBox addMd;
@@ -133,8 +133,8 @@ public class Dir2DatController extends BaseController {
         deepScanFor.selectedProperty().addListener((_, _, newValue) -> applyDeepScanSetting(newValue)); // $NON-NLS-1$
         addMd.setSelected(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_add_md5, Boolean.class)); // $NON-NLS-1$
         addMd.selectedProperty().addListener((_, _, newValue) -> applyMd5Setting(newValue)); // $NON-NLS-1$
-        addShamd.setSelected(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_add_sha1, Boolean.class)); // $NON-NLS-1$
-        addShamd.selectedProperty().addListener((_, _, newValue) -> applySha1Setting(newValue)); // $NON-NLS-1$
+        addSha1.setSelected(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_add_sha1, Boolean.class)); // $NON-NLS-1$
+        addSha1.selectedProperty().addListener((_, _, newValue) -> applySha1Setting(newValue)); // $NON-NLS-1$
         junkSubfolders.setSelected(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_junk_folders, Boolean.class)); // $NON-NLS-1$
         junkSubfolders.selectedProperty().addListener((_, _, newValue) -> applyJunkFoldersSetting(newValue)); // $NON-NLS-1$
         doNotScan.setSelected(session.getUser().getSettings().getProperty(jrm.misc.SettingsEnum.dir2dat_do_not_scan_archives, Boolean.class)); // $NON-NLS-1$

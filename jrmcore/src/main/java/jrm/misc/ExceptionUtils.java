@@ -84,17 +84,17 @@ public @UtilityClass class ExceptionUtils {
      * 
      * @param <T> the type of the input to the function
      * @param <R> the type of the result of the function
-     * @param test the function to evaluate
-     * @param t the input argument for the function
-     * @param def the fallback function that takes the failed test function and returns a default value
+     * @param testFn the function to evaluate
+     * @param input the input argument for the function
+     * @param fallbackFn the fallback function that takes the failed test function and returns a default value
      * 
-     * @return the successfully evaluated result, or the value produced by {@code def} if an exception was caught
+     * @return the successfully evaluated result, or the value produced by {@code fallbackFn} if an exception was caught
      */
-    public <T, R> R testF(Function<T, R> test, T t, Function<Function<T, R>, R> def) {
+    public <T, R> R testF(Function<T, R> testFn, T input, Function<Function<T, R>, R> fallbackFn) {
         try {
-            return test.apply(t);
+            return testFn.apply(input);
         } catch (Exception _) {
-            return def.apply(test);
+            return fallbackFn.apply(testFn);
         }
     }
 }

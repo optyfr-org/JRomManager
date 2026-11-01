@@ -25,39 +25,39 @@ public final class HaveNTotalCellFactory<T> extends TableCell<T, HaveNTotal> {
      * Clears the graphic, sets default style and alignment, then delegates to
      * helper methods based on whether the have count is available.
      *
-     * @param hnt   the have/total data, or {@code null}
+     * @param haveNTotal the have/total data, or {@code null}
      * @param empty whether the cell is empty
      */
     @Override
-    protected void updateItem(HaveNTotal hnt, boolean empty) {
+    protected void updateItem(HaveNTotal haveNTotal, boolean empty) {
         setGraphic(null);
         setStyle("-fx-text-fill: #000000;");
         setAlignment(Pos.CENTER);
         setMinHeight(USE_PREF_SIZE);
         setPrefHeight(USE_COMPUTED_SIZE);
-        if (hnt == null || empty) {
+        if (haveNTotal == null || empty) {
             setText("");
             return;
         }
-        if (hnt.getHave() == null)
-            updateHaveNull(hnt);
+        if (haveNTotal.getHave() == null)
+            updateHaveNull(haveNTotal);
         else
-            updateHaveNotNull(hnt);
+            updateHaveNotNull(haveNTotal);
     }
 
     /**
      * Updates the cell when have is null.
      *
-     * @param hnt the have/total statistics
+     * @param haveNTotal the have/total statistics
      */
-    private void updateHaveNull(HaveNTotal hnt) {
-        if (hnt.getTotal() == null) {
+    private void updateHaveNull(HaveNTotal haveNTotal) {
+        if (haveNTotal.getTotal() == null) {
             setTextFill(isRowSelected() ? Color.LIGHTGRAY : Color.GRAY);
             setText("?/?");
             return;
         }
         final var have = new Text("?");
-        final var total = new Text(String.format("/%d", hnt.getTotal()));
+        final var total = new Text(String.format("/%d", haveNTotal.getTotal()));
         have.setFill(isRowSelected() ? Color.LIGHTGRAY : Color.GRAY);
         total.setFill(isRowSelected() ? Color.WHITE : Color.BLACK);
         setGraphic(buildHBox(have, total));
@@ -66,13 +66,13 @@ public final class HaveNTotalCellFactory<T> extends TableCell<T, HaveNTotal> {
     /**
      * Updates the cell when have is not null.
      *
-     * @param hnt the have/total statistics
+     * @param haveNTotal the have/total statistics
      */
-    private void updateHaveNotNull(HaveNTotal hnt) {
-        final var have = new Text(hnt.getHave().toString());
-        final var total = new Text(String.format("/%d", hnt.getTotal()));
+    private void updateHaveNotNull(HaveNTotal haveNTotal) {
+        final var have = new Text(haveNTotal.getHave().toString());
+        final var total = new Text(String.format("/%d", haveNTotal.getTotal()));
         total.setFill(isRowSelected() ? Color.WHITE : Color.BLACK);
-        have.setFill(getHaveColor(hnt));
+        have.setFill(getHaveColor(haveNTotal));
         setGraphic(buildHBox(have, total));
     }
 

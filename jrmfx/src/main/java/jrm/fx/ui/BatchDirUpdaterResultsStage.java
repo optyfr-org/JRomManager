@@ -28,7 +28,7 @@ import jrm.security.Sessions;
  * 
  * @since 2.5
  */
-class BatchDirUpd8rResults extends Stage {
+class BatchDirUpdaterResultsStage extends Stage {
     /** The FXML controller. */
     private final BatchDirUpd8rResultsController controller;
 
@@ -44,11 +44,11 @@ class BatchDirUpd8rResults extends Stage {
      * @throws URISyntaxException if the FXML resource cannot be converted to a URI
      * @throws IOException if the FXML cannot be loaded
      */
-    public BatchDirUpd8rResults(Stage parent, DirUpdaterResults results) throws URISyntaxException, IOException {
+    public BatchDirUpdaterResultsStage(Stage parent, DirUpdaterResults results) throws URISyntaxException, IOException {
         this(requireOwner(parent), requireFxmlUrl(), results);
     }
 
-    private BatchDirUpd8rResults(Stage parent, URL fxmlUrl, DirUpdaterResults results) throws URISyntaxException, IOException {
+    private BatchDirUpdaterResultsStage(Stage parent, URL fxmlUrl, DirUpdaterResults results) throws URISyntaxException, IOException {
         super();
         session = Sessions.getSingleSession();
         initOwner(parent);
@@ -75,7 +75,7 @@ class BatchDirUpd8rResults extends Stage {
     }
 
     private static URL requireFxmlUrl() throws IOException {
-        final var resource = BatchDirUpd8rResults.class.getResource("BatchDirUpd8rResults.fxml");
+        final var resource = BatchDirUpdaterResultsStage.class.getResource("BatchDirUpd8rResults.fxml");
         if (resource == null)
             throw new IOException("Missing resource: BatchDirUpd8rResults.fxml");
         return resource;

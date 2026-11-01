@@ -64,13 +64,13 @@ public class Fix {
         /*
          * Initialize global progression
          */
-        final var i = new AtomicInteger(0);
+        final var counter = new AtomicInteger(0);
         final var max = new AtomicInteger(0);
         currScan.actions.forEach(actions -> {
             max.addAndGet(actions.size());
             actions.forEach(action -> max.addAndGet(action.count() + (int) (action.estimatedSize() >> 20)));
         });
-        progress.setProgress(currProfile.getSession().getMsgs().getString("Fix.Fixing"), i.get(), max.get()); //$NON-NLS-1$
+        progress.setProgress(currProfile.getSession().getMsgs().getString("Fix.Fixing"), counter.get(), max.get()); //$NON-NLS-1$
 
         // foreach ordered action groups
         currScan.actions.forEach(actions -> {
@@ -80,7 +80,7 @@ public class Fix {
                 // two parallel streaming)
                 progress.setInfos(nThreads, useParallelism);
                 final var safeProgress = new SynchronizedProgressHandler(progress);
-                try (final var mt = new MultiThreadingVirtual<ContainerAction>("fix", safeProgress, nThreads, action -> doAction(currProfile, safeProgress, i, done, action))) {
+                try (final var mt = new MultiThreadingVirtual<ContainerAction>("fix", safeProgress, nThreads, action -> doAction(currProfile, safeProgress, counter, done, action))) {
                     mt.start(actions.stream().sorted(ContainerAction.rcomparator()));
                 }
                 // close all open FS from backup (if the last actions was backup)
@@ -113,11 +113,11 @@ public class Fix {
      * 
      * @param currProfile the active {@link Profile} context
      * @param progress the active UI progress status tracker
-     * @param i global task progression counter
+     * @param counter global task progression counter
      * @param done thread-safe list storing successfully processed actions
      * @param action the actual container repair task to apply
      */
-    private void doAction(final Profile currProfile, final ProgressHandler progress, final AtomicInteger i, final List<ContainerAction> done, ContainerAction action) {
+    private void doAction(final Profile currProfile, final ProgressHandler progress, final AtomicInteger counter, final List<ContainerAction> done, ContainerAction action) {
         if (progress.isCancel())
             return;
         try {
@@ -127,7 +127,7 @@ public class Fix {
                 progress.doCancel(); // ... and cancel all if it failed
             } else
                 done.add(action); // add to "done" list successful action
-            progress.setProgress("", i.addAndGet(1 + action.count() + (int) (action.estimatedSize() >> 20))); // update progression
+            progress.setProgress("", counter.addAndGet(1 + action.count() + (int) (action.estimatedSize() >> 20))); // update progression
         } catch (final BreakException _) { // special catch case from BreakException thrown from underlying streams
             progress.doCancel();
         } catch (final Exception e) { // oups! something unexpected happened

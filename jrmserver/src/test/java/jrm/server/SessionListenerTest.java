@@ -87,7 +87,7 @@ class SessionListenerTest {
             listener.sessionDestroyed(event);
 
             // After close, lprMsg should contain the sentinel (if it was empty)
-            assertThat(webSession.getLprMsg()).contains("");
+            assertThat(webSession.getLongPollingMessages()).contains("");
         }
 
         @Test

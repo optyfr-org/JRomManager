@@ -29,18 +29,18 @@ class WebSessionTest {
         @DisplayName("close adds sentinel to lprMsg when empty and removes from allSessions")
         void closeAddsSentinel() {
             final WebSession session = TestWebSessions.newAdminSession("close-test");
-            assertThat(session.getLprMsg()).isEmpty();
+            assertThat(session.getLongPollingMessages()).isEmpty();
             session.close();
-            assertThat(session.getLprMsg()).contains("");
+            assertThat(session.getLongPollingMessages()).contains("");
         }
 
         @Test
         @DisplayName("close does not add sentinel when lprMsg already has messages")
         void closeNonEmptyLprMsg() {
             final WebSession session = TestWebSessions.newAdminSession("close-nonempty-test");
-            session.getLprMsg().add("existing");
+            session.getLongPollingMessages().add("existing");
             session.close();
-            assertThat(session.getLprMsg()).containsExactly("existing");
+            assertThat(session.getLongPollingMessages()).containsExactly("existing");
         }
     }
 

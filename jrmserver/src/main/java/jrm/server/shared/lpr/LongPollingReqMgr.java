@@ -32,7 +32,7 @@ public class LongPollingReqMgr implements ActionsMgr {
      * </p>
      */
     @Getter
-    private static final Map<String, LongPollingReqMgr> cmds = new ConcurrentHashMap<>();
+    private static final Map<String, LongPollingReqMgr> activeManagers = new ConcurrentHashMap<>();
 
     /**
      * The web session associated with this long polling request manager. Used to retrieve session configurations, user profiles,
@@ -65,7 +65,7 @@ public class LongPollingReqMgr implements ActionsMgr {
 
     /**
      * Sets and registers the active web session for this manager. Associates the session ID with this manager instance in the
-     * global command map {@link #cmds}.
+     * global command map {@link #activeManagers}.
      * 
      * @param session the {@link WebSession} to set, must not be null
      * 
@@ -75,7 +75,7 @@ public class LongPollingReqMgr implements ActionsMgr {
     public void setSession(WebSession session) {
         if (session == null)
             throw new NullPointerException("Session not found");
-        cmds.put(session.getSessionId(), this);
+        activeManagers.put(session.getSessionId(), this);
         this.session = session;
     }
 
@@ -88,7 +88,7 @@ public class LongPollingReqMgr implements ActionsMgr {
     @Override
     public void unsetSession(WebSession session) {
         saveSettings();
-        cmds.remove(session.getSessionId());
+        activeManagers.remove(session.getSessionId());
     }
 
     /**
@@ -100,7 +100,7 @@ public class LongPollingReqMgr implements ActionsMgr {
      */
     @Override
     public void send(String msg) throws IOException {
-        session.getLprMsg().add(msg);
+        session.getLongPollingMessages().add(msg);
     }
 
     /**
@@ -112,8 +112,8 @@ public class LongPollingReqMgr implements ActionsMgr {
      */
     @Override
     public void sendOptional(String msg) throws IOException {
-        if (session.getLprMsg().isEmpty())
-            session.getLprMsg().add(msg);
+        if (session.getLongPollingMessages().isEmpty())
+            session.getLongPollingMessages().add(msg);
     }
 
     /**
@@ -155,7 +155,7 @@ public class LongPollingReqMgr implements ActionsMgr {
      * registry and invokes setting serialization.
      */
     public static void saveAllSettings() {
-        cmds.forEach((_, socket) -> socket.saveSettings());
+        activeManagers.forEach((_, socket) -> socket.saveSettings());
     }
 
 }

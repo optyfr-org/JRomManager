@@ -43,11 +43,11 @@ public final class Device implements Serializable {
     /**
      * The hardware or logical interface name associated with the device.
      *
-     * @param intrface the interface name associated with the device
+     * @param interfaceName the interface name associated with the device
      * 
      * @return the interface name associated with the device
      */
-    protected @Getter @Setter String intrface = null;
+    protected @Getter @Setter String interfaceName = null;
 
     /**
      * Indicates if the device supports a fixed/permanent image or acts as a media switch (typically "1" or {@code null}).
@@ -86,7 +86,7 @@ public final class Device implements Serializable {
     private @Getter @Setter List<Extension> extensions = new ArrayList<>();
 
     /**
-     * Constructs a new Device instance with default values. This constructor initializes the type, tag, intrface, fixedImage,
+     * Constructs a new Device instance with default values. This constructor initializes the type, tag, interfaceName, fixedImage,
      * mandatory, and instance fields to null, and the extensions list to an empty ArrayList. This allows for the creation of a
      * Device object that can be populated with specific details as needed.
      */

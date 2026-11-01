@@ -402,16 +402,16 @@ public class ProgressController implements Initializable {
     /**
      * Updates all progress panels from a progress data snapshot.
      *
-     * @param pd the progress data containing info strings and progress bar states
+     * @param progressData the progress data containing info strings and progress bar states
      */
-    public void setFullProgress(PData pd) {
+    public void setFullProgress(PData progressData) {
         if (isWindowGone())
             return;
-        lastInfos = applyInfoNodes(lblInfo, pd.getInfos(), lastInfos);
-        lastSubinfos = applyInfoNodes(lblSubInfo, pd.getSubinfos(), lastSubinfos);
-        updateProgressBar(progressBar, progressBarLbl, lblTimeleft, 1, new ProgressData(pd.getPb1().isVisibility(), pd.getPb1().isIndeterminate(), pd.getPb1().getVal() > 0, pd.getPb1().getPerc(), pd.getPb1().isStringPainted(), pd.getPb1().getMsg(), pd.getPb1().getTimeleft()));
-        updateProgressBar(progressBar2, progressBarLbl2, lblTimeleft2, 2, new ProgressData(pd.getPb2().isVisibility(), pd.getPb2().isIndeterminate(), pd.getPb2().getPerc() >= 0, pd.getPb2().getPerc(), pd.getPb2().isStringPainted(), pd.getPb2().getMsg(), pd.getPb2().getTimeleft()));
-        updateProgressBar(progressBar3, progressBarLbl3, lblTimeleft3, 3, new ProgressData(pd.getPb3().isVisibility(), pd.getPb3().isIndeterminate(), pd.getPb3().getPerc() >= 0, pd.getPb3().getPerc(), pd.getPb3().isStringPainted(), pd.getPb3().getMsg(), pd.getPb3().getTimeleft()));
+        lastInfos = applyInfoNodes(lblInfo, progressData.getInfos(), lastInfos);
+        lastSubinfos = applyInfoNodes(lblSubInfo, progressData.getSubinfos(), lastSubinfos);
+        updateProgressBar(progressBar, progressBarLbl, lblTimeleft, 1, new ProgressData(progressData.getPb1().isVisibility(), progressData.getPb1().isIndeterminate(), progressData.getPb1().getVal() > 0, progressData.getPb1().getPerc(), progressData.getPb1().isStringPainted(), progressData.getPb1().getMsg(), progressData.getPb1().getTimeleft()));
+        updateProgressBar(progressBar2, progressBarLbl2, lblTimeleft2, 2, new ProgressData(progressData.getPb2().isVisibility(), progressData.getPb2().isIndeterminate(), progressData.getPb2().getPerc() >= 0, progressData.getPb2().getPerc(), progressData.getPb2().isStringPainted(), progressData.getPb2().getMsg(), progressData.getPb2().getTimeleft()));
+        updateProgressBar(progressBar3, progressBarLbl3, lblTimeleft3, 3, new ProgressData(progressData.getPb3().isVisibility(), progressData.getPb3().isIndeterminate(), progressData.getPb3().getPerc() >= 0, progressData.getPb3().getPerc(), progressData.getPb3().isStringPainted(), progressData.getPb3().getMsg(), progressData.getPb3().getTimeleft()));
     }
 
     /**

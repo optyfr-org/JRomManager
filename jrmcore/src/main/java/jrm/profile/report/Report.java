@@ -105,7 +105,7 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
     /**
      * Flat lookup directory storing all subjects and notes indexed by their unique integer identifiers.
      */
-    private transient Map<Integer, Object> all;
+    private transient Map<Integer, Object> entriesById;
 
     /**
      * The aggregated validation statistics tracked during directory and ROM scanning.
@@ -480,18 +480,18 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
     private Report(final Report report, final Set<FilterOptions> filterOptions) {
         filterPredicate = new FilterPredicate(filterOptions);
         idCnt = new AtomicInteger();
-        all = new HashMap<>();
+        entriesById = new HashMap<>();
         id = idCnt.getAndIncrement();
-        all.put(id, this);
+        entriesById.put(id, this);
         handler = report.handler;
         profile = report.profile;
         subjects = report.filter(filterOptions);
         for (Subject s : subjects) {
             s.id = idCnt.getAndIncrement();
-            all.put(s.id, s);
+            entriesById.put(s.id, s);
             for (Note n : s) {
                 n.id = idCnt.getAndIncrement();
-                all.put(n.id, n);
+                entriesById.put(n.id, n);
             }
         }
         subjectHash = subjects.stream().collect(Collectors.toMap(Subject::getWareName, Function.identity(), (_, _) -> null));
@@ -605,7 +605,7 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
      * @return the matching Subject, or {@code null} if not found or the ID refers to a Note
      */
     public Subject findSubject(final Integer id) {
-        Object obj = all.get(id);
+        Object obj = entriesById.get(id);
         if (obj instanceof Subject s)
             return s;
         return null; // NOSONAR
@@ -655,9 +655,9 @@ public class Report extends AbstractList<Subject> implements StatusRendererFacto
     @Override
     public synchronized boolean add(final Subject subject) {
         subject.parent = this; // initialize subject.parent
-        if (all != null) {
+        if (entriesById != null) {
             subject.id = idCnt.getAndIncrement();
-            all.put(subject.id, subject);
+            entriesById.put(subject.id, subject);
             for (Note n : subject)
                 n.id = idCnt.getAndIncrement();
         }

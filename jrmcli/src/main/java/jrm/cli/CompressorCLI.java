@@ -54,17 +54,17 @@ public class CompressorCLI {
             final CompressorFormat format = jArgs.compressor != null ? CompressorFormat.valueOf(jArgs.compressor) : CompressorFormat.TZIP;
             for (final var arg : jArgs.files) {
                 final var path = Paths.get(arg);
-                final List<FileResult> frl;
+                final List<FileResult> fileResults;
                 if (Files.isDirectory(path)) {
                     try (final var stream = Files.walk(path)) {
-                        frl = stream.filter(p -> Files.isRegularFile(p) && FilenameUtils.isExtension(p.getFileName().toString(), Compressor.getExtensions())).map(FileResult::new)
+                        fileResults = stream.filter(p -> Files.isRegularFile(p) && FilenameUtils.isExtension(p.getFileName().toString(), Compressor.getExtensions())).map(FileResult::new)
                                 .toList();
                     }
                 } else
-                    frl = Arrays.asList(new FileResult(path));
+                    fileResults = Arrays.asList(new FileResult(path));
                 final var cnt = new AtomicInteger();
-                final var compressor = new Compressor(JRomManagerCLI.session, cnt, frl.size(), cli.handler);
-                frl.parallelStream().forEach(fr -> {
+                final var compressor = new Compressor(JRomManagerCLI.session, cnt, fileResults.size(), cli.handler);
+                fileResults.parallelStream().forEach(fr -> {
                     final Path file = fr.getFile();
                     cnt.incrementAndGet();
                     final Compressor.UpdResultCallBack cb = fr::setResult;

@@ -25,7 +25,7 @@ public final class ReportTreeModel extends ReportTreeModelGeneric<Report> {
     private ReportTreeModel(final Report root) // NOSONAR
     {
         super(new ReportNode(root));
-        orgRoot = root;
+        originalRoot = root;
         root.setHandler(this);
         initClone();
     }
@@ -33,8 +33,8 @@ public final class ReportTreeModel extends ReportTreeModelGeneric<Report> {
     public ReportTreeModel(final ReportTreeHandler<Report> handler) {
         super(new ReportNode(handler.getFilteredReport()));
         getFilteredReport().setHandler(this);
-        orgRoot = handler.getOriginalReport();
-        orgRoot.setHandler(this);
+        originalRoot = handler.getOriginalReport();
+        originalRoot.setHandler(this);
     }
 
     @Override

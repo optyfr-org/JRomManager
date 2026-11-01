@@ -471,25 +471,25 @@ class SQLUtilsTest {
         @Test
         @DisplayName("parses integer string")
         void parsesInteger() {
-            assertThat(utils.val("42").intValue()).isEqualTo(42);
+            assertThat(utils.parseNumber("42").intValue()).isEqualTo(42);
         }
 
         @Test
         @DisplayName("parses decimal string")
         void parsesDecimal() {
-            assertThat(utils.val("3.14").doubleValue()).isCloseTo(3.14, org.assertj.core.data.Offset.offset(0.001));
+            assertThat(utils.parseNumber("3.14").doubleValue()).isCloseTo(3.14, org.assertj.core.data.Offset.offset(0.001));
         }
 
         @Test
         @DisplayName("strict mode uses NumberUtils")
         void strictMode() {
-            assertThat(utils.val("0x10", true).intValue()).isEqualTo(16);
+            assertThat(utils.parseNumber("0x10", true).intValue()).isEqualTo(16);
         }
 
         @Test
         @DisplayName("stops at non-digit characters in non-strict mode")
         void nonStrictStopsAtNonDigit() {
-            assertThat(utils.val("12abc").intValue()).isEqualTo(12);
+            assertThat(utils.parseNumber("12abc").intValue()).isEqualTo(12);
         }
     }
 

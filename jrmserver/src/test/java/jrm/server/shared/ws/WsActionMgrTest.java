@@ -54,7 +54,7 @@ class WsActionMgrTest {
         @DisplayName("send writes socket-only, never the lpr queue")
         void sendSocketOnly() throws IOException {
             mgr.send("{\"cmd\":\"test\"}");
-            assertThat(webSession.getLprMsg()).isEmpty();
+            assertThat(webSession.getLongPollingMessages()).isEmpty();
         }
 
         @Test
@@ -62,14 +62,14 @@ class WsActionMgrTest {
         void sendSkipsWhenClosed() {
             when(wsSession.isOpen()).thenReturn(false);
             assertThatCode(() -> mgr.send("{\"cmd\":\"test\"}")).doesNotThrowAnyException();
-            assertThat(webSession.getLprMsg()).isEmpty();
+            assertThat(webSession.getLongPollingMessages()).isEmpty();
         }
 
         @Test
         @DisplayName("sendOptional mirrors send (socket-only)")
         void sendOptionalSocketOnly() throws IOException {
             mgr.sendOptional("{\"cmd\":\"test\"}");
-            assertThat(webSession.getLprMsg()).isEmpty();
+            assertThat(webSession.getLongPollingMessages()).isEmpty();
         }
     }
 
@@ -115,7 +115,7 @@ class WsActionMgrTest {
         @DisplayName("processes Global.ping without reply")
         void pingNoReply() {
             mgr.process("{\"cmd\":\"Global.ping\"}");
-            assertThat(webSession.getLprMsg()).isEmpty();
+            assertThat(webSession.getLongPollingMessages()).isEmpty();
             assertThat(webSession.getLastAction()).isNotNull();
         }
 

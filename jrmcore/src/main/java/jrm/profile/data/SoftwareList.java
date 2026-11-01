@@ -82,7 +82,7 @@ public final class SoftwareList extends AnywareList<Software> implements Systm {
      */
     @Override
     public boolean add(final Software software) {
-        software.setSl(this);
+        software.setSoftwareList(this);
         swByName.put(software.name, software);
         return swList.add(software);
     }
@@ -194,15 +194,15 @@ public final class SoftwareList extends AnywareList<Software> implements Systm {
      * Applies minimum and maximum release year filters on software items.
      * 
      * @param options the active filter options
-     * @param t the target software item
+     * @param software the target software item
      * 
      * @return true if the software matches the year bounds, false otherwise
      */
-    private boolean getYearFilter(final FilterOptions options, Software t) {
-        if (!t.year.isEmpty()) { // exclude machines outside defined year range
-            if (options.filterYearMin.compareTo(t.year.toString()) > 0)
+    private boolean getYearFilter(final FilterOptions options, Software software) {
+        if (!software.year.isEmpty()) { // exclude machines outside defined year range
+            if (options.filterYearMin.compareTo(software.year.toString()) > 0)
                 return false;
-            if (options.filterYearMax.compareTo(t.year.toString()) < 0)
+            if (options.filterYearMax.compareTo(software.year.toString()) < 0)
                 return false;
         }
         return true;

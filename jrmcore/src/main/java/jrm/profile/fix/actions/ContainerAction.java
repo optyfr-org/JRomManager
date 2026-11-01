@@ -134,20 +134,20 @@ public abstract class ContainerAction implements StatusRendererFactory, Comparab
     /**
      * Compares this action with another container action for task scheduling priority, prioritizing smaller sizes and lower counts.
      * 
-     * @param o the other container action to compare
+     * @param other the other container action to compare
      * 
      * @return a negative integer, zero, or a positive integer as this action is less than, equal to, or greater than the specified
      *         action
      */
     @Override
-    public int compareTo(ContainerAction o) {
-        if (estimatedSize() < o.estimatedSize())
+    public int compareTo(ContainerAction other) {
+        if (estimatedSize() < other.estimatedSize())
             return -1;
-        if (estimatedSize() > o.estimatedSize())
+        if (estimatedSize() > other.estimatedSize())
             return 1;
-        if (count() < o.count())
+        if (count() < other.count())
             return -1;
-        if (count() > o.count())
+        if (count() > other.count())
             return 1;
         return 0;
     }

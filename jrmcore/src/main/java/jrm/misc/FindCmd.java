@@ -29,15 +29,15 @@ public @UtilityClass class FindCmd {
      * directories to prevent executable planting attacks. If the command is not found, the
      * specified default value is returned.
      *
-     * @param cmd the command name to locate (without path or extension)
-     * @param def the default fallback value to return if the command cannot be located
+     * @param command the command name to locate (without path or extension)
+     * @param defaultValue the default fallback value to return if the command cannot be located
      *
-     * @return the full absolute path to the command if successful, or {@code def} if not found
+     * @return the full absolute path to the command if successful, or {@code defaultValue} if not found
      */
-    public static String findCmd(final String cmd, final String def) {
+    public static String findCmd(final String command, final String defaultValue) {
         final var path = System.getenv("PATH"); //$NON-NLS-1$
         if (path == null || path.isEmpty())
-            return def;
+            return defaultValue;
 
         final var isWindows = OSValidator.isWindows();
         final var separator = isWindows ? ";" : ":"; //$NON-NLS-1$ //$NON-NLS-2$
@@ -47,11 +47,11 @@ public @UtilityClass class FindCmd {
         for (final var dir : path.split(Pattern.quote(separator))) {
             if (dir.isEmpty())
                 continue; // skip empty entries (would mean current dir on Unix)
-            final var result = searchInDir(Path.of(dir), cmd, exts);
+            final var result = searchInDir(Path.of(dir), command, exts);
             if (result != null)
                 return result;
         }
-        return def;
+        return defaultValue;
     }
 
     /**

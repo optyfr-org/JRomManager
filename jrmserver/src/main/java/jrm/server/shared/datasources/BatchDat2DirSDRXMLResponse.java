@@ -41,9 +41,9 @@ public class BatchDat2DirSDRXMLResponse extends SDRXMLResponse {
      */
     @Override
     protected void fetch(Operation operation) throws XMLStreamException {
-        SDRList<SrcDstResult> sdrl = SrcDstResult.fromJSON(request.getSession().getUser().getSettings().getProperty(SettingsEnum.dat2dir_sdr));
-        needSave(sdrl, SettingsEnum.dat2dir_sdr);
-        writeResponse(operation, sdrl);
+        SDRList<SrcDstResult> srcDstResults = SrcDstResult.fromJSON(request.getSession().getUser().getSettings().getProperty(SettingsEnum.dat2dir_sdr));
+        needSave(srcDstResults, SettingsEnum.dat2dir_sdr);
+        writeResponse(operation, srcDstResults);
     }
 
     /**

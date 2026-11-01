@@ -1424,14 +1424,14 @@
                                               "name":  "fixedImage"
                                           },
                                           {
-                                              "name":  "instance"
-                                          },
-                                          {
-                                              "name":  "intrface"
-                                          },
-                                          {
-                                              "name":  "mandatory"
-                                          },
+                                               "name":  "instance"
+                                           },
+                                           {
+                                               "name":  "interfaceName"
+                                           },
+                                           {
+                                               "name":  "mandatory"
+                                           },
                                           {
                                               "name":  "tag"
                                           },
@@ -1930,11 +1930,11 @@
                                               "name":  "parts"
                                           },
                                           {
-                                              "name":  "publisher"
-                                          },
-                                          {
-                                              "name":  "sl"
-                                          },
+                                               "name":  "publisher"
+                                           },
+                                           {
+                                               "name":  "softwareList"
+                                           },
                                           {
                                               "name":  "supported"
                                           }
@@ -1947,14 +1947,14 @@
                                               "name":  "dataareas"
                                           },
                                           {
-                                              "name":  "diskareas"
-                                          },
-                                          {
-                                              "name":  "intrface"
-                                          },
-                                          {
-                                              "name":  "name"
-                                          }
+                                               "name":  "diskareas"
+                                           },
+                                           {
+                                               "name":  "interfaceName"
+                                           },
+                                           {
+                                               "name":  "name"
+                                           }
                                       ],
                            "methods":  [
                                            {

@@ -83,7 +83,7 @@ public class WebSession extends Session implements Closeable, Serializable {
      *
      * @return the message deque for client communication
      */
-    private @Getter BlockingDeque<String> lprMsg = new LinkedBlockingDeque<>();
+    private @Getter BlockingDeque<String> longPollingMessages = new LinkedBlockingDeque<>();
 
     /**
      * The worker thread currently executing operations for this session.
@@ -269,8 +269,8 @@ public class WebSession extends Session implements Closeable, Serializable {
      */
     @Override
     public void close() {
-        if (lprMsg.isEmpty())
-            lprMsg.add("");
+        if (longPollingMessages.isEmpty())
+            longPollingMessages.add("");
         allSessions.remove(getSessionId());
     }
 

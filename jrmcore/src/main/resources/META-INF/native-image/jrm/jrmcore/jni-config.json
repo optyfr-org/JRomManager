@@ -5151,13 +5151,13 @@
                        {
                            "name":  "index"
                        },
-                       {
-                           "name":  "tmpfiles"
-                       },
-                       {
-                           "name":  "rafs"
-                       }
-                   ]
+                        {
+                            "name":  "tmpfiles"
+                        },
+                        {
+                            "name":  "randomAccessFiles"
+                        }
+                    ]
     },
     {
         "name":  "jrm.compressors.sevenzipjbinding.ArchiveRAROpenVolumeCallback",
@@ -5426,11 +5426,11 @@
                         }
                     ],
         "fields":  [
-                       {
-                           "name":  "ph"
-                       },
-                       {
-                           "name":  "total"
+                        {
+                            "name":  "progressHandler"
+                        },
+                        {
+                            "name":  "total"
                        }
                    ]
     },
@@ -5508,13 +5508,13 @@
                        {
                            "name":  "index"
                        },
-                       {
-                           "name":  "tmpfiles"
-                       },
-                       {
-                           "name":  "rafs"
-                       }
-                   ],
+                        {
+                            "name":  "tmpfiles"
+                        },
+                        {
+                            "name":  "randomAccessFiles"
+                        }
+                    ],
         "allDeclaredConstructors":  true,
         "allPublicMethods":  true,
         "allDeclaredMethods":  true,

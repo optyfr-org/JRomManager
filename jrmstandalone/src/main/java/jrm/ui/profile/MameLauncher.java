@@ -83,9 +83,9 @@ public final class MameLauncher {
 	}
 
 	private static String[] getMameArgsSoftware(final Anyware ware, final Profile profile, final ProfileNFOMame mame, String[] args) throws HeadlessException {
-		Log.debug(() -> ((Software) ware).getSl().getBaseName() + ", " + ((Software) ware).getCompatibility()); //$NON-NLS-1$
+		Log.debug(() -> ((Software) ware).getSoftwareList().getBaseName() + ", " + ((Software) ware).getCompatibility()); //$NON-NLS-1$
 		final JList<Machine> machines = new JList<>(
-				profile.getMachineListList().getSortedMachines(((Software) ware).getSl().getBaseName(), ((Software) ware).getCompatibility()).toArray(new Machine[0]));
+				profile.getMachineListList().getSortedMachines(((Software) ware).getSoftwareList().getBaseName(), ((Software) ware).getCompatibility()).toArray(new Machine[0]));
 		machines.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		if (machines.getModel().getSize() > 0)
 			machines.setSelectedIndex(0);

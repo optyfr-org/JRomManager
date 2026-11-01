@@ -21,10 +21,10 @@ final class ProfileSettingsOps {
 		this.ws = parent.getWs();
 	}
 
-	void importSettings(JsonObject jso) {
+	void importSettings(JsonObject message) {
 		WebSession session = ws.getSession();
 		if (session.getCurrProfile() != null) {
-			final JsonValue jsv = jso.get(PARAMS).asObject().get("path");
+			final JsonValue jsv = message.get(PARAMS).asObject().get("path");
 			if (jsv != null && !jsv.isNull()) {
 				session.getCurrProfile().loadSettings(PathAbstractor.getAbsolutePath(session, jsv.asString()).toFile());
 				session.getCurrProfile().loadCatVer(null);
@@ -49,14 +49,14 @@ final class ProfileSettingsOps {
 	void setProperty(JsonObject jso) {
 		final var profile = jso.getString("profile", null);
 		ProfileSettings settings = profile != null ? new ProfileSettings() : ws.getSession().getCurrProfile().getSettings();
-		JsonObject pjso = jso.get(PARAMS).asObject();
+		JsonObject paramsObject = jso.get(PARAMS).asObject();
 		try {
-			for (Member m : pjso) {
+			for (Member m : paramsObject) {
 				JsonValue value = m.getValue();
 				if (value.isString())
 					rejectUnwritableDestPath(m.getName(), value.asString());
 			}
-			for (Member m : pjso) {
+			for (Member m : paramsObject) {
 				JsonValue value = m.getValue();
 				if (value.isBoolean())
 					settings.setProperty(m.getName(), value.asBoolean());

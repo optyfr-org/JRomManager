@@ -21,7 +21,7 @@ public class Sources implements Serializable, Iterable<Source> {
      * 
      * @return the list of registered sources
      */
-    private final @Getter List<Source> srces = new ArrayList<>();
+    private final @Getter List<Source> sources = new ArrayList<>();
 
     /**
      * Registers a metadata source into the collection list.
@@ -31,7 +31,7 @@ public class Sources implements Serializable, Iterable<Source> {
      * @return true if added successfully, false otherwise
      */
     public boolean add(final Source source) {
-        return srces.add(source);
+        return sources.add(source);
     }
 
     /**
@@ -41,7 +41,7 @@ public class Sources implements Serializable, Iterable<Source> {
      */
     @Override
     public Iterator<Source> iterator() {
-        return srces.iterator();
+        return sources.iterator();
     }
 
     /** Default constructor for Sources. Initializes an empty collection of sources. */

@@ -323,7 +323,7 @@ public class Dir2Dat {
             final var slname = new StringBuilder(parent.toString());
             final var software = buildSLMapNames(swname, slname, options);
             final var swcounter = slcounter.computeIfAbsent(slname.toString(), _ -> new HashMap<>());
-            final var sl = slmap.computeIfAbsent(slname.toString(), k -> new SL(k, software != null ? software.getSl() : null));
+            final var sl = slmap.computeIfAbsent(slname.toString(), k -> new SL(k, software != null ? software.getSoftwareList() : null));
             final var val = swcounter.computeIfAbsent(swname.toString(), _ -> new AtomicInteger());
             if (val.incrementAndGet() > 1)
                 swname.append("_").append(val.get());
@@ -352,7 +352,7 @@ public class Dir2Dat {
                 swname.setLength(0);
                 swname.append(software.getBaseName());
                 slname.setLength(0);
-                slname.append(software.getSl().getBaseName());
+                slname.append(software.getSoftwareList().getBaseName());
             }
         } else
             software = null;
