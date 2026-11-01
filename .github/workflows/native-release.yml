@@ -57,6 +57,9 @@ jobs:
         run: choco install wixtoolset --no-progress -y
 
       - name: Build native binaries + installers
+        # Same PowerShell pitfall as the jpackage workflow: $VAR expansion and
+        # ./gradlew need Git Bash on Windows runners.
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INSTALLER_TYPES: ${{ inputs.installer-types }}

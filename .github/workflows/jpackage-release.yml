@@ -50,6 +50,9 @@ jobs:
         with:
           java-distribution: temurin
       - name: JPackage with Gradle
+        # Windows runners default to PowerShell, where ./gradlew and $VAR
+        # expansion do not work: force Git Bash like everywhere else.
+        shell: bash
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GRADLE_TASKS: ${{ inputs.gradle-tasks }}
