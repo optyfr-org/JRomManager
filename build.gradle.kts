@@ -190,14 +190,48 @@ jlink {
     mergedModule {
         isAdditive = true
         excludeProvides(mapOf("service" to "org.apache.fory.shaded.org.codehaus.commons.compiler.ICompilerFactory"))
+        // System (java.*/jdk.*) modules must be declared explicitly: the plugin maps
+        // code packages to system modules via "$javaHome/jmods", which does not exist on
+        // JEP 493 linkable runtimes (Temurin 25, used by CI), so derivation silently drops
+        // them there and the image fails at runtime (e.g. java.desktop for
+        // java.beans.Beans). excludeRequires keeps full-JDK builds compiling (derivation
+        // already emits them); requires re-adds them exactly once where derivation missed
+        // them. (Third-party modules keep coming from derivation: their jars are scanned
+        // directly and work on both layouts.)
+        excludeRequires(
+            "java.compiler",
+            "java.datatransfer",
+            "java.desktop",
+            "java.instrument",
+            "java.logging",
+            "java.management",
+            "java.naming",
+            "java.rmi",
+            "java.scripting",
+            "java.sql",
+            "java.transaction.xa",
+            "java.xml",
+            "jdk.httpserver"
+        )
         requires("ch.qos.logback.classic")
+        requires("java.compiler")
+        requires("java.datatransfer")
+        requires("java.desktop")
+        requires("java.instrument")
+        requires("java.logging")
+        requires("java.management")
+        requires("java.naming")
+        requires("java.rmi")
+        requires("java.scripting")
+        requires("java.sql")
+        requires("java.transaction.xa")
+        requires("java.xml")
+        requires("jdk.httpserver")
         requires("jdk.zipfs")
         // Pull the JDK ALPN provider into the image: Jetty's ALPNServerConnectionFactory looks up
         // ALPNProcessor$Server via ServiceLoader, and jlink only includes provider modules that are
         // reachable through a requires edge (without this, FullServer fails with "No Server ALPNProcessors!").
         requires("org.eclipse.jetty.alpn.java.server")
-        // java.desktop is auto-derived by the jlink plugin; re-declaring it breaks
-        // the merged module-info compilation with "duplicate requires".
     }
     // --sun-misc-unsafe-memory-access=allow on every launcher: Fory calls the terminally
     // deprecated sun.misc.Unsafe::staticFieldOffset, and without this flag every start prints a
