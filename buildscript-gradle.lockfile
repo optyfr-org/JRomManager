@@ -1,7 +1,6 @@
 # This is a Gradle generated file for dependency locking.
 # Manual edits can break the build and are not advised.
 # This file is expected to be part of source control.
-# To regenerate this file, run: ./gradlew dependencies --write-locks
 com.github.openjson:openjson:1.0.13=classpath
 com.google.code.findbugs:jsr305:3.0.2=classpath
 com.google.gradle:osdetector-gradle-plugin:1.7.3=classpath

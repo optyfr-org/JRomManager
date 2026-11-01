@@ -270,6 +270,13 @@ public abstract class AbstractServer implements Daemon {
             ShutdownThread.deregister(jettyServer);
             jettyServer = null;
         }
+        // Training only: force JVM exit now. Returning normally leaves Jetty's connectors
+        // alive and relies on main returning plus daemon teardown to exit 0, which proved
+        // fragile under Docker buildx (exit 1 despite a complete 44 MB cache). System.exit
+        // guarantees the AOT assembly runs on shutdown and the RUN layer sees exit 0.
+        // A train() failure above still propagates to main and exits 1, failing the build.
+        System.out.println("AOT training run completed, exiting"); // NOSONAR
+        System.exit(0);
     }
 
     /**

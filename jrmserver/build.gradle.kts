@@ -116,7 +116,7 @@ application {
 tasks.named<JavaExec>("run") {
     group = "application"
     description = "Runs the JRomManager server with all dependencies."
-    classpath = the<SourceSetContainer>()["main"].runtimeClasspath
+    classpath = project.the<SourceSetContainer>()["main"].runtimeClasspath
     mainClass.set("jrm.server.Server")
     jvmArgs(
         "--sun-misc-unsafe-memory-access=allow",
@@ -138,7 +138,7 @@ tasks.named<JavaExec>("run") {
 tasks.register<JavaExec>("runFullServer") {
     group = "application"
     description = "Runs the JRomManager server with all dependencies."
-    classpath = the<SourceSetContainer>()["main"].runtimeClasspath
+    classpath = project.the<SourceSetContainer>()["main"].runtimeClasspath
     mainClass.set("jrm.fullserver.FullServer")
     jvmArgs(
         "--sun-misc-unsafe-memory-access=allow",

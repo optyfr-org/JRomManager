@@ -62,6 +62,8 @@ public final class AotTrainer {
             Log.info("AOT training run completed");
         } catch (final Exception e) {
             Log.err("AOT training run failed", e);
+            // Also dump to stderr so Docker buildx layers always show the cause even if JUL is reconfigured.
+            e.printStackTrace(); // NOSONAR
             throw new IllegalStateException("AOT training run failed", e);
         }
     }
