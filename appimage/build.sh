@@ -16,8 +16,14 @@ cp -p "$HERE/AppRun" AppDir/
 chmod +x AppDir/AppRun
 
 rm -f *.AppImage
+rm -rf squashfs-root
 wget -q https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
 chmod +x appimagetool-x86_64.AppImage
-./appimagetool-x86_64.AppImage -n AppDir
+# FUSE-free: GitHub ubuntu-24.04 runners ship no libfuse.so.2 and AppImages need
+# FUSE to run, but --appimage-extract works without mounting, so extract the tool
+# and run it from squashfs-root instead of executing the AppImage directly.
+./appimagetool-x86_64.AppImage --appimage-extract >/dev/null
+./squashfs-root/AppRun -n AppDir
+rm -rf squashfs-root
 
 popd >/dev/null
