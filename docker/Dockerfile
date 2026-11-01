@@ -1,3 +1,5 @@
+#### Builder stage ####
+
 #FROM dhi.io/eclipse-temurin:25-alpine
 FROM dhi.io/eclipse-temurin@sha256:8994131351999f5bb8d54917d3d5ea9db503ab587724a56a5674bba9283d4d17 AS aot-train
 
@@ -15,6 +17,11 @@ COPY lib *.jar ./
 COPY aot-fixture/ work/
 RUN ["java", "--enable-native-access=ALL-UNNAMED", "-XX:AOTCacheOutput=/train/JRomManagerServer.aot", "-Djrm.aot.train=true", "-Djrm.aot.fixture=/train/work/aot-fixture.dat", "-cp", "*:lib/*", "jrm.server.Server", "--bind", "127.0.0.1", "--http", "18080", "--work", "/train/work"]
 
+
+
+
+#### Final image ####
+
 #FROM dhi.io/eclipse-temurin:25-alpine
 FROM dhi.io/eclipse-temurin@sha256:8994131351999f5bb8d54917d3d5ea9db503ab587724a56a5674bba9283d4d17
 
@@ -27,10 +34,10 @@ WORKDIR /app
 COPY lib *.jar ./
 COPY --from=aot-train /train/JRomManagerServer.aot ./aot/JRomManagerServer.aot
 
-ENV JRM_SERVER_WORKPATH=/home/nonroot
-ENV JRM_SERVER_HTTP=8080
-ENV JRM_SERVER_BIND=0.0.0.0
-ENV JRM_SERVER_LOG_LEVEL=INFO
+ENV JRM_SERVER_WORKPATH=/home/nonroot \
+    JRM_SERVER_HTTP=8080 \
+    JRM_SERVER_BIND=0.0.0.0 \
+    JRM_SERVER_LOG_LEVEL=INFO
 
 EXPOSE ${JRM_SERVER_HTTP}
 
