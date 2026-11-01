@@ -32,7 +32,6 @@ class WsActionMgrTest {
     private WsActionMgr mgr;
 
     @BeforeEach
-    @SuppressWarnings("unchecked")
     void setUp() {
         webSession = TestWebSessions.newAdminSession("ws-test");
         wsSession = mock(jakarta.websocket.Session.class);

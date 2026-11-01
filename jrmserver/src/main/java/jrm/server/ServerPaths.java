@@ -1,7 +1,6 @@
 package jrm.server;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -23,11 +22,11 @@ public final class ServerPaths {
 		return path.toString();
 	}
 
-	static Resource getClientPath(ResourceFactory resourceFactory, String path) throws IOException, URISyntaxException {
+	static Resource getClientPath(ResourceFactory resourceFactory, String path) throws IOException {
 		return ServerResourceLocator.locateClient(resourceFactory, path);
 	}
 
-	static Resource getCertsPath(String path) throws URISyntaxException, IOException {
+	static Resource getCertsPath(String path) throws IOException {
 		return ServerResourceLocator.locateCerts(path);
 	}
 

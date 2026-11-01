@@ -168,7 +168,7 @@ public class CatVerXMLResponse extends XMLResponse {
         byte isOpen = 0;
         for (SubCategory subcat : cat) {
             isOpen |= (subcat.isSelected() ? 0x1 : 0x0);
-            isOpen |= (!subcat.isSelected() ? 0x2 : 0x0);
+            isOpen |= (subcat.isSelected() ? 0x0 : 0x2);
         }
         writer.writeAttribute("isOpen", Boolean.toString(isOpen == 3));
         writer.writeEndElement();

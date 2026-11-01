@@ -68,10 +68,10 @@ public class ProfileActions extends PathAbstractor {
 	 */
 	private final ActionsMgr ws;
 
-	private ProfileImportOps importOps;
-	private ProfileSettingsOps settingsOps;
-	private ProfileScanOps scanOps;
-	private ProfileFixOps fixOps;
+	private final ProfileImportOps importOps;
+	private final ProfileSettingsOps settingsOps;
+	private final ProfileScanOps scanOps;
+	private final ProfileFixOps fixOps;
 
     /**
      * Constructs a new {@code ProfileActions} instance with the specified actions manager.

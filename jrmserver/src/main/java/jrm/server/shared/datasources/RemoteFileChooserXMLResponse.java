@@ -178,7 +178,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
                 writer.write("Name", entry.getFileName());
                 writer.write("Path", pathAbstractor.getRelativePath(entry));
                 writer.write(REL_PATH, pathAbstractor.getRelativePath(entry));
-                writer.write("Size", !attr.isRegularFile() ? -1 : attr.size());
+                writer.write("Size", attr.isRegularFile() ? attr.size() : -1 );
                 writer.write(MODIFIED, attr.lastModifiedTime());
                 writer.write(IS_DIR, attr.isDirectory());
                 if (initialPath.isPresent() && entry.equals(initialPath.get()))
@@ -415,7 +415,7 @@ public class RemoteFileChooserXMLResponse extends XMLResponse {
         for (String path : operation.getDatas(PATHS)) {
             var entry = pathAbstractor.getAbsolutePath(path);
             Files.walkFileTree(entry, new SimpleFileVisitor<Path>() {
-                String[] exts = new String[] { "zip", "7z", "rar", "arj", "tar", "lzh", "lha", "tgz", "tbz", "tbz2", "rpm", "iso", "deb", "cab" };
+                String[] exts = { "zip", "7z", "rar", "arj", "tar", "lzh", "lha", "tgz", "tbz", "tbz2", "rpm", "iso", "deb", "cab" };
 
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {

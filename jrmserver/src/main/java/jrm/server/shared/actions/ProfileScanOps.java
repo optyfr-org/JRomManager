@@ -35,6 +35,7 @@ final class ProfileScanOps {
 		try {
 			session.setCurrScan(new Scan(session.getCurrProfile(), worker.getProgress()));
 		} catch (BreakException _) {
+			/* */
 		} catch (ScanException ex) {
 			worker.getProgress().addError(ex.getMessage());
 		}

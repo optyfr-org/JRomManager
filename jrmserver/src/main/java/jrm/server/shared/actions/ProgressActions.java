@@ -83,7 +83,7 @@ public class ProgressActions implements ProgressHandler {
     private volatile boolean canCancel = true;
 
     /** Gson instance for JSON serialization, configured to exclude transient fields. */
-    private Gson gson;
+    private final Gson gson;
 
     /**
      * Minimum interval between best-effort (non-forced) progress pushes. Bulk readers such as cache loads call

@@ -44,6 +44,7 @@ final class ProfileImportOps {
 			} else
 				new GlobalActions(ws).warn("Mame not found in system's search path");
 		} catch (BreakException _) {
+			/*  */
 		} catch (IOException e) {
 			Log.err(e.getMessage(), e);
 			new GlobalActions(ws).warn(e.getMessage());

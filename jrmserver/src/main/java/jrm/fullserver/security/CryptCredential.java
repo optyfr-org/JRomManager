@@ -33,7 +33,7 @@ public class CryptCredential extends Credential {
      * CryptCredential. It is used in the check method to retrieve the user's credentials from the database and verify them against
      * the provided credentials.
      */
-    private String username;
+    private final String username;
 
     /**
      * The SQL object used for database access to retrieve user credentials.
@@ -45,7 +45,7 @@ public class CryptCredential extends Credential {
      * Note: The SQL class is a custom class that provides methods for executing SQL queries and retrieving results from the
      * database. It is used in this context to query the USERS table for the user's credentials based on the provided username.
      */
-    private transient SQL sql;
+    private final transient SQL sql;
 
     /**
      * The UserCredential object representing the user's credentials retrieved from the database.
