@@ -144,13 +144,19 @@ public class TorrentChecker<T extends AbstractSrcDstResult> implements UnitRende
      * @throws TorrentException if an error occurs while parsing the torrent file
      */
     String check(final ProgressHandler progress, final T sdr) throws IOException, TorrentException {
-        if (sdr.getSrc() == null || sdr.getDst() == null)
-            return sdr.getSrc() == null ? session.getMsgs().getString("TorrentChecker.SrcNotDefined") : session.getMsgs().getString("TorrentChecker.DstNotDefined"); //$NON-NLS-1$ //$NON-NLS-2$
+        final var srcPath = sdr.getSrc();
+        if (srcPath == null)
+            return session.getMsgs().getString("TorrentChecker.SrcNotDefined"); //$NON-NLS-1$
+        final var dstPath = sdr.getDst();
+        if (dstPath == null)
+            return session.getMsgs().getString("TorrentChecker.DstNotDefined"); //$NON-NLS-1$
         var result = ""; //$NON-NLS-1$
-        final var src = PathAbstractor.getAbsolutePath(session, sdr.getSrc()).toFile();
-        final var dst = PathAbstractor.getAbsolutePath(session, sdr.getDst()).toFile();
-        if (!src.exists() || !dst.exists())
-            return src.exists() ? session.getMsgs().getString("TorrentChecker.DstMustExist") : session.getMsgs().getString("TorrentChecker.SrcMustExist"); //$NON-NLS-1$ //$NON-NLS-2$
+        final var src = PathAbstractor.getAbsolutePath(session, srcPath).toFile();
+        final var dst = PathAbstractor.getAbsolutePath(session, dstPath).toFile();
+        if (!src.exists())
+            return session.getMsgs().getString("TorrentChecker.SrcMustExist"); //$NON-NLS-1$
+        if (!dst.exists())
+            return session.getMsgs().getString("TorrentChecker.DstMustExist"); //$NON-NLS-1$
 
         final var report = new TrntChkReport(src);
         final var torrent = TorrentParser.parseTorrent(src.getAbsolutePath());

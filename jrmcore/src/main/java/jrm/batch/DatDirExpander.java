@@ -17,8 +17,8 @@ final class DatDirExpander {
 		public boolean equals(Object obj) {
 			if (this == obj)
 				return true;
-			if (obj instanceof Lists o)
-				return Arrays.equals(datlist, o.datlist) && Arrays.equals(dstlist, o.dstlist);
+			if (obj instanceof Lists(File[] otherDatlist, File[] otherDstlist))
+				return Arrays.equals(datlist, otherDatlist) && Arrays.equals(dstlist, otherDstlist);
 			return false;
 		}
 

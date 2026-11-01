@@ -47,12 +47,12 @@ public enum ZipLevel {
      * Description of the compression level, used for display purposes in user interfaces or logs to indicate the selected
      * compression level.
      */
-    private String desc;
+    private final String desc;
     /**
      * Compression level associated with the option, used for configuring the compression algorithm during archive operations. The
      * integer value represents the degree of compression, with higher values indicating more aggressive compression.
      */
-    private int level;
+    private final int level;
 
     /**
      * Constructs a new ZipLevel instance with the specified description and compression level. This constructor initializes the

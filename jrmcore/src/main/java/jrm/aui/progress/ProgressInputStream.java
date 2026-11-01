@@ -20,7 +20,7 @@ public final class ProgressInputStream extends FilterInputStream {
      * The ProgressHandler instance used to report progress updates. It is initialized in the constructor and is called each time
      * data is read or skipped to update the progress based on the current value of bytes read.
      */
-    private ProgressHandler progress;
+    private final ProgressHandler progress;
 
     /**
      * Constructs a new ProgressInputStream that wraps the specified InputStream and tracks progress using the provided

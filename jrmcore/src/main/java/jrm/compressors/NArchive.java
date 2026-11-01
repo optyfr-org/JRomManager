@@ -65,12 +65,12 @@ abstract class NArchive extends NArchiveBase {
      * The session associated with this archive, used for accessing user settings and other session-related information during
      * archive operations.
      */
-    private Session session;
+    private final Session session;
     /**
      * The file representing the archive being processed. This is used for reading and writing the archive data, and is stored here
      * to manage the archive file during operations.
      */
-    private File archive;
+    private final File archive;
     /**
      * A flag indicating whether the archive is in read-only mode. If true, the archive will be treated as read-only, and
      * modifications will not be allowed. This flag is used to determine the behavior of the archive during operations, such as
@@ -233,17 +233,17 @@ abstract class NArchive extends NArchiveBase {
                 // resolves GetMethodID against the concrete class and does not fall back to
                 // inherited declarations.
                 @Override
-                public IOutItemAllFormats getItemInformation(final int index, final OutItemFactory<IOutItemAllFormats> outItemFactory) throws SevenZipException {
+                public IOutItemAllFormats getItemInformation/* NOSONAR */(final int index, final OutItemFactory<IOutItemAllFormats> outItemFactory) throws SevenZipException {
                     return super.getItemInformation(index, outItemFactory);
                 }
 
                 @Override
-                public ISequentialInStream getStream(final int index) throws SevenZipException {
+                public ISequentialInStream getStream/* NOSONAR */(final int index) throws SevenZipException {
                     return super.getStream(index);
                 }
 
                 @Override
-                public void setOperationResult(final boolean operationResultOk) throws SevenZipException {
+                public void setOperationResult/* NOSONAR */(final boolean operationResultOk) throws SevenZipException {
                     super.setOperationResult(operationResultOk);
                 }
             };
@@ -311,11 +311,12 @@ abstract class NArchive extends NArchiveBase {
     }
 
     /**
-     * Resolves the SevenZip compression thread count, forcing single-threaded operation inside a GraalVM native
-     * image: the SevenZip native compression workers cannot perform JNI lookups there, which crashes archive
-     * creation as soon as multithreading is enabled. The JVM keeps the configured value.
+     * Resolves the SevenZip compression thread count, forcing single-threaded operation inside a GraalVM native image: the SevenZip
+     * native compression workers cannot perform JNI lookups there, which crashes archive creation as soon as multithreading is
+     * enabled. The JVM keeps the configured value.
      *
      * @param key the settings key holding the configured thread count
+     * 
      * @return 1 in a native image, the configured value otherwise
      */
     private int sevenZipThreadCount(final jrm.misc.SettingsEnum key) {
@@ -599,8 +600,7 @@ abstract class NArchive extends NArchiveBase {
     }
 
     /**
-     * Validates and normalizes an entry path to prevent path traversal attacks.
-     * This method ensures that the entry path:
+     * Validates and normalizes an entry path to prevent path traversal attacks. This method ensures that the entry path:
      * <ul>
      * <li>Does not represent an absolute path</li>
      * <li>Does not escape the temporary directory using ".." segments</li>

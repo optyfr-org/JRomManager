@@ -44,7 +44,7 @@ public class ArchiveRAROpenVolumeCallback implements IArchiveOpenVolumeCallback,
      * multiple volumes of a RAR archive. The map ensures that each filename is associated with its respective RandomAccessFile
      * instance, enabling efficient access to the archive volumes during operations.
      */
-    private Map<String, RandomAccessFile> openedRandomAccessFileList = new HashMap<>();
+    private final Map<String, RandomAccessFile> openedRandomAccessFileList = new HashMap<>();
     /**
      * The name of the currently opened volume. This property is used to store the name of the volume that is currently being
      * accessed through the callback. It can be retrieved using the getProperty method when requested with the PropID.NAME property

@@ -154,20 +154,20 @@ public abstract class CloseCreateCallback implements IOutCreateCallback<IOutItem
      * A mapping of archive entry indices to their corresponding file paths that are marked for deletion in the modified archive.
      * This allows for tracking which entries should be removed from the archive during the creation or modification process.
      */
-    private HashMap<Integer, String> idxToDelete = new HashMap<>();
+    private final HashMap<Integer, String> idxToDelete = new HashMap<>();
     /**
      * A mapping of archive entry indices to their new file paths for entries that are marked for renaming in the modified archive.
      * This allows for tracking which entries should be renamed and what their new paths should be during the creation or
      * modification process.
      */
-    private HashMap<Integer, String> idxToRename = new HashMap<>();
+    private final HashMap<Integer, String> idxToRename = new HashMap<>();
     /**
      * A list of objects representing entries that are marked for duplication in the modified archive. Each object array contains
      * the original entry index, the new file path for the duplicated entry, and a placeholder for the new index assigned during
      * processing. This allows for tracking which entries should be duplicated and what their new paths should be during the
      * creation or modification process.
      */
-    private ArrayList<Object[]> idxToDuplicate = new ArrayList<>();
+    private final ArrayList<Object[]> idxToDuplicate = new ArrayList<>();
     /**
      * The index of the current entry being processed during the creation or modification process. This is used to keep track of
      * which entry is currently being handled, especially when determining how to manage the input streams and properties for each

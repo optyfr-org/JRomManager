@@ -116,6 +116,7 @@ final class TorrentArchiveExtractor<T extends AbstractSrcDstResult> {
 					try {
 						Files.copy(file, destFile, StandardCopyOption.REPLACE_EXISTING);
 					} catch (DirectoryNotEmptyException _) {
+						// Ignore if directory is not empty
 					}
 					return FileVisitResult.CONTINUE;
 				}

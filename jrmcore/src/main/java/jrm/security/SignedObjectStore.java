@@ -23,8 +23,6 @@ import java.util.Map;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
-import org.apache.fory.ThreadSafeFory;
-
 import jrm.batch.DirUpdaterResults;
 import jrm.batch.TrntChkReport;
 import jrm.profile.Profile;

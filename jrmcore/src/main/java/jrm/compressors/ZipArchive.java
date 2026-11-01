@@ -38,12 +38,12 @@ public class ZipArchive implements Archive {
      * Progress callback for tracking the progress of archive operations. This callback can be used to update progress indicators in
      * user interfaces or logs during long-running archive operations.
      */
-    private ProgressNarchiveCallBack cb;
+    private final ProgressNarchiveCallBack cb;
     /**
      * The File object representing the archive file being managed by this instance. This is used to access the archive file for
      * reading, writing, and other operations as needed during the lifecycle of the ZipArchive instance.
      */
-    private File archive;
+    private final File archive;
 
     /**
      * The native Zip archive instance used for performing archive operations. This instance is typically initialized using the

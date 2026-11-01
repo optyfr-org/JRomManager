@@ -56,7 +56,7 @@ public class Tree<T> {
         /**
          * The list of child nodes branching off from this node.
          */
-        private List<Node<T>> children;
+        private final List<Node<T>> children;
 
         /**
          * Constructs a new {@code Node} with the specified data.

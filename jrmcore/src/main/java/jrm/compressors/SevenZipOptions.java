@@ -28,9 +28,9 @@ public enum SevenZipOptions {
     ULTRA(Messages.getString("SevenZipOptions.ULTRA"), 9); //$NON-NLS-1$
 
     /** Description of the compression option, used for display purposes. */
-    private String desc;
+    private final String desc;
     /** Compression level associated with the option, used for configuring the compression algorithm. */
-    private int level;
+    private final int level;
 
     /**
      * Constructs a new SevenZipOptions instance with the specified description and compression level. This constructor initializes

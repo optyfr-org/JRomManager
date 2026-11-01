@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -37,6 +36,7 @@ final class TorrentPieceHasher<T extends AbstractSrcDstResult> implements UnitRe
 	String checkBlocks(final ProgressHandler progress, final T sdr, final File src, final File dst, final TrntChkReport report, final Torrent torrent, final List<TorrentFile> tfiles) {
 		String result;
 		try {
+			final var md = MessageDigest.getInstance("SHA-1");
 			final var data = new CheckBlocksData(torrent);
 
 			data.toGo = data.pieceLength;
@@ -47,7 +47,7 @@ final class TorrentPieceHasher<T extends AbstractSrcDstResult> implements UnitRe
 			data.block = report.add(String.format("Piece %d", data.pieceCnt));
 			data.block.getData().setLength(data.pieceLength);
 			for (TorrentFile tfile : tfiles) {
-				checkBlocksFile(data, src, dst, tfile, report, progress);
+				checkBlocksFile(data, md, src, dst, tfile, report, progress);
 				if (progress.isCancel())
 					return "cancelled...";
 			}
@@ -55,7 +55,7 @@ final class TorrentPieceHasher<T extends AbstractSrcDstResult> implements UnitRe
 
 			final long lastPieceLen = data.pieceLength - data.toGo;
 			if (lastPieceLen > 0) {
-				applyPieceHash(data, lastPieceLen);
+				applyPieceHash(data, md, lastPieceLen);
 				data.block.getData().setLength(lastPieceLen);
 			}
 			Log.info(String.format("piece counted %d, given %d, valid %d, completion=%.02f%%%n", data.pieceCnt, data.pieces.size(), data.pieceValid,
@@ -83,37 +83,35 @@ final class TorrentPieceHasher<T extends AbstractSrcDstResult> implements UnitRe
 		int pieceCnt = 0;
 		int pieceValid = 0;
 		final byte[] buffer = new byte[8192];
-		final MessageDigest md;
 		final AtomicBoolean valid = new AtomicBoolean(true);
 		final AtomicInteger wrongSizedFiles = new AtomicInteger();
 		final Set<Path> paths = new java.util.HashSet<>();
 		final long pieceLength;
 		final List<String> pieces;
 
-		public CheckBlocksData(Torrent torrent) throws NoSuchAlgorithmException {
-			md = MessageDigest.getInstance("SHA-1");
+		public CheckBlocksData(Torrent torrent) {
 			pieceLength = torrent.getPieceLength();
 			pieces = torrent.getPieces();
 		}
 	}
 
-	private void checkBlocksFile(final CheckBlocksData data, final File src, final File dst, TorrentFile tfile, final TrntChkReport report, final ProgressHandler progress) throws IOException {
+	private void checkBlocksFile(final CheckBlocksData data, final MessageDigest md, final File src, final File dst, TorrentFile tfile, final TrntChkReport report, final ProgressHandler progress) throws IOException {
 		final Path destRoot = dst.toPath().toAbsolutePath().normalize();
 		final Path resolved = resolveBlocksFile(data, destRoot, tfile);
 		try (BufferedInputStream in = resolved == null ? null : getFileStram(checker.options, data.wrongSizedFiles, data.node, data.valid, tfile, resolved)) {
 			progress.setProgress(toDocument(toPurple(src.getAbsolutePath())), -1, null, resolved != null ? resolved.toString() : data.node.getData().getTitle());
 			long flen = data.node.getData().setLength(tfile.getFileLength()).getLength();
 			while (flen >= data.toGo) {
-				hashStream(data.md, data.buffer, in, data.toGo);
+				hashStream(md, data.buffer, in, data.toGo);
 				flen -= data.toGo;
 				data.toGo = data.pieceLength;
 				progress.setProgress2(String.format(checker.session.getMsgs().getString(PIECE_PROGRESSION), checker.current.get(), checker.processing.get()), checker.current.get(), checker.processing.get());
-				finalizePiece(data, report, data.pieceLength);
+				finalizePiece(data, md, report, data.pieceLength);
 				if (flen > 0) {
 					revalidateRemainingFile(data, resolved, tfile);
 				}
 			}
-			hashStream(data.md, data.buffer, in, flen);
+			hashStream(md, data.buffer, in, flen);
 			data.toGo -= flen;
 		}
 	}
@@ -132,9 +130,9 @@ final class TorrentPieceHasher<T extends AbstractSrcDstResult> implements UnitRe
 		}
 	}
 
-	private void applyPieceHash(final CheckBlocksData data, final long completedLength) {
+	private void applyPieceHash(final CheckBlocksData data, final MessageDigest md, final long completedLength) {
 		if (data.valid.get()) {
-			if (data.pieceCnt > 0 && data.pieceCnt <= data.pieces.size() && Hex.encodeHexString(data.md.digest()).equalsIgnoreCase(data.pieces.get(data.pieceCnt - 1))) {
+			if (data.pieceCnt > 0 && data.pieceCnt <= data.pieces.size() && Hex.encodeHexString(md.digest()).equalsIgnoreCase(data.pieces.get(data.pieceCnt - 1))) {
 				data.pieceValid++;
 				data.block.setStatus(Status.OK);
 			} else {
@@ -146,9 +144,9 @@ final class TorrentPieceHasher<T extends AbstractSrcDstResult> implements UnitRe
 		}
 	}
 
-	private void finalizePiece(final CheckBlocksData data, final TrntChkReport report, final long completedLength) {
-		applyPieceHash(data, completedLength);
-		data.md.reset();
+	private void finalizePiece(final CheckBlocksData data, final MessageDigest md, final TrntChkReport report, final long completedLength) {
+		applyPieceHash(data, md, completedLength);
+		md.reset();
 		checker.current.incrementAndGet();
 		data.valid.set(true);
 		if (data.pieceCnt < data.pieces.size()) {

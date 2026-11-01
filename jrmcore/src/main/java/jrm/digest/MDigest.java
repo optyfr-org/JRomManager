@@ -36,7 +36,7 @@ public abstract class MDigest {
         /**
          * The standard string identifier of the algorithm.
          */
-        private String name;
+        private final String name;
 
         /**
          * Constructs an instance of the Algo enumeration.

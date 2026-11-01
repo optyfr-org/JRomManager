@@ -12,7 +12,7 @@ class CRCDigest extends MDigest {
     /**
      * The underlying CRC32 engine used to calculate the checksum.
      */
-    private CRC32 crc = new CRC32();
+    private final CRC32 crc = new CRC32();
 
     /**
      * Constructs a new {@code CRCDigest} instance.

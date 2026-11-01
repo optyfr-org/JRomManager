@@ -42,7 +42,7 @@ public class Archive7ZOpenVolumeCallback implements IArchiveOpenVolumeCallback {
      * multiple volumes of a 7Z archive. The map ensures that each filename is associated with its respective RandomAccessFile
      * instance, enabling efficient access to the archive volumes during operations.
      */
-    private Map<String, RandomAccessFile> openedRandomAccessFileList = new HashMap<>();
+    private final Map<String, RandomAccessFile> openedRandomAccessFileList = new HashMap<>();
 
     /**
      * Retrieves the property value associated with the specified property ID. In this implementation, it always returns null,

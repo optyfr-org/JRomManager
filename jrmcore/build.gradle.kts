@@ -6,6 +6,7 @@ plugins {
 
 dependencies {
     "compileOnly"(libs.jsr305)
+    "implementation"(libs.sevenzipjbinding.all.platforms)
     "implementation"(libs.sevenzipjbinding)
     "implementation"(libs.jtrrntzip)
     "implementation"(libs.commons.codec)

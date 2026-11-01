@@ -27,7 +27,7 @@ import jtrrntzip.TrrntZipStatus;
  * @author optyfr
  */
 public class TZipContainer extends ContainerAction {
-    private long dataSize;
+    private final long dataSize;
 
     /**
      * Constructor
