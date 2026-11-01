@@ -13,6 +13,7 @@ import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.resource.ResourceFactory;
+import org.eclipse.jetty.util.thread.ShutdownThread;
 
 import jrm.misc.AotTrainer;
 import jrm.misc.Log;
@@ -260,7 +261,15 @@ public abstract class AbstractServer implements Daemon {
         // path itself (jrommanager.dir), so the fixture DAT sits inside the work path and its
         // sibling .properties settings file is picked up.
         AotTrainer.train(new Session("aot-train", "server", new String[] { "admin" }));
-        terminate();
+        // Training only: skip Jetty's graceful stop. On Linux the acceptor thread blocked in
+        // accept() can outlive the pool's stop timeout, logging "Couldn't stop". Pool threads
+        // are daemon, so dropping the reference lets the JVM exit normally and write the AOT
+        // cache on exit.
+        WebSession.closeAll();
+        if (jettyServer != null) {
+            ShutdownThread.deregister(jettyServer);
+            jettyServer = null;
+        }
     }
 
     /**

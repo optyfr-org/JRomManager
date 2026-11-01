@@ -13,7 +13,7 @@ USER 0
 WORKDIR /train
 COPY lib *.jar ./
 COPY aot-fixture/ work/
-RUN ["java", "-XX:AOTCacheOutput=/train/JRomManagerServer.aot", "-Djrm.aot.train=true", "-Djrm.aot.fixture=/train/work/aot-fixture.dat", "-cp", "*:lib/*", "jrm.server.Server", "--bind", "127.0.0.1", "--http", "18080", "--work", "/train/work"]
+RUN ["java", "--enable-native-access=ALL-UNNAMED", "-XX:AOTCacheOutput=/train/JRomManagerServer.aot", "-Djrm.aot.train=true", "-Djrm.aot.fixture=/train/work/aot-fixture.dat", "-cp", "*:lib/*", "jrm.server.Server", "--bind", "127.0.0.1", "--http", "18080", "--work", "/train/work"]
 
 #FROM dhi.io/eclipse-temurin:25-alpine
 FROM dhi.io/eclipse-temurin@sha256:8994131351999f5bb8d54917d3d5ea9db503ab587724a56a5674bba9283d4d17
@@ -39,5 +39,7 @@ VOLUME ["${JRM_SERVER_WORKPATH}"]
 USER nonroot
 
 # -XX:AOTCache is best-effort (AOTMode=auto): a missing/invalid cache only warns.
-# --sun-misc-unsafe-memory-access=allow silences the Fory Unsafe warning, as on the jpackage launchers.
-ENTRYPOINT ["java", "-XX:AOTCache=/app/aot/JRomManagerServer.aot", "--sun-misc-unsafe-memory-access=allow", "-cp", "*:lib/*", "jrm.server.Server"]
+# --sun-misc-unsafe-memory-access=allow silences the Fory Unsafe warning, and
+# --enable-native-access=ALL-UNNAMED silences the SevenZipJBinding System.load
+# restricted-method warning (classpath mode = unnamed module), as on the jpackage launchers.
+ENTRYPOINT ["java", "-XX:AOTCache=/app/aot/JRomManagerServer.aot", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=ALL-UNNAMED", "-cp", "*:lib/*", "jrm.server.Server"]
