@@ -55,7 +55,7 @@ public class ScannerPanel extends JPanel implements ProfileLoader {
     private static final String ERROR_STR = "Error";
 
     /** The tabbed pane containing scanner configuration panels. */
-    private JTabbedPane scannerTabbedPane;
+    private final JTabbedPane scannerTabbedPane;
 
     /** The scanner settings configuration panel. */
     private ScannerSettingsPanel scannerSettingsPanel;
@@ -73,24 +73,24 @@ public class ScannerPanel extends JPanel implements ProfileLoader {
     private ScannerAutomationPanel scannerAutomation;
 
     /** The button to fix detected issues. */
-    private JButton btnFix;
+    private final JButton btnFix;
 
     /** The button to initiate a scan. */
-    private JButton btnScan;
+    private final JButton btnScan;
 
     /** The label displaying profile information. */
-    private JLabel lblProfileinfo;
+    private final JLabel lblProfileinfo;
 
     /** The main tabbed pane from the parent frame. */
     private JTabbedPane mainPane;
     /** Vertical separator. */
-    private JSeparator separator2;
+    private final JSeparator separator2;
     /** Button to load a scan preset. */
-    private JButton btnLoadPreset;
+    private final JButton btnLoadPreset;
     /** Button to save a scan preset. */
-    private JButton btnSavePreset;
+    private final JButton btnSavePreset;
     /** Vertical separator. */
-    private JSeparator separator1;
+    private final JSeparator separator1;
 
     /**
      * Constructs the Scanner panel.

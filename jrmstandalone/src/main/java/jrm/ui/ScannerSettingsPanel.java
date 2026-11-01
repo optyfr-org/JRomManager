@@ -35,7 +35,7 @@ import lombok.Getter;
  */
 public class ScannerSettingsPanel extends JPanel {
     /** Sub-panel for additional scanner settings. */
-    private JPanel scannerSubSettingsPanel;
+    private final JPanel scannerSubSettingsPanel;
     /** Checkbox to create missing ROM sets during scan. */
     private JCheckBox chckbxCreateMissingSets;
     /** Checkbox to only create complete sets. */
@@ -47,21 +47,21 @@ public class ScannerSettingsPanel extends JPanel {
     /** Checkbox to ignore unneeded entries within containers. */
     private JCheckBox chckbxIgnoreUnneededEntries;
     /** Checkbox to require SHA-1 hash verification. */
-    private JCheckBox chckbxNeedSHA1;
+    private final JCheckBox chckbxNeedSHA1;
     /** Checkbox to use implicit merge when processing ROMs. */
     private JCheckBox chckbxUseImplicitMerge;
     /** Checkbox to enable parallel processing. */
-    private JCheckBox chckbxUseParallelism;
+    private final JCheckBox chckbxUseParallelism;
     /** Checkbox to ignore merge-name ROMs. */
     private JCheckBox chckbxIgnoreMergeNameRoms;
     /** Checkbox to ignore merge-name disks. */
     private JCheckBox chckbxIgnoreMergeNameDisks;
     /** Checkbox to exclude games from processing. */
-    private JCheckBox chckbxExcludeGames;
+    private final JCheckBox chckbxExcludeGames;
     /** Checkbox to exclude machines from processing. */
-    private JCheckBox chckbxExcludeMachines;
+    private final JCheckBox chckbxExcludeMachines;
     /** Checkbox to enable backup of original files. */
-    private JCheckBox chckbxBackup;
+    private final JCheckBox chckbxBackup;
     /** Combo box for selecting the merge mode. */
     private JComboBox<MergeOptions> cbbxMergeMode;
     /** Combo box for selecting the compression format. */

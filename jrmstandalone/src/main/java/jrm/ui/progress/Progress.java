@@ -66,7 +66,7 @@ public class Progress extends JDialog {
     private static final Color colorNormal = SystemColor.control;
 
     /** The main panel containing all progress controls. */
-    private JPanel panel;
+    private final JPanel panel;
 
     /** Array of info labels for displaying primary status messages. */
     private JLabel[] lblInfo;
@@ -247,11 +247,11 @@ public class Progress extends JDialog {
         lblSubInfo = new JLabel[lblSubInfoCnt];
 
         for (int i = 0; i < threadCnt; i++) {
-            lblInfo[i] = buildLabel((i % 2) != 0 ? colorNormal : colorLight);
+            lblInfo[i] = buildLabel(rowColor(i));
             panel.add(lblInfo[i]);
 
             if (Boolean.TRUE.equals(multipleSubInfos)) {
-                lblSubInfo[i] = buildLabel((i % 2) != 0 ? colorNormal : colorLight);
+                lblSubInfo[i] = buildLabel(rowColor(i));
                 panel.add(lblSubInfo[i]);
             }
         }
@@ -283,16 +283,26 @@ public class Progress extends JDialog {
             lblSubInfo = Arrays.copyOf(lblSubInfo, threadCnt);
 
         for (int i = oldThreadCnt; i < threadCnt; i++) {
-            lblInfo[i] = buildLabel((i % 2) != 0 ? colorNormal : colorLight);
+            lblInfo[i] = buildLabel(rowColor(i));
             panel.add(lblInfo[i]);
 
             if (Boolean.TRUE.equals(multipleSubInfos)) {
-                lblSubInfo[i] = buildLabel((i % 2) != 0 ? colorNormal : colorLight);
+                lblSubInfo[i] = buildLabel(rowColor(i));
                 panel.add(lblSubInfo[i]);
             }
         }
 
         packHeight();
+    }
+
+    /**
+     * Returns the alternating row background color for a thread index.
+     *
+     * @param i the thread index
+     * @return {@code colorLight} for even rows, {@code colorNormal} for odd rows
+     */
+    private static Color rowColor(int i) {
+        return (i % 2) == 0 ? colorLight : colorNormal;
     }
 
     /**

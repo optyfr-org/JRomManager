@@ -17,7 +17,7 @@ import jrm.security.Session;
 public class SettingsPanel extends JPanel {
 
     /** The tabbed pane holding settings sub-panels. */
-    private JTabbedPane settingsPane;
+    private final JTabbedPane settingsPane;
 
     /**
      * Constructs the settings panel.

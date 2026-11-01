@@ -43,7 +43,7 @@ public class JSDRDropTable extends JTable implements DropTargetListener, ResultC
     /**
      * The model from {@link JTable#getModel()} to avoid cast to {@link SDRTableModel} each time.
      */
-    private transient SDRTableModel model;
+    private final transient SDRTableModel model;
 
     /** The callback invoked when data changes. */
     private final transient AddDelCallBack addCallBack;

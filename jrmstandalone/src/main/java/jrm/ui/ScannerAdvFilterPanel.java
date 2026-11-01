@@ -69,13 +69,13 @@ public class ScannerAdvFilterPanel extends JPanel {
     private static final String MATURE = "* Mature *";
 
     /** Checkbox list for filtering by number of players. */
-    private JCheckBoxList<NPlayer> listNPlayers;
+    private final JCheckBoxList<NPlayer> listNPlayers;
     /** Text field for the CatVer data file path. */
-    private JFileDropTextField tfCatVer;
+    private final JFileDropTextField tfCatVer;
     /** Text field for the NPlayers data file path. */
-    private JFileDropTextField tfNPlayers;
+    private final JFileDropTextField tfNPlayers;
     /** Checkbox tree for selecting CatVer categories. */
-    private JCheckBoxTree treeCatVer;
+    private final JCheckBoxTree treeCatVer;
 
     /**
      * Constructs the advanced filters panel.

@@ -35,19 +35,19 @@ import jrm.ui.MainFrame;
 public final class AnywareRenderer {
 
     /** The Constant columns. */
-    protected static final String[] columns = new String[] { Messages.getString("AnywareRenderer.Status"), Messages.getString("AnywareRenderer.Name"), //$NON-NLS-1$ //$NON-NLS-2$
+    protected static final String[] columns = { Messages.getString("AnywareRenderer.Status"), Messages.getString("AnywareRenderer.Name"), //$NON-NLS-1$ //$NON-NLS-2$
             Messages.getString("AnywareRenderer.Size"), Messages.getString("AnywareRenderer.CRC"), Messages.getString("AnywareRenderer.MD5"), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             Messages.getString("AnywareRenderer.SHA-1"), Messages.getString("AnywareRenderer.Merge"), Messages.getString("AnywareRenderer.DumpStatus") }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
     /** The Constant columnsTypes. */
-    protected static final Class<?>[] columnsTypes = new Class<?>[] { Object.class, Object.class, Long.class, String.class, String.class, String.class, String.class,
+    protected static final Class<?>[] columnsTypes = { Object.class, Object.class, Long.class, String.class, String.class, String.class, String.class,
             Object.class };
 
     /** The Constant columnsWidths. */
-    protected static final int[] columnsWidths = new int[] { -3, 256, -12, -10, -34, -42, 100, -3 };
+    protected static final int[] columnsWidths = { -3, 256, -12, -10, -34, -42, 100, -3 };
 
     /** The Constant columnsRenderers. */
-    protected static final TableCellRenderer[] columnsRenderers = new TableCellRenderer[] {
+    protected static final TableCellRenderer[] columnsRenderers = {
             new DefaultTableCellRenderer() {
                 ImageIcon bulletGreen = MainFrame.getIcon("/jrm/resicons/icons/bullet_green.png"); //$NON-NLS-1$
                 ImageIcon bulletRed = MainFrame.getIcon("/jrm/resicons/icons/bullet_red.png"); //$NON-NLS-1$

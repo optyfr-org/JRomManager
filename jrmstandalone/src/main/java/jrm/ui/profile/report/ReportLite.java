@@ -26,7 +26,7 @@ import jrm.security.Session;
  */
 public class ReportLite extends JDialog {
     /** The parent window that opened this dialog. */
-    private Window parentWindow;
+    private final Window parentWindow;
 
     /**
      * Constructs the lightweight report dialog.

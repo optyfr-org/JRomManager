@@ -18,7 +18,7 @@ import jrm.ui.basic.AbstractEnhTableModel;
  */
 public class AnywareModel extends AbstractEnhTableModel {
     /** The underlying anyware whose entities are displayed. */
-    private Anyware anyware;
+    private final Anyware anyware;
 
     /**
      * Constructs a new anyware model.

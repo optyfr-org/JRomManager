@@ -63,20 +63,20 @@ import jrm.ui.progress.SwingWorkerProgress;
  * Provides controls for compressing ROM sets using various compression formats.
  */
 public class BatchCompressorPanel extends JPanel implements StatusRendererFactory {
-    private BatchCompressorTable table;
-    private JCheckBox chckbxForce;
-    private JComboBox<CompressorFormat> comboBox;
-    private JButton btnClear;
-    private JPopupMenu popupMenu;
-    private JMenuItem mntmAddArchive;
-    private JMenuItem mntmRemoveSelectedArchives;
+    private final BatchCompressorTable table;
+    private final JCheckBox chckbxForce;
+    private final JComboBox<CompressorFormat> comboBox;
+    private final JButton btnClear;
+    private final JPopupMenu popupMenu;
+    private final JMenuItem mntmAddArchive;
+    private final JMenuItem mntmRemoveSelectedArchives;
 
     static class BatchCompressorTableModel extends AbstractEnhTableModel {
 
         private List<FileResult> data = new ArrayList<>();
-        private final String[] columnNames = new String[] { Messages.getString("BatchCompressorPanel.File"), Messages.getString("BatchCompressorPanel.Status") }; //$NON-NLS-1$ //$NON-NLS-2$
-        private final Class<?>[] columnTypes = new Class<?>[] { Object.class, String.class };
-        private final TableCellRenderer[] cellRenderers = new TableCellRenderer[] { new FileCellRenderer(), new StatusCellRenderer() };
+        private final String[] columnNames = { Messages.getString("BatchCompressorPanel.File"), Messages.getString("BatchCompressorPanel.Status") }; //$NON-NLS-1$ //$NON-NLS-2$
+        private final Class<?>[] columnTypes = { Object.class, String.class };
+        private final TableCellRenderer[] cellRenderers = { new FileCellRenderer(), new StatusCellRenderer() };
         private final int[] widths = { 0, 0 };
         private final String[] headersTT = columnNames;
 
@@ -156,8 +156,8 @@ public class BatchCompressorPanel extends JPanel implements StatusRendererFactor
     }
 
     static class BatchCompressorTable extends JTable implements DropTargetListener {
-        private transient BatchCompressorTableModel model;
-        private transient Color color;
+        private final transient BatchCompressorTableModel model;
+        private final transient Color color;
 
         /** The add call back. */
         private final transient AddCallBack callback;
@@ -225,7 +225,7 @@ public class BatchCompressorPanel extends JPanel implements StatusRendererFactor
                 if (transferable.isDataFlavorSupported(DataFlavor.javaFileListFlavor)) {
                     dtde.acceptDrop(DnDConstants.ACTION_COPY);
 
-                    final String[] extensions = new String[] { "zip", "7z", "rar", "arj", "tar", "lzh", "lha", "tgz", "tbz", "tbz2", "rpm", "iso", "deb", "cab" };
+                    final String[] extensions = { "zip", "7z", "rar", "arj", "tar", "lzh", "lha", "tgz", "tbz", "tbz2", "rpm", "iso", "deb", "cab" };
 
                     FileFilter filter = pathname -> pathname.isDirectory() || FilenameUtils.isExtension(pathname.getName(), extensions);
 
@@ -320,7 +320,7 @@ public class BatchCompressorPanel extends JPanel implements StatusRendererFactor
 
         mntmAddArchive = new JMenuItem(Messages.getString("BatchCompressorPanel.mntmAddArchive.text")); //$NON-NLS-1$
         mntmAddArchive.addActionListener(_ -> {
-            final String[] extensions = new String[] { "zip", "7z", "rar", "arj", "tar", "lzh", "lha", "tgz", "tbz", "tbz2", "rpm", "iso", "deb", "cab" };
+            final String[] extensions = { "zip", "7z", "rar", "arj", "tar", "lzh", "lha", "tgz", "tbz", "tbz2", "rpm", "iso", "deb", "cab" };
             new JRMFileChooser<Void>(JFileChooser.OPEN_DIALOG, JFileChooser.FILES_AND_DIRECTORIES, null, null, Collections.singletonList(getFileFilter(extensions)),
                     Messages.getString("BatchCompressorPanel.mntmAddArchive.text"), true).showOpen(SwingUtilities.windowForComponent(BatchCompressorPanel.this), chooser -> {
                         File[] files = chooser.getSelectedFiles();

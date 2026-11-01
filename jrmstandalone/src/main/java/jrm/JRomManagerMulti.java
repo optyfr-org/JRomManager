@@ -25,7 +25,7 @@ public final class JRomManagerMulti {
      *
      * @param args command-line arguments (ignored; multi-user and no-update flags are always applied)
      */
-    public static void main(final String[] args) {
+    public static void main(final String[] args) { // NOSONAR - JVM entry-point signature is fixed; args intentionally ignored
         JRomManager.main(new String[] { "--multiuser", "--noupdate" });
     }
 }

@@ -87,7 +87,7 @@ public class CatVerNode extends AbstractNGTreeNode {
     @Override
     public Enumeration<CategoryNode> children() {
         return new Enumeration<CategoryNode>() {
-            private Iterator<Category> iterator = catver.getListCategories().iterator();
+            private final Iterator<Category> iterator = catver.getListCategories().iterator();
 
             @Override
             public boolean hasMoreElements() {
@@ -163,7 +163,7 @@ public class CatVerNode extends AbstractNGTreeNode {
         @Override
         public Enumeration<SubCategoryNode> children() {
             return new Enumeration<SubCategoryNode>() {
-                private Iterator<SubCategory> iterator = category.getListSubCategories().iterator();
+                private final Iterator<SubCategory> iterator = category.getListSubCategories().iterator();
 
                 @Override
                 public SubCategoryNode nextElement() {

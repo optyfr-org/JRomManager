@@ -18,7 +18,7 @@ import lombok.Getter;
  * Provides a hierarchical view of torrent check results with cached child nodes.
  */
 public class BatchTrrntChkReportNode extends ReportNodeGeneric<TrntChkReport> {
-    private Map<Long, ChildNode> nodeCache = new HashMap<>();
+    private final Map<Long, ChildNode> nodeCache = new HashMap<>();
 
     public BatchTrrntChkReportNode(final TrntChkReport report) {
         super(report);

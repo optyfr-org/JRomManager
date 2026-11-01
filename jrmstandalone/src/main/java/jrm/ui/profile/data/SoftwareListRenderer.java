@@ -30,18 +30,18 @@ import lombok.RequiredArgsConstructor;
  */
 public final class SoftwareListRenderer {
     /** The Constant columns. */
-    protected static final String[] columns = new String[] { Messages.getString("SoftwareListRenderer.Status"), Messages.getString("SoftwareListRenderer.Name"), //$NON-NLS-1$ //$NON-NLS-2$
+    protected static final String[] columns = { Messages.getString("SoftwareListRenderer.Status"), Messages.getString("SoftwareListRenderer.Name"), //$NON-NLS-1$ //$NON-NLS-2$
             Messages.getString("SoftwareListRenderer.Description"), Messages.getString("SoftwareListRenderer.Have"), Messages.getString("SoftwareListRenderer.CloneOf"), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             Messages.getString("SoftwareListRenderer.Selected") }; //$NON-NLS-1$
 
     /** The Constant columnsTypes. */
-    protected static final Class<?>[] columnsTypes = new Class<?>[] { Object.class, Object.class, String.class, String.class, Object.class, Boolean.class };
+    protected static final Class<?>[] columnsTypes = { Object.class, Object.class, String.class, String.class, Object.class, Boolean.class };
 
     /** The Constant columnsWidths. */
-    protected static final int[] columnsWidths = new int[] { -20, 40, 200, -45, 40, -20 };
+    protected static final int[] columnsWidths = { -20, 40, 200, -45, 40, -20 };
 
     /** The Constant columnsRenderers. */
-    protected static final TableCellRenderer[] columnsRenderers = new TableCellRenderer[] { new SoftwareCellRenderer(false), new AnywareCellRenderer(), null,
+    protected static final TableCellRenderer[] columnsRenderers = { new SoftwareCellRenderer(false), new AnywareCellRenderer(), null,
             new CenteredTableCellRenderer(), new SoftwareCellRenderer(true), null };
 
     /**

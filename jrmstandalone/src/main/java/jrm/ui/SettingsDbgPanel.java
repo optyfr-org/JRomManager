@@ -34,13 +34,13 @@ public class SettingsDbgPanel extends JPanel {
     private static final String XX_MIB = "%.2f MiB";
 
     /** Combo box for selecting the log level. */
-    private JComboBox<Level> cbLogLevel;
+    private final JComboBox<Level> cbLogLevel;
     /** Label displaying current memory usage. */
-    private JLabel lblMemoryUsage;
+    private final JLabel lblMemoryUsage;
     /** Scheduler for periodic memory usage updates. */
     final transient ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     /** Available log levels for selection. */
-    final Level[] levels = new Level[] { Level.OFF, Level.SEVERE, Level.WARNING, Level.INFO, Level.CONFIG, Level.FINE, Level.FINER, Level.FINEST, Level.ALL };
+    final Level[] levels = { Level.OFF, Level.SEVERE, Level.WARNING, Level.INFO, Level.CONFIG, Level.FINE, Level.FINER, Level.FINEST, Level.ALL };
 
     /**
      * Constructs the debug settings panel.

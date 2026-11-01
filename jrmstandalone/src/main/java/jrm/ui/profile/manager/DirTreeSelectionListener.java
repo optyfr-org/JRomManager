@@ -28,7 +28,7 @@ public class DirTreeSelectionListener implements TreeSelectionListener {
     JTable profilesList;
 
     /** The current security session for accessing profile data. */
-    private Session session;
+    private final Session session;
 
     /**
      * Instantiates a new dir tree selection listener.

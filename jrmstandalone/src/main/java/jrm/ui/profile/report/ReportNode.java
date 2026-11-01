@@ -53,7 +53,7 @@ public class ReportNode extends ReportNodeGeneric<Report> {
     @Override
     public Enumeration<SubjectNode> children() {
         return new Enumeration<SubjectNode>() {
-            private Iterator<Subject> iterator = report.getSubjects().iterator();
+            private final Iterator<Subject> iterator = report.getSubjects().iterator();
 
             @Override
             public boolean hasMoreElements() {
@@ -120,7 +120,7 @@ public class ReportNode extends ReportNodeGeneric<Report> {
         @Override
         public Enumeration<NoteNode> children() {
             return new Enumeration<NoteNode>() {
-                private Iterator<Note> iterator = subject.getNotes().iterator();
+                private final Iterator<Note> iterator = subject.getNotes().iterator();
 
                 @Override
                 public boolean hasMoreElements() {

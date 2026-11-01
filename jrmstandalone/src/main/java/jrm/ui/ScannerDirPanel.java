@@ -72,7 +72,7 @@ public class ScannerDirPanel extends JPanel {
     /** List of source directories to scan. */
     private JFileDropList listSrcDir;
     /** Context menu item to delete selected source directory entries. */
-    private JMenuItem mntmDeleteSelected;
+    private final JMenuItem mntmDeleteSelected;
     /** Text field for the disk destination directory. */
     private JFileDropTextField tfDisksDest;
     /** Text field for the samples destination directory. */

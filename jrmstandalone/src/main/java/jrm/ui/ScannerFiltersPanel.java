@@ -45,23 +45,23 @@ import jrm.ui.profile.data.YearsModel;
  */
 public class ScannerFiltersPanel extends JSplitPane {
     /** Combo box for filtering by driver status (good, imperfect, preliminary). */
-    private JComboBox<Driver.StatusType> cbbxDriverStatus;
+    private final JComboBox<Driver.StatusType> cbbxDriverStatus;
     /** Combo box for filtering by cabinet type (upright, cocktail, etc.). */
-    private JComboBox<CabinetType> cbbxFilterCabinetType;
+    private final JComboBox<CabinetType> cbbxFilterCabinetType;
     /** Combo box for filtering by display orientation (horizontal, vertical). */
-    private JComboBox<DisplayOrientation> cbbxFilterDisplayOrientation;
+    private final JComboBox<DisplayOrientation> cbbxFilterDisplayOrientation;
     /** Combo box for minimum software support level. */
-    private JComboBox<Supported> cbbxSWMinSupportedLvl;
+    private final JComboBox<Supported> cbbxSWMinSupportedLvl;
     /** Combo box for maximum year filter. */
-    private JComboBox<String> cbbxYearMax;
+    private final JComboBox<String> cbbxYearMax;
     /** Combo box for minimum year filter. */
-    private JComboBox<String> cbbxYearMin;
+    private final JComboBox<String> cbbxYearMin;
     /** Checkbox to include clone ROM sets in the scan. */
-    private JCheckBox chckbxIncludeClones;
+    private final JCheckBox chckbxIncludeClones;
     /** Checkbox to include disk images in the scan. */
-    private JCheckBox chckbxIncludeDisks;
+    private final JCheckBox chckbxIncludeDisks;
     /** Checkbox to include sample files in the scan. */
-    private JCheckBox chckbxIncludeSamples;
+    private final JCheckBox chckbxIncludeSamples;
     /** Checkbox list for selecting specific systems to scan. */
     JCheckBoxList<Systm> checkBoxListSystems;
     /** Checkbox list for selecting specific sources to scan. */

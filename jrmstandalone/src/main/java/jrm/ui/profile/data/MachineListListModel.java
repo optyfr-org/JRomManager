@@ -15,10 +15,10 @@ import jrm.profile.data.MachineListList;
  */
 public class MachineListListModel extends AnywareListListModel {
     /** The underlying machine list list data. */
-    private MachineListList machineListList;
+    private final MachineListList machineListList;
 
     /** The nested software list list model for displaying software lists. */
-    private SoftwareListListModel sllmodel;
+    private final SoftwareListListModel sllmodel;
 
     /**
      * Constructs a new machine list list model.

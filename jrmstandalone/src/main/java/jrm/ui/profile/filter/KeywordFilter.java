@@ -53,13 +53,13 @@ import jrm.ui.MainFrame;
 public class KeywordFilter extends JDialog {
 
     /** Source keyword list showing available keywords. */
-    private JList<String> keywordSrc;
+    private final JList<String> keywordSrc;
 
     /** Destination keyword list showing selected filter keywords. */
-    private JList<String> keywordDst;
+    private final JList<String> keywordDst;
 
     /** List model for the destination keyword list. */
-    private DefaultListModel<String> dstmodel = new DefaultListModel<>();
+    private final DefaultListModel<String> dstmodel = new DefaultListModel<>();
 
     /**
      * Instantiates a new keyword filter.
@@ -173,7 +173,7 @@ public class KeywordFilter extends JDialog {
     private static class StringMoveHandler extends TransferHandler {
 
         /** The object array flavor. */
-        private DataFlavor objectArrayFlavor = new ActivationDataFlavor(Object[].class, DataFlavor.javaJVMLocalObjectMimeType, "Array of items"); //$NON-NLS-1$
+        private final DataFlavor objectArrayFlavor = new ActivationDataFlavor(Object[].class, DataFlavor.javaJVMLocalObjectMimeType, "Array of items"); //$NON-NLS-1$
 
         /** The list. */
         // We'll be moving the strings of this list

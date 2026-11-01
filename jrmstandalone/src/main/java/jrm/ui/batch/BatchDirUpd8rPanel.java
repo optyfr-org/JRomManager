@@ -68,11 +68,11 @@ import one.util.streamex.StreamEx;
  */
 public class BatchDirUpd8rPanel extends JPanel {
     /** List of source DAT/XML files. */
-    private JFileDropList listBatchToolsDat2DirSrc;
+    private final JFileDropList listBatchToolsDat2DirSrc;
     /** Table for batch directory update results. */
-    private JSDRDropTable tableBatchToolsDat2Dir;
+    private final JSDRDropTable tableBatchToolsDat2Dir;
     /** Menu for DAT-to-directory presets. */
-    private JMenu mnDat2DirPresets;
+    private final JMenu mnDat2DirPresets;
     /** Position for popup menu. */
     private Point popupPoint;
 
@@ -356,7 +356,7 @@ public class BatchDirUpd8rPanel extends JPanel {
      */
     private void addSrcDir() {
         List<File> list = listBatchToolsDat2DirSrc.getSelectedValuesList();
-        new JRMFileChooser<Void>(JFileChooser.OPEN_DIALOG, JFileChooser.DIRECTORIES_ONLY, !list.isEmpty() ? list.get(0).getParentFile() : null, // currdir
+        new JRMFileChooser<Void>(JFileChooser.OPEN_DIALOG, JFileChooser.DIRECTORIES_ONLY, list.isEmpty() ? null : list.get(0).getParentFile(), // currdir
                 null, // selected
                 null, // filters
                 "Choose source directories", true).show(SwingUtilities.windowForComponent(BatchDirUpd8rPanel.this), chooser -> {

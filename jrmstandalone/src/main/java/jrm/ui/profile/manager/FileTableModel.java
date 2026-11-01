@@ -37,15 +37,15 @@ public class FileTableModel extends AbstractTableModel implements StatusRenderer
     private transient @Getter Dir currDir = null;
 
     /** Column headers for the profile table. */
-    private final String[] columns = new String[] { Messages.getString("FileTableModel.Profile"), Messages.getString("FileTableModel.Version"), //$NON-NLS-1$//$NON-NLS-2$
+    private final String[] columns = { Messages.getString("FileTableModel.Profile"), Messages.getString("FileTableModel.Version"), //$NON-NLS-1$//$NON-NLS-2$
             Messages.getString("FileTableModel.HaveSets"), Messages.getString("FileTableModel.HaveRoms"), Messages.getString("FileTableModel.HaveDisks"), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             Messages.getString("FileTableModel.Created"), Messages.getString("FileTableModel.Scanned"), Messages.getString("FileTableModel.Fixed") }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
     /** Data types for each column. */
-    private final Class<?>[] columnsClass = new Class<?>[] { Object.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class };
+    private final Class<?>[] columnsClass = { Object.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class };
 
     /** Preferred column widths for the table. */
-    protected static final @Getter int[] columnsWidths = new int[] { 100, 50, -14, -14, -9, -19, -19, -19 };
+    protected static final @Getter int[] columnsWidths = { 100, 50, -14, -14, -9, -19, -19, -19 };
 
     /** List of profile information objects for the current directory. */
     private transient List<ProfileNFO> rows;

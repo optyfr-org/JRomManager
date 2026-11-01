@@ -45,19 +45,19 @@ public final class MachineListRenderer {
     private static final ImageIcon folder_closed_gray = MainFrame.getIcon("/jrm/resicons/folder_closed_gray.png"); //$NON-NLS-1$
 
     /** The columns. */
-    protected static final String[] columns = new String[] { Messages.getString("MachineListRenderer.Status"), Messages.getString("MachineListRenderer.Name"), //$NON-NLS-1$ //$NON-NLS-2$
+    protected static final String[] columns = { Messages.getString("MachineListRenderer.Status"), Messages.getString("MachineListRenderer.Name"), //$NON-NLS-1$ //$NON-NLS-2$
             Messages.getString("MachineListRenderer.Description"), Messages.getString("MachineListRenderer.Have"), Messages.getString("MachineListRenderer.CloneOf"), //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
             Messages.getString("MachineListRenderer.RomOf"), Messages.getString("MachineListRenderer.SampleOf"), Messages.getString("MachineListRenderer.Selected") }; //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
 
     /** The columns types. */
-    protected static final Class<?>[] columnsTypes = new Class<?>[] { Object.class, Object.class, String.class, String.class, Object.class, Object.class, String.class,
+    protected static final Class<?>[] columnsTypes = { Object.class, Object.class, String.class, String.class, Object.class, Object.class, String.class,
             Boolean.class };
 
     /** The columns widths. */
-    protected static final int[] columnsWidths = new int[] { -20, 40, 200, -45, 40, 40, 40, -20 };
+    protected static final int[] columnsWidths = { -20, 40, 200, -45, 40, 40, 40, -20 };
 
     /** The columns renderers. */
-    protected static final TableCellRenderer[] columnsRenderers = new TableCellRenderer[] { new AnywareCellRenderer(), new MachineCellRenderer(), new ToolTipCellRenderer(),
+    protected static final TableCellRenderer[] columnsRenderers = { new AnywareCellRenderer(), new MachineCellRenderer(), new ToolTipCellRenderer(),
             new CenteredTableCellRenderer(), new AnywareCellRenderer(), new AnywareCellRenderer(), new SamplesCellRenderer(), null };
 
     /**

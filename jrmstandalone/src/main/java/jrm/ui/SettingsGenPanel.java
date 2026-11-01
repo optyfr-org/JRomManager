@@ -38,7 +38,7 @@ import lombok.RequiredArgsConstructor;
  */
 public class SettingsGenPanel extends JPanel {
     /** Combo box for selecting the threading mode. */
-    private JComboBox<ThreadCnt> cbThreading;
+    private final JComboBox<ThreadCnt> cbThreading;
 
     /** Scheduler for periodic UI updates. */
     final transient ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);

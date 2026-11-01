@@ -26,7 +26,7 @@ public final class ScannerAutomationPanel extends JPanel {
     /** The profile settings instance for persisting automation preferences. */
     public transient ProfileSettings settings;
     /** Combo box for selecting the post-scan automation action. */
-    private JComboBox<ScanAutomation> comboBox;
+    private final JComboBox<ScanAutomation> comboBox;
 
     /**
      * Constructs the scanner automation panel.

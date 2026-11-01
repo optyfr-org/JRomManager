@@ -26,7 +26,7 @@ import jrm.ui.profile.report.ReportLite;
  */
 public class BatchDirUpdResultsView extends JScrollPane {
     private static class ColorRenderer extends DefaultTableCellRenderer {
-        private Color color;
+        private final Color color;
 
         public ColorRenderer(Color color) {
             this.color = color;
@@ -41,7 +41,7 @@ public class BatchDirUpdResultsView extends JScrollPane {
 
     private final class BatchDirUpdResultsViewModel implements EnhTableModel {
         private final DirUpdaterResults results;
-        private JTableButton buttons = new JTableButton();
+        private final JTableButton buttons = new JTableButton();
         private final String[] headers = { "DAT/XML", "Have", "Create", "Fix", "Miss", "Total", "Report" };
         private final Class<?>[] types = { String.class, String.class, String.class, String.class, String.class, String.class, String.class };
         private final int[] widths = { 400, 40, 40, 40, 40, 40, -70 };
@@ -143,7 +143,7 @@ public class BatchDirUpdResultsView extends JScrollPane {
         }
     }
 
-    private JTable table;
+    private final JTable table;
 
     /**
      * Create the panel.

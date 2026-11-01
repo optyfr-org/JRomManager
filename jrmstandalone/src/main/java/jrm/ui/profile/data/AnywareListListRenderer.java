@@ -31,17 +31,17 @@ import jrm.ui.basic.CenteredTableCellRenderer;
 public final class AnywareListListRenderer {
 
     /** The Constant columns. */
-    protected static final String[] columns = new String[] { Messages.getString("SoftwareListListRenderer.Name"), Messages.getString("SoftwareListListRenderer.Description"), //$NON-NLS-1$ //$NON-NLS-2$
+    protected static final String[] columns = { Messages.getString("SoftwareListListRenderer.Name"), Messages.getString("SoftwareListListRenderer.Description"), //$NON-NLS-1$ //$NON-NLS-2$
             Messages.getString("SoftwareListListRenderer.Have") }; //$NON-NLS-1$
 
     /** The Constant columnsTypes. */
-    protected static final Class<?>[] columnsTypes = new Class<?>[] { Object.class, String.class, String.class };
+    protected static final Class<?>[] columnsTypes = { Object.class, String.class, String.class };
 
     /** The Constant columnsWidths. */
-    protected static final int[] columnsWidths = new int[] { 70, 150, -80 };
+    protected static final int[] columnsWidths = { 70, 150, -80 };
 
     /** The Constant columnsRenderers. */
-    protected static final TableCellRenderer[] columnsRenderers = new TableCellRenderer[] { new DefaultTableCellRenderer() {
+    protected static final TableCellRenderer[] columnsRenderers = { new DefaultTableCellRenderer() {
         final ImageIcon diskMultipleGreen = MainFrame.getIcon("/jrm/resicons/disk_multiple_green.png"); //$NON-NLS-1$
         final ImageIcon diskMultipleOrange = MainFrame.getIcon("/jrm/resicons/disk_multiple_orange.png"); //$NON-NLS-1$
         final ImageIcon diskMultipleRed = MainFrame.getIcon("/jrm/resicons/disk_multiple_red.png"); //$NON-NLS-1$

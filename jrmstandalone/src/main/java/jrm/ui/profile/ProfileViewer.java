@@ -102,14 +102,14 @@ public class ProfileViewer extends JDialog {
     private static final String PROFILE_VIEWER_ERROR = "ProfileViewer.Error";
 
     /** Table for displaying entities (machines/software). */
-    private JTable tableEntity;
+    private final JTable tableEntity;
     /** Table for displaying software lists. */
-    private JTable tableW;
+    private final JTable tableW;
     /** Table for displaying anyware lists. */
-    private JTable tableWL;
+    private final JTable tableWL;
 
     /** Text field for searching/filtering the displayed data. */
-    private JTextField txtSearch;
+    private final JTextField txtSearch;
 
     /**
      * Constructs a new profile viewer dialog.

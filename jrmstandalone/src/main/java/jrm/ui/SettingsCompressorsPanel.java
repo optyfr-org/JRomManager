@@ -42,23 +42,23 @@ import jrm.ui.basic.JTextFieldHintUI;
  */
 public class SettingsCompressorsPanel extends JPanel {
     /** Combo box for 7-Zip command options. */
-    private JComboBox<SevenZipOptions> cb7zArgs;
+    private final JComboBox<SevenZipOptions> cb7zArgs;
     /** Combo box for ZIP command options. */
-    private JComboBox<ZipOptions> cbZipEArgs;
+    private final JComboBox<ZipOptions> cbZipEArgs;
     /** Checkbox to enable 7-Zip solid archives. */
-    private JCheckBox ckbx7zSolid;
+    private final JCheckBox ckbx7zSolid;
     /** Text field for the 7-Zip command path. */
-    private JFileDropTextField tf7zCmd;
+    private final JFileDropTextField tf7zCmd;
     /** Text field for the 7-Zip thread count. */
-    private JTextField tf7zThreads;
+    private final JTextField tf7zThreads;
     /** Text field for the ZIP command path. */
-    private JFileDropTextField tfZipECmd;
+    private final JFileDropTextField tfZipECmd;
     /** Text field for the ZIP thread count. */
-    private JTextField tfZipEThreads;
+    private final JTextField tfZipEThreads;
     /** Combo box for ZIP compression level. */
-    private JComboBox<ZipLevel> cbbxZipLevel;
+    private final JComboBox<ZipLevel> cbbxZipLevel;
     /** Combo box for ZIP temporary file threshold. */
-    private JComboBox<ZipTempThreshold> cbbxZipTempThreshold;
+    private final JComboBox<ZipTempThreshold> cbbxZipTempThreshold;
 
     /**
      * Constructs the compressors settings panel.

@@ -38,9 +38,9 @@ public class JTableButton extends AbstractCellEditor implements TableCellEditor,
     }
 
     /** The list of registered button press handlers. */
-    private transient List<TableButtonPressedHandler> handlers;
+    private final transient List<TableButtonPressedHandler> handlers;
     /** The map of row indices to their corresponding button instances. */
-    private Map<Integer, JButton> buttons;
+    private final Map<Integer, JButton> buttons;
 
     /**
      * Constructs a new table button cell editor/renderer.

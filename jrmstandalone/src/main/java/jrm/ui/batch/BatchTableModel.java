@@ -57,7 +57,7 @@ public class BatchTableModel extends SDRTableModel {
         buttons.addHandler(buttonHandler);
     }
 
-    private JTableButton buttons = new JTableButton();
+    private final JTableButton buttons = new JTableButton();
 
     private final TableCellRenderer[] cellRenderers = { new FileCellRenderer(), new FCellRenderer(), new StatusCellRenderer(), buttons, null };
 

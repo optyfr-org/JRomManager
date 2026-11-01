@@ -73,7 +73,7 @@ public class MainFrame extends JFrame implements Popup {
     private ProfilePanel profilesPanel;
 
     /** The user session associated with this frame. */
-    private transient Session session;
+    private final transient Session session;
 
     /**
      * Constructs the main application frame.

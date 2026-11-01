@@ -17,7 +17,7 @@ import jrm.profile.data.SoftwareList;
  */
 public class SoftwareListModel extends AnywareListModel<Software> {
     /** The underlying software list data. */
-    private SoftwareList softwareList;
+    private final SoftwareList softwareList;
 
     /**
      * Constructs a new software list model.

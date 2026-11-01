@@ -18,6 +18,7 @@ import java.util.Collections;
 import java.util.EventListener;
 import java.util.EventObject;
 import java.util.IdentityHashMap;
+import java.util.Set;
 
 import javax.swing.JPanel;
 import javax.swing.JTree;
@@ -336,16 +337,18 @@ public class JCheckBoxTree extends JTree {
         final var stack = new ArrayDeque<CheckFrame>();
         final var seen = Collections.newSetFromMap(new IdentityHashMap<NGTreeNode, Boolean>());
         stack.push(new CheckFrame((NGTreeNode) tp.getLastPathComponent(), 0));
-        while (!stack.isEmpty()) {
-            final var frame = stack.pop();
-            if (frame.node == null || !seen.add(frame.node))
-                continue;
-            frame.node.setSelected(check);
-            if (frame.depth + 1 >= MAX_TREE_DEPTH)
-                continue;
-            for (int i = frame.node.getChildCount() - 1; i >= 0; i--)
-                stack.push(new CheckFrame((NGTreeNode) frame.node.getChildAt(i), frame.depth + 1));
-        }
+        while (!stack.isEmpty())
+            visitCheckFrame(stack.pop(), stack, seen, check);
+    }
+
+    private static void visitCheckFrame(final CheckFrame frame, final ArrayDeque<CheckFrame> stack, final Set<NGTreeNode> seen, final boolean check) {
+        if (frame.node == null || !seen.add(frame.node))
+            return;
+        frame.node.setSelected(check);
+        if (frame.depth + 1 >= MAX_TREE_DEPTH)
+            return;
+        for (int i = frame.node.getChildCount() - 1; i >= 0; i--)
+            stack.push(new CheckFrame((NGTreeNode) frame.node.getChildAt(i), frame.depth + 1));
     }
 
     private record CheckFrame(NGTreeNode node, int depth) {

@@ -77,31 +77,31 @@ public class ProfilePanel extends JPanel {
     private static final String MAIN_FRAME_MNTM_UPDATE_FROM_MAME_TEXT = "MainFrame.mntmUpdateFromMame.text";
 
     /** Menu item for creating a new folder in the directory tree. */
-    private JMenuItem mntmCreateFolder;
+    private final JMenuItem mntmCreateFolder;
 
     /** Menu item for deleting the selected folder from the directory tree. */
-    private JMenuItem mntmDeleteFolder;
+    private final JMenuItem mntmDeleteFolder;
 
     /** Menu item for deleting the selected profile. */
-    private JMenuItem mntmDeleteProfile;
+    private final JMenuItem mntmDeleteProfile;
 
     /** Menu item for dropping the profile cache file. */
-    private JMenuItem mntmDropCache;
+    private final JMenuItem mntmDropCache;
 
     /** Menu item for renaming the selected profile. */
-    private JMenuItem mntmRenameProfile;
+    private final JMenuItem mntmRenameProfile;
 
     /** Menu item for updating the profile from MAME. */
-    private JMenuItem mntmUpdateFromMame;
+    private final JMenuItem mntmUpdateFromMame;
 
     /** Table displaying profile files in the selected directory. */
-    private JTable profilesList;
+    private final JTable profilesList;
 
     /** Scroll pane containing the directory tree. */
-    private JScrollPane scrollPaneTree;
+    private final JScrollPane scrollPaneTree;
 
     /** Tree displaying the directory structure for profile files. */
-    private JTree profilesTree;
+    private final JTree profilesTree;
 
     /** Callback interface for loading profiles into the UI. */
     private transient ProfileLoader profileLoader;
@@ -587,35 +587,73 @@ public class ProfilePanel extends JPanel {
     private void importDat(final Session session, final boolean sl, List<Import> imprts) throws HeadlessException, IllegalArgumentException {
         var rejected = 0;
         for (final var imprt : imprts) {
-            if (imprt.getFile() == null) {
+            if (importSingleDat(session, sl, imprt))
                 rejected++;
-                continue;
-            }
-            if (!imprt.isMame()) {
-                final var currDir = ((FileTableModel) profilesList.getModel()).getCurrDir().getFile();
-                var fileRef = new AtomicReference<File>(new File(currDir, imprt.getFile().getName()));
-                int mode = importDatExistsChoose(fileRef);
-                if (mode == 3)
-                    continue;
-                if (!fileRef.get().exists() || mode == 0) {
-                    ProfileDirIo.copyImportFile(imprt, fileRef.get());
-                    ((FileTableModel) profilesList.getModel()).populate(session);
-                }
-            }
-            final var workdir = session.getUser().getSettings().getWorkPath().toFile(); // $NON-NLS-1$
-            final var xmldir = new File(workdir, "xmlfiles"); //$NON-NLS-1$
-            new JRMFileChooser<Void>(new OneRootFileSystemView(xmldir))
-                    .setup(JFileChooser.SAVE_DIALOG, JFileChooser.FILES_ONLY, null, new File(xmldir, imprt.getFile().getName()),
-                            Collections.singletonList(new FileNameExtensionFilter(Messages.getString("MainFrame.DatFile"), "dat", "xml", "jrm")),
-                            Messages.getString("MainFrame.ChooseFileName"), false)
-                    .show(SwingUtilities.getWindowAncestor(ProfilePanel.this), chooser1 -> importDat(session, sl, imprt, chooser1.getSelectedFile()));
         }
         if (rejected > 0)
-            JOptionPane.showMessageDialog(ProfilePanel.this,
-                    rejected == 1
-                            ? "Could not import 1 selected file. Only DAT/XML files and native MAME/MESS executables are accepted."
-                            : "Could not import " + rejected + " selected files. Only DAT/XML files and native MAME/MESS executables are accepted.",
-                    Messages.getString("MainFrame.MameExecutable"), JOptionPane.WARNING_MESSAGE);
+            showRejectedWarning(rejected);
+    }
+
+    /**
+     * Imports a single DAT file: copies non-MAME imports into the current directory (honoring the exists-choice),
+     * then prompts for the final save location.
+     *
+     * @param session the current session
+     * @param sl true if importing a software list DAT, false for regular DAT
+     * @param imprt the import operation containing the DAT file
+     * @return {@code true} if the import was rejected (null file), {@code false} otherwise
+     * @throws HeadlessException if an operation requires a display that is not available
+     * @throws IllegalArgumentException if unable to generate a unique filename
+     */
+    private boolean importSingleDat(final Session session, final boolean sl, final Import imprt)
+            throws HeadlessException, IllegalArgumentException {
+        if (imprt.getFile() == null)
+            return true;
+        if (!imprt.isMame() && isImportCancelled(session, imprt))
+            return false;
+        final var workdir = session.getUser().getSettings().getWorkPath().toFile(); // $NON-NLS-1$
+        final var xmldir = new File(workdir, "xmlfiles"); //$NON-NLS-1$
+        new JRMFileChooser<Void>(new OneRootFileSystemView(xmldir))
+                .setup(JFileChooser.SAVE_DIALOG, JFileChooser.FILES_ONLY, null, new File(xmldir, imprt.getFile().getName()),
+                        Collections.singletonList(new FileNameExtensionFilter(Messages.getString("MainFrame.DatFile"), "dat", "xml", "jrm")),
+                        Messages.getString("MainFrame.ChooseFileName"), false)
+                .show(SwingUtilities.getWindowAncestor(ProfilePanel.this), chooser1 -> importDat(session, sl, imprt, chooser1.getSelectedFile()));
+        return false;
+    }
+
+    /**
+     * Copies a non-MAME import into the current directory, honoring the exists-choice dialog.
+     *
+     * @param session the current session
+     * @param imprt the import operation containing the DAT file
+     * @return {@code true} if the user cancelled (mode 3), {@code false} otherwise
+     * @throws HeadlessException if an operation requires a display that is not available
+     * @throws IllegalArgumentException if unable to generate a unique filename
+     */
+    private boolean isImportCancelled(final Session session, final Import imprt) throws HeadlessException, IllegalArgumentException {
+        final var currDir = ((FileTableModel) profilesList.getModel()).getCurrDir().getFile();
+        var fileRef = new AtomicReference<File>(new File(currDir, imprt.getFile().getName()));
+        int mode = importDatExistsChoose(fileRef);
+        if (mode == 3)
+            return true;
+        if (!fileRef.get().exists() || mode == 0) {
+            ProfileDirIo.copyImportFile(imprt, fileRef.get());
+            ((FileTableModel) profilesList.getModel()).populate(session);
+        }
+        return false;
+    }
+
+    /**
+     * Warns about rejected import files.
+     *
+     * @param rejected the number of rejected files
+     */
+    private void showRejectedWarning(final int rejected) {
+        JOptionPane.showMessageDialog(ProfilePanel.this,
+                rejected == 1
+                        ? "Could not import 1 selected file. Only DAT/XML files and native MAME/MESS executables are accepted."
+                        : "Could not import " + rejected + " selected files. Only DAT/XML files and native MAME/MESS executables are accepted.",
+                Messages.getString("MainFrame.MameExecutable"), JOptionPane.WARNING_MESSAGE);
     }
 
     private static final class ImportDatFileFilter extends FileFilter {
