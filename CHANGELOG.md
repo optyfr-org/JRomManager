@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+
+### Changed
+
+### Fixed
+
+### Security
+
+## [4.0.0-beta.1]
+### Added
 - Java FX interface is now fully compliant with variable font size and has now a setting for choosing a font size from XXS to XXL, the interface will dynamically accomodate as soon as the setting is changed
 - GraalVM native binaries for the CLI (`jrmcli`), the JavaFX desktop (`jrmfx`), the server (`jrmserver`) and the full server (`jrmfullserver`): instant startup with no JVM installation required
 - Native installers built per role with jpackage: Servers (FullServer + Server + CLI + bundled web client) and Desktop (JavaFX GUI), as MSI on Windows, DEB/RPM on Linux and DMG on macOS (unsigned)
@@ -22,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Full server HTTPS now uses the Jetty Java ALPN provider; the Conscrypt/OpenSSL dependency is gone
 - Third-party SevenZip and Jtrrntzip artifacts are fetched from JitPack, so dependency resolution no longer needs a GitHub token; BouncyCastle migrated to the `jdk18on` artifacts
 - All dependency versions are centralized in `gradle/libs.versions.toml` with dependency locking and verification metadata (reproducible builds; drift is reported as warnings, not errors), plus `refresh-locks` and `update-verification-metadata` helper scripts
-- Toolchain upgrades: Java 25, Gradle 9.x, Jetty 12.1.12
+- Toolchain upgrades: Java 25, Gradle 9.x, Jetty 12.1.13
 - CLI: piped stdin is streamed directly without a missing-terminal warning, and backspace works on Git Bash/MSYS2
 - Packaged launchers allow unsafe memory access (no more Fory `Unsafe` warning) and prefer the bundled terminfo database
 - Packaged launchers no longer pass `--add-opens` JVM flags: Fory serialization works without them on JDK 25, and the JavaFX control-skin access was already guarded in code
@@ -582,7 +591,8 @@ dir but one is not present (should be green)
 Initial release
 
 
-[Unreleased]: https://github.com/optyfr/JRomManager/compare/3.0.5...HEAD
+[Unreleased]: https://github.com/optyfr/JRomManager/compare/4.0.0-beta.1...HEAD
+[4.0.0-beta.1]: https://github.com/optyfr/JRomManager/compare/3.0.5...4.0.0-beta.1
 [3.0.5]: https://github.com/optyfr/JRomManager/compare/3.0.4...3.0.5
 [3.0.4]: https://github.com/optyfr/JRomManager/compare/3.0.3...3.0.4
 [3.0.3]: https://github.com/optyfr/JRomManager/compare/3.0.2...3.0.3
