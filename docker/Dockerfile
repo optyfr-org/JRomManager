@@ -18,9 +18,9 @@ RUN ["java", "--enable-native-access=ALL-UNNAMED", "-XX:AOTCacheOutput=/train/JR
 #FROM dhi.io/eclipse-temurin:25-alpine
 FROM dhi.io/eclipse-temurin@sha256:8994131351999f5bb8d54917d3d5ea9db503ab587724a56a5674bba9283d4d17
 
-LABEL org.opencontainers.image.title "JRomManager"
-LABEL org.opencontainers.image.description "Docker image of JRomManager (with JRE 25)"
-LABEL org.opencontainers.image.source "https://github.com/optyfr/JRomManager"
+LABEL org.opencontainers.image.title="JRomManager"
+LABEL org.opencontainers.image.description="Docker image of JRomManager (with JRE 25)"
+LABEL org.opencontainers.image.source="https://github.com/optyfr/JRomManager"
 
 WORKDIR /app
 
