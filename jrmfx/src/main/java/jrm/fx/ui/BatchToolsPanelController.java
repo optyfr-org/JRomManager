@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -1407,17 +1408,17 @@ public class BatchToolsPanelController extends BaseController {
          * @throws URISyntaxException if the URI syntax is invalid
          */
         public CustomPresets(Stage parent) throws IOException, URISyntaxException {
+            this(requireOwner(parent), requireFxmlUrl());
+        }
+
+        private CustomPresets(Stage parent, URL fxmlUrl) throws IOException, URISyntaxException {
             super();
             initOwner(parent);
             initModality(Modality.WINDOW_MODAL);
-            getIcons().add(parent.getIcons().get(0));
-            setOnShowing(_ -> {
-            });
+            if (!parent.getIcons().isEmpty())
+                getIcons().add(parent.getIcons().get(0));
             setOnCloseRequest(_ -> hide());
-            final var resource = BatchToolsPanelController.class.getResource("ScannerPanelSettings.fxml");
-            if (resource == null)
-                throw new IOException("Missing resource: ScannerPanelSettings.fxml");
-            final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
+            final var loader = new FXMLLoader(fxmlUrl.toURI().toURL(), Messages.getBundle());
             final var settings = loader.<ScrollPane>load();
             controller = loader.getController();
             final var root = new BorderPane(settings);
@@ -1437,6 +1438,17 @@ public class BatchToolsPanelController extends BaseController {
             controller.initProfileSettings(session.getUser().getSettings().loadProfileSettings(PathAbstractor.getAbsolutePath(session, entry.getSrc()).toFile(), null));
 
             show();
+        }
+
+        private static Stage requireOwner(final Stage parent) {
+            return Objects.requireNonNull(parent, "parent");
+        }
+
+        private static URL requireFxmlUrl() throws IOException {
+            final var resource = BatchToolsPanelController.class.getResource("ScannerPanelSettings.fxml");
+            if (resource == null)
+                throw new IOException("Missing resource: ScannerPanelSettings.fxml");
+            return resource;
         }
 
         /**

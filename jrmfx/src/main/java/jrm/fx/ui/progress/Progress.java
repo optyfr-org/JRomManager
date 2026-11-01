@@ -2,6 +2,8 @@ package jrm.fx.ui.progress;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Objects;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.layout.GridPane;
@@ -36,20 +38,33 @@ public class Progress extends Stage {
      * @throws URISyntaxException if the FXML resource URI is invalid
      */
     public Progress(Stage parent, ProgressTask<?> task) throws IOException, URISyntaxException {
+        this(requireOwner(parent), requireFxmlUrl(), Objects.requireNonNull(task, "task"));
+    }
+
+    private Progress(Stage parent, URL fxmlUrl, ProgressTask<?> task) throws IOException, URISyntaxException {
         super();
         initOwner(parent);
         initModality(Modality.WINDOW_MODAL);
-        getIcons().add(parent.getIcons().get(0));
+        if (!parent.getIcons().isEmpty())
+            getIcons().add(parent.getIcons().get(0));
         setOnCloseRequest(_ -> hide());
-        final var resource = Progress.class.getResource("Progress.fxml");
-        if (resource == null)
-            throw new IOException("Missing resource: Progress.fxml");
-        final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
+        final var loader = new FXMLLoader(fxmlUrl.toURI().toURL(), Messages.getBundle());
         final var root = loader.<GridPane>load();
         controller = loader.getController();
         controller.setTask(task);
         setScene(new JRMScene(root));
         sizeToScene();
         show();
+    }
+
+    private static Stage requireOwner(final Stage parent) {
+        return Objects.requireNonNull(parent, "parent");
+    }
+
+    private static URL requireFxmlUrl() throws IOException {
+        final var resource = Progress.class.getResource("Progress.fxml");
+        if (resource == null)
+            throw new IOException("Missing resource: Progress.fxml");
+        return resource;
     }
 }

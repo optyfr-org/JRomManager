@@ -61,7 +61,7 @@ public class JRMScene extends Scene {
         style_sheet(StyleSheet.SYSTEM); // NOSONAR
 
         /** The default value. */
-        private Object deflt;
+        private final Object deflt;
 
         private ScenePrefs(Object deflt) {
             this.deflt = deflt;

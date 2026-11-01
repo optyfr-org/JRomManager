@@ -2,6 +2,8 @@ package jrm.fx.ui.profile;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Objects;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -30,10 +32,10 @@ import lombok.Getter;
  */
 public class ProfileViewer extends Stage {
     /** The profile viewer controller. */
-    private ProfileViewerController controller;
+    private final ProfileViewerController controller;
 
     /** The current user session. */
-    private Session session;
+    private final Session session;
 
     /**
      * The currently viewed profile.
@@ -60,20 +62,22 @@ public class ProfileViewer extends Stage {
      * @throws URISyntaxException if the FXML resource URI is invalid
      */
     public ProfileViewer(Stage parent) throws IOException, URISyntaxException {
+        this(requireOwner(parent), requireFxmlUrl());
+    }
+
+    private ProfileViewer(Stage parent, URL fxmlUrl) throws IOException, URISyntaxException {
         super();
         session = Sessions.getSingleSession();
         initOwner(parent);
         initModality(Modality.NONE);
-        getIcons().add(parent.getIcons().get(0));
+        if (!parent.getIcons().isEmpty())
+            getIcons().add(parent.getIcons().get(0));
         setOnShowing(_ -> Settings.fromJson(session.getUser().getSettings().getProperty("ProfileViewer.Bounds", null), this));
         setOnCloseRequest(_ -> {
             session.getUser().getSettings().setProperty("ProfileViewer.Bounds", Settings.toJson(this));
             hide();
         });
-        final var resource = ProfileViewer.class.getResource("ProfileViewer.fxml");
-        if (resource == null)
-            throw new IOException("Missing resource: ProfileViewer.fxml");
-        final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
+        final var loader = new FXMLLoader(fxmlUrl.toURI().toURL(), Messages.getBundle());
         final var root = loader.<JRMScene>load();
         controller = loader.getController();
         setScene(root);
@@ -94,6 +98,17 @@ public class ProfileViewer extends Stage {
                 }
             }
         }, 0, 1000);
+    }
+
+    private static Stage requireOwner(final Stage parent) {
+        return Objects.requireNonNull(parent, "parent");
+    }
+
+    private static URL requireFxmlUrl() throws IOException {
+        final var resource = ProfileViewer.class.getResource("ProfileViewer.fxml");
+        if (resource == null)
+            throw new IOException("Missing resource: ProfileViewer.fxml");
+        return resource;
     }
 
     /**

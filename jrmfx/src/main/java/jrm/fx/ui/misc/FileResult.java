@@ -16,9 +16,9 @@ import javafx.beans.property.StringProperty;
  */
 public class FileResult {
     /** The file path. */
-    private ObjectProperty<Path> file;
+    private final ObjectProperty<Path> file;
     /** The result message. */
-    private StringProperty result;
+    private final StringProperty result;
 
     /**
      * Constructs a file result.

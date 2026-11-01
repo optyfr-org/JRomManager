@@ -89,7 +89,7 @@ public class SettingsPanelController extends BaseController {
     TextField status;
 
     /** Valid debug log levels selectable in the UI. */
-    private static final Level[] levels = new Level[] { Level.OFF, Level.SEVERE, Level.WARNING, Level.INFO, Level.CONFIG, Level.FINE, Level.FINER, Level.FINEST, Level.ALL };
+    private static final Level[] levels = { Level.OFF, Level.SEVERE, Level.WARNING, Level.INFO, Level.CONFIG, Level.FINE, Level.FINER, Level.FINEST, Level.ALL };
 
     private MemoryStatusMonitor memoryMonitor;
 

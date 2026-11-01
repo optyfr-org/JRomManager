@@ -52,14 +52,14 @@ public final class HaveNTotalCellFactory<T> extends TableCell<T, HaveNTotal> {
      */
     private void updateHaveNull(HaveNTotal hnt) {
         if (hnt.getTotal() == null) {
-            setTextFill(getTableRow().isSelected() ? Color.LIGHTGRAY : Color.GRAY);
+            setTextFill(isRowSelected() ? Color.LIGHTGRAY : Color.GRAY);
             setText("?/?");
             return;
         }
         final var have = new Text("?");
         final var total = new Text(String.format("/%d", hnt.getTotal()));
-        have.setFill(getTableRow().isSelected() ? Color.LIGHTGRAY : Color.GRAY);
-        total.setFill(getTableRow().isSelected() ? Color.WHITE : Color.BLACK);
+        have.setFill(isRowSelected() ? Color.LIGHTGRAY : Color.GRAY);
+        total.setFill(isRowSelected() ? Color.WHITE : Color.BLACK);
         setGraphic(buildHBox(have, total));
     }
 
@@ -71,7 +71,7 @@ public final class HaveNTotalCellFactory<T> extends TableCell<T, HaveNTotal> {
     private void updateHaveNotNull(HaveNTotal hnt) {
         final var have = new Text(hnt.getHave().toString());
         final var total = new Text(String.format("/%d", hnt.getTotal()));
-        total.setFill(getTableRow().isSelected() ? Color.WHITE : Color.BLACK);
+        total.setFill(isRowSelected() ? Color.WHITE : Color.BLACK);
         have.setFill(getHaveColor(hnt));
         setGraphic(buildHBox(have, total));
     }
@@ -83,12 +83,17 @@ public final class HaveNTotalCellFactory<T> extends TableCell<T, HaveNTotal> {
      * @return the color
      */
     private Color getHaveColor(HaveNTotal hnt) {
-        final var selected = getTableRow().isSelected();
-        if (hnt.getHave() == 0 && hnt.getTotal() > 0)
-            return selected ? Color.web("#ffaaaa") : Color.web("#cc0000");
+        final var selected = isRowSelected();
+        if (Long.valueOf(0L).equals(hnt.getHave()) && hnt.getTotal() != null && hnt.getTotal() > 0)
+            return Color.web(selected ? "#ffaaaa" : "#cc0000");
         if (hnt.getHave().equals(hnt.getTotal()))
-            return selected ? Color.web("#aaffaa") : Color.web("#00aa00");
-        return selected ? Color.web("#ffaa88") : Color.web("#cc8800");
+            return Color.web(selected ? "#aaffaa" : "#00aa00");
+        return Color.web(selected ? "#ffaa88" : "#cc8800");
+    }
+
+    private boolean isRowSelected() {
+        final var row = getTableRow();
+        return row != null && row.isSelected();
     }
 
     /**

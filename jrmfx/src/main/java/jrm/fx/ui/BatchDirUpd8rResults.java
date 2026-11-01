@@ -2,6 +2,8 @@ package jrm.fx.ui;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Objects;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.layout.BorderPane;
@@ -28,10 +30,10 @@ import jrm.security.Sessions;
  */
 class BatchDirUpd8rResults extends Stage {
     /** The FXML controller. */
-    private BatchDirUpd8rResultsController controller;
+    private final BatchDirUpd8rResultsController controller;
 
     /** The current user session. */
-    private Session session;
+    private final Session session;
 
     /**
      * Constructs and shows the batch directory update results dialog.
@@ -43,20 +45,22 @@ class BatchDirUpd8rResults extends Stage {
      * @throws IOException if the FXML cannot be loaded
      */
     public BatchDirUpd8rResults(Stage parent, DirUpdaterResults results) throws URISyntaxException, IOException {
+        this(requireOwner(parent), requireFxmlUrl(), results);
+    }
+
+    private BatchDirUpd8rResults(Stage parent, URL fxmlUrl, DirUpdaterResults results) throws URISyntaxException, IOException {
         super();
         session = Sessions.getSingleSession();
         initOwner(parent);
         initModality(Modality.WINDOW_MODAL);
-        getIcons().add(parent.getIcons().get(0));
+        if (!parent.getIcons().isEmpty())
+            getIcons().add(parent.getIcons().get(0));
         setOnShowing(_ -> Settings.fromJson(session.getUser().getSettings().getProperty("BatchDirUpd8rResults.Bounds", null), this));
         setOnCloseRequest(_ -> {
             session.getUser().getSettings().setProperty("BatchDirUpd8rResults.Bounds", Settings.toJson(this));
             hide();
         });
-        final var resource = BatchDirUpd8rResults.class.getResource("BatchDirUpd8rResults.fxml");
-        if (resource == null)
-            throw new IOException("Missing resource: BatchDirUpd8rResults.fxml");
-        final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
+        final var loader = new FXMLLoader(fxmlUrl.toURI().toURL(), Messages.getBundle());
         final var root = loader.<BorderPane>load();
         controller = loader.getController();
         if (results != null && results.getResults() != null)
@@ -64,5 +68,16 @@ class BatchDirUpd8rResults extends Stage {
         setScene(new JRMScene(root));
         sizeToScene();
         show();
+    }
+
+    private static Stage requireOwner(final Stage parent) {
+        return Objects.requireNonNull(parent, "parent");
+    }
+
+    private static URL requireFxmlUrl() throws IOException {
+        final var resource = BatchDirUpd8rResults.class.getResource("BatchDirUpd8rResults.fxml");
+        if (resource == null)
+            throw new IOException("Missing resource: BatchDirUpd8rResults.fxml");
+        return resource;
     }
 }

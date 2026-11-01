@@ -410,7 +410,10 @@ public class ProfileViewerController implements Initializable {
         initTableWSColumns();
         initToggleButtons();
         tableW.getSelectionModel().selectedItemProperty().addListener((_, _, newValue) -> reloadE(newValue));
-        search.textProperty().addListener((_, _, newValue) -> filteredData.setPredicate(searchPredicate(newValue)));
+        search.textProperty().addListener((_, _, newValue) -> {
+            if (tableW.getItems() instanceof final FilteredList<Anyware> filtered)
+                filtered.setPredicate(searchPredicate(newValue));
+        });
     }
 
     /**
@@ -714,9 +717,6 @@ public class ProfileViewerController implements Initializable {
         tableEntity.setItems(list);
     }
 
-    /** The filtered list backing the entries table. */
-    private FilteredList<Anyware> filteredData;
-
     private ProfileViewerWareRelations wareRelations;
 
     private ProfileViewerActions actions;
@@ -752,7 +752,7 @@ public class ProfileViewerController implements Initializable {
                     list.add(w);
             }
         }
-        filteredData = new FilteredList<>(list, searchPredicate(search.getText()));
+        final var filteredData = new FilteredList<>(list, searchPredicate(search.getText()));
         tableW.setItems(filteredData);
         tableW.getSelectionModel().select(0);
     }

@@ -32,7 +32,7 @@ public class DragNDrop {
     private final String styleReject;
 
     /** The control to install handlers on. */
-    private Control control;
+    private final Control control;
 
     /**
      * Constructs a drag-and-drop handler.

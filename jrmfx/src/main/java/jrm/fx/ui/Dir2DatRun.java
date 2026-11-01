@@ -12,7 +12,9 @@ import jrm.profile.scan.Dir2Dat;
 import jrm.profile.scan.DirScan;
 import jrm.profile.scan.DirScan.Options;
 import jrm.security.Session;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass 
 final class Dir2DatRun {
 	static void execute(final Session session, final String src, final String dst, final HashMap<String, String> headers, final ProgressTask<Void> task) throws IOException {
 		if (src == null || src.isEmpty() || dst == null || dst.isEmpty())

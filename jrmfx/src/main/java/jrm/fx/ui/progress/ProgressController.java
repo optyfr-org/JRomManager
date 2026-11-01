@@ -183,7 +183,7 @@ public class ProgressController implements Initializable {
      * @param multipleSubInfos whether to show multiple sub-info panels
      */
     void setInfos(int threadCnt, Boolean multipleSubInfos) {
-        final var lblSubInfoCnt = multipleSubInfos == null ? 0 : (multipleSubInfos ? threadCnt : 1);
+        final var lblSubInfoCnt = subInfoCount(threadCnt, multipleSubInfos);
 
         if (lblInfo != null && lblInfo.length == threadCnt && lblSubInfo != null && lblSubInfo.length == lblSubInfoCnt) {
             lastMultipleSubInfos = multipleSubInfos;
@@ -252,11 +252,26 @@ public class ProgressController implements Initializable {
         return (i % 2) != 0;
     }
 
+    /**
+     * Computes how many sub-info panes a configuration needs.
+     *
+     * @param threadCnt the number of thread info lines
+     * @param multipleSubInfos whether per-thread sub-infos are shown; {@code null} means none
+     * @return {@code threadCnt} for per-thread mode, {@code 1} for shared mode, {@code 0} for none
+     */
+    private static int subInfoCount(int threadCnt, Boolean multipleSubInfos) {
+        if (multipleSubInfos == null)
+            return 0;
+        if (multipleSubInfos)
+            return threadCnt;
+        return 1;
+    }
+
     /** Pool of recycled {@link HBox} containers to avoid repeated instantiation. */
-    private Deque<HBox> viewCache = new ArrayDeque<>();
+    private final Deque<HBox> viewCache = new ArrayDeque<>();
 
     /** Pool of recycled row {@link HBox} wrappers (info + sub-info side by side). */
-    private Deque<HBox> rowCache = new ArrayDeque<>();
+    private final Deque<HBox> rowCache = new ArrayDeque<>();
 
     /**
      * Builds or reuses an {@link HBox} view container with the given background colour.

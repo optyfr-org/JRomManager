@@ -249,17 +249,20 @@ public class BatchTorrentResultsController implements Initializable {
         final var pending = new ArrayDeque<ExpandPending>();
         pending.add(new ExpandPending(item, 0));
         final var seen = new IdentityHashMap<TreeItem<?>, Boolean>();
-        while (!pending.isEmpty()) {
-            final var current = pending.removeFirst();
-            if (current.depth() >= MAX_TREE_DEPTH)
-                continue;
-            final var node = current.item();
-            if (node == null || seen.put(node, Boolean.TRUE) != null || node.isLeaf())
-                continue;
-            node.setExpanded(expanded);
-            for (final var child : node.getChildren())
-                pending.add(new ExpandPending(child, current.depth() + 1));
-        }
+        while (!pending.isEmpty())
+            visitExpandEntry(pending.removeFirst(), pending, seen, expanded);
+    }
+
+    private static void visitExpandEntry(final ExpandPending current, final ArrayDeque<ExpandPending> pending, final IdentityHashMap<TreeItem<?>, Boolean> seen,
+            boolean expanded) {
+        if (current.depth() >= MAX_TREE_DEPTH)
+            return;
+        final var node = current.item();
+        if (node == null || seen.put(node, Boolean.TRUE) != null || node.isLeaf())
+            return;
+        node.setExpanded(expanded);
+        for (final var child : node.getChildren())
+            pending.add(new ExpandPending(child, current.depth() + 1));
     }
 
     private record BuildPending(TreeItem<Child> parent, List<Child> children, int depth) {

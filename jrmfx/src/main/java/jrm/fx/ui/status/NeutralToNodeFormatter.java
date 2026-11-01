@@ -38,13 +38,13 @@ public @UtilityClass class NeutralToNodeFormatter {
          */
     private static class Handler extends DefaultHandler {
         /** The collected nodes. */
-        private List<Node> nodes = new ArrayList<>();
+        private final List<Node> nodes = new ArrayList<>();
 
         /** The current label being built. */
         private Label current = null;
 
         /** The text buffer. */
-        private StringBuilder buffer = new StringBuilder();
+        private final StringBuilder buffer = new StringBuilder();
 
         /**
          * Handles the start of an XML element.

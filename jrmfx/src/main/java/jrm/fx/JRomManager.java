@@ -5,7 +5,6 @@ import java.nio.channels.FileChannel;
 import java.nio.file.StandardOpenOption;
 import java.util.logging.Level;
 
-
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParameterException;
@@ -23,15 +22,15 @@ import lombok.Getter;
 /**
  * Main entry point for the JRomManager JavaFX desktop application.
  * <p>
- * Parses command-line arguments, initializes the logging subsystem and single-user session,
- * acquires an exclusive file lock to prevent concurrent instances, and launches the JavaFX
- * {@link MainFrame}.
+ * Parses command-line arguments, initializes the logging subsystem and single-user session, acquires an exclusive file lock to
+ * prevent concurrent instances, and launches the JavaFX {@link MainFrame}.
  *
  * @since 2.5
  */
 public class JRomManager {
     /**
      * The main application frame.
+     * 
      * @return the main application frame
      */
     private static @Getter MainFrame mainFrame;
@@ -58,8 +57,8 @@ public class JRomManager {
     /**
      * Application entry point.
      * <p>
-     * Sets the file encoding, initializes the session and logging subsystem, acquires the
-     * instance lock, and launches the JavaFX {@link MainFrame}.
+     * Sets the file encoding, initializes the session and logging subsystem, acquires the instance lock, and launches the JavaFX
+     * {@link MainFrame}.
      *
      * @param args command-line arguments forwarded to {@link Args}
      */
@@ -90,48 +89,52 @@ public class JRomManager {
     /**
      * Write lock file and keep it locked (rw) until program shutdown.
      * 
-     * @param session  the current user session providing the work path
+     * @param session the current user session providing the work path
      * @param lockFile the lock file name
+     * 
      * @return true if successful, false otherwise
      */
-     private static boolean lockInstance(final Session session, final String lockFile) {
-         try {
-             lockChannel = getLock(session, lockFile);
-             final var fl = lockChannel.tryLock();
-             if (fl != null) {
-                 Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                     try {
-                         fl.release();
-                         lockChannel.close();
-                     } catch (final Exception e) {
-                         Log.err("Unable to remove lock file: " + lockFile, e); //$NON-NLS-1$
-                     }
+    private static boolean lockInstance(final Session session, final String lockFile) {
+        try {
+            lockChannel = getLock(session, lockFile);
+            final var fl = lockChannel.tryLock();
+            if (fl != null) {
+                Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+                    try {
+                        fl.release();
+                        lockChannel.close();
+                    } catch (final Exception e) {
+                        Log.err("Unable to remove lock file: " + lockFile, e); //$NON-NLS-1$
+                    }
 
-                 }));
-                 return true;
-             } else {
-                 lockChannel.close();
-                 lockChannel = null;
-             }
-         } catch (final Exception e) {
-             Log.err("Unable to create and/or lock file: " + lockFile, e); //$NON-NLS-1$
-             if (lockChannel != null) {
-                 try {
-                     lockChannel.close();
-                 } catch (final Exception ignore) {
-                 }
-                 lockChannel = null;
-             }
-         }
-         return false;
-     }
+                }));
+                return true;
+            } else {
+                lockChannel.close();
+                lockChannel = null;
+            }
+        } catch (final Exception e) {
+            Log.err("Unable to create and/or lock file: " + lockFile, e); //$NON-NLS-1$
+            if (lockChannel != null) {
+                try {
+                    lockChannel.close();
+                } catch (final Exception _) {
+                    /*  */
+                }
+                lockChannel = null;
+            }
+        }
+        return false;
+    }
 
     /**
      * Opens or creates the lock file in the session work path and returns a writable channel.
      *
-     * @param session  the current user session providing the work path
+     * @param session the current user session providing the work path
      * @param lockFile the lock file name
+     * 
      * @return a {@link FileChannel} for the lock file
+     * 
      * @throws IOException if the file cannot be created or opened
      */
     private static FileChannel getLock(final Session session, final String lockFile) throws IOException {

@@ -2,6 +2,8 @@ package jrm.fx.ui.profile.report;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.net.URL;
+import java.util.Objects;
 
 import javafx.fxml.FXMLLoader;
 import javafx.scene.layout.BorderPane;
@@ -24,10 +26,10 @@ import jrm.security.Sessions;
  */
 public class ReportLite extends Stage {
     /** The report lite controller. */
-    private ReportLiteController controller;
+    private final ReportLiteController controller;
 
     /** The current user session. */
-    private Session session;
+    private final Session session;
 
     /**
      * Constructs and shows the lightweight report.
@@ -38,24 +40,37 @@ public class ReportLite extends Stage {
      * @throws URISyntaxException if the FXML resource URI is invalid
      */
     public ReportLite(Stage parent, Report report) throws IOException, URISyntaxException {
+        this(requireOwner(parent), requireFxmlUrl(), report);
+    }
+
+    private ReportLite(Stage parent, URL fxmlUrl, Report report) throws IOException, URISyntaxException {
         super();
         session = Sessions.getSingleSession();
         initOwner(parent);
         initModality(Modality.NONE);
-        getIcons().add(parent.getIcons().get(0));
+        if (!parent.getIcons().isEmpty())
+            getIcons().add(parent.getIcons().get(0));
         setOnShowing(_ -> Settings.fromJson(session.getUser().getSettings().getProperty("ReportLite.Bounds", null), this));
         setOnCloseRequest(_ -> {
             session.getUser().getSettings().setProperty("ReportLite.Bounds", Settings.toJson(this));
             hide();
         });
-        final var resource = ReportLite.class.getResource("ReportLite.fxml");
-        if (resource == null)
-            throw new IOException("Missing resource: ReportLite.fxml");
-        final var loader = new FXMLLoader(resource.toURI().toURL(), Messages.getBundle());
+        final var loader = new FXMLLoader(fxmlUrl.toURI().toURL(), Messages.getBundle());
         final var root = loader.<BorderPane>load();
         controller = loader.getController();
         setScene(new JRMScene(root));
         controller.viewController.setReport(report);
         show();
+    }
+
+    private static Stage requireOwner(final Stage parent) {
+        return Objects.requireNonNull(parent, "parent");
+    }
+
+    private static URL requireFxmlUrl() throws IOException {
+        final var resource = ReportLite.class.getResource("ReportLite.fxml");
+        if (resource == null)
+            throw new IOException("Missing resource: ReportLite.fxml");
+        return resource;
     }
 }
