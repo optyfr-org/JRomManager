@@ -69,6 +69,15 @@ val nativeInstallerTypes: List<String> =
             else -> listOf("app-image")
         }
 
+// jpackage --app-version for the step-3 installers: RPM forbids '-' and MSI must be
+// numeric (see JrmRelease), so a pre-release like 4.0.0-beta.1 becomes 4.0.0~beta.1
+// when rpm is among the types, or 4.0.0 for msi-only runs; deb/dmg keep it as-is.
+val nativeAppVersion: String = when {
+    nativeInstallerTypes.contains("msi") -> JrmRelease.appVersionFor(version.toString(), "msi")
+    nativeInstallerTypes.contains("rpm") -> JrmRelease.appVersionFor(version.toString(), "rpm")
+    else -> version.toString()
+}
+
 // jpackage input stubs (a minimal jar satisfies --main-jar for the step-1 app-image)
 val nativeStubDir = layout.buildDirectory.dir("native-app/stub")
 
@@ -280,7 +289,7 @@ tasks.register<Exec>("nativeServersInstaller") {
     commandLine(
         jpackageBin,
         "--name", "JRomManager-Servers",
-        "--app-version", version.toString(),
+        "--app-version", nativeAppVersion,
         "--vendor", "optyfr",
         "--description", "JRomManager servers (native): FullServer, Server, CLI",
         "--copyright", "GPL-2.0",
@@ -362,7 +371,7 @@ tasks.register<Exec>("nativeGuiInstaller") {
     commandLine(
         jpackageBin,
         "--name", "JRomManager",
-        "--app-version", version.toString(),
+        "--app-version", nativeAppVersion,
         "--vendor", "optyfr",
         "--description", "JRomManager desktop (native, JavaFX)",
         "--copyright", "GPL-2.0",

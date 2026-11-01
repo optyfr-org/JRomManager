@@ -277,6 +277,9 @@ jlink {
         // JPackageData uses plain Strings (only image/installerOptions are ListProperty).
         installerType = project.findProperty("installerType") as String?
         targetPlatformName = project.findProperty("targetPlatform") as String?
+        // RPM Version fields forbid '-' and MSI ProductVersion must be numeric:
+        // map e.g. 4.0.0-beta.1 to 4.0.0~beta.1 (rpm) / 4.0.0 (msi).
+        appVersion = JrmRelease.appVersionFor(version.toString(), installerType)
         // getter returns File but setter takes Object: no Kotlin property, call it explicitly.
         setInstallerOutputDir(file("$buildDir/installer"))
         imageName = "JRomManager"
