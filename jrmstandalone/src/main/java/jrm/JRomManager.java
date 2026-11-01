@@ -19,6 +19,7 @@ import com.beust.jcommander.Parameters;
 
 import jrm.aui.status.Html4Renderer;
 import jrm.aui.status.StatusRendererFactory;
+import jrm.misc.AotTrainer;
 import jrm.misc.Log;
 import jrm.security.Session;
 import jrm.security.Sessions;
@@ -100,6 +101,21 @@ public final class JRomManager {
             // Open main window
             mainFrame = new MainFrame(session);
             mainFrame.setVisible(true);
+            if (AotTrainer.isTraining()) {
+                final var trainThread = new Thread(() -> {
+                    try {
+                        AotTrainer.train(session);
+                    } catch (final Throwable e) {
+                        Log.err("AOT training failed", e);
+                        System.exit(1);
+                    }
+                    for (final var w : java.awt.Window.getWindows())
+                        w.dispose();
+                    System.exit(0);
+                }, "aot-train");
+                trainThread.setDaemon(true);
+                trainThread.start();
+            }
         }
     }
 

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE datafile PUBLIC "-//Logiqx//DTD ROM Management Datafile//EN" "http://www.logiqx.com/Dats/datafile.dtd">
+<datafile build="aot-fixture" debug="no">
+	<header>
+		<name>AOT fixture</name>
+		<description>AOT training fixture (one machine, one rom)</description>
+		<version>1.0</version>
+		<author>JRomManager</author>
+	</header>
+	<machine name="aotfixture">
+		<description>AOT fixture machine</description>
+		<rom name="fixture.bin" size="8" crc="8a73da40" sha1="d6803a4c1d240dec2a4d8ac43aa6d7e9df947026" />
+	</machine>
+</datafile>

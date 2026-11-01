@@ -349,6 +349,7 @@ public class Server extends AbstractServer {
                         + ((ServerConnector) connector).getHost());
             Log.config("clientPath: " + context.getBaseResource());
             Log.config("workPath: " + getWorkPath());
+            aotTrainIfEnabled(bind, httpPort);
         } else
             Log.err("Already initialized");
     }

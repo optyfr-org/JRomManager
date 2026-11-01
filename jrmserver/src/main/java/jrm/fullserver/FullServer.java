@@ -797,6 +797,7 @@ public class FullServer extends AbstractServer {
                     + ((ServerConnector) connector).getHost());
         Log.config("clientPath: " + context.getBaseResource());
         Log.config("workPath: " + getWorkPath());
+        aotTrainIfEnabled(bind, httpPort);
     }
 
     /**

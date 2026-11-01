@@ -14,7 +14,9 @@ import org.eclipse.jetty.server.handler.gzip.GzipHandler;
 import org.eclipse.jetty.util.resource.Resource;
 import org.eclipse.jetty.util.resource.ResourceFactory;
 
+import jrm.misc.AotTrainer;
 import jrm.misc.Log;
+import jrm.security.Session;
 import jrm.server.shared.WebSession;
 
 /**
@@ -238,6 +240,27 @@ public abstract class AbstractServer implements Daemon {
                 return true;
             Thread.sleep(1000);
         }
+    }
+
+    /**
+     * Runs the AOT cache training hook when active (build-time only, behind the {@code jrm.aot.train} system property): pings
+     * the root servlet, loads the fixture profile and runs one scan, then terminates the server so the JVM exits normally and
+     * the AOT cache is written on exit. No-op in production starts.
+     *
+     * @param bind the bind address the server listens on
+     * @param httpPort the HTTP port the server listens on
+     *
+     * @throws Exception if the training run or the server termination fails
+     */
+    protected static void aotTrainIfEnabled(final String bind, final int httpPort) throws Exception {
+        if (!AotTrainer.isTraining())
+            return;
+        AotTrainer.pingRoot(bind, httpPort);
+        // user "server" makes the multi-user server session resolve its work path to the base
+        // path itself (jrommanager.dir), so the fixture DAT sits inside the work path and its
+        // sibling .properties settings file is picked up.
+        AotTrainer.train(new Session("aot-train", "server", new String[] { "admin" }));
+        terminate();
     }
 
     /**

@@ -38,6 +38,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: ./gradlew build -xtest
 
+      - name: Install xvfb (AOT cache training of the GUI launchers needs a display)
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
       - name: Set release metadata
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

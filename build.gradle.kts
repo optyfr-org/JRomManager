@@ -1,5 +1,7 @@
 import de.undercouch.gradle.tasks.download.Download
 import java.io.ByteArrayOutputStream
+import java.net.ServerSocket
+import java.util.concurrent.TimeUnit
 
 buildscript {
     // NOTE: `libs` is not visible inside buildscript. These pins mirror
@@ -190,6 +192,10 @@ jlink {
         excludeProvides(mapOf("service" to "org.apache.fory.shaded.org.codehaus.commons.compiler.ICompilerFactory"))
         requires("ch.qos.logback.classic")
         requires("jdk.zipfs")
+        // Pull the JDK ALPN provider into the image: Jetty's ALPNServerConnectionFactory looks up
+        // ALPNProcessor$Server via ServiceLoader, and jlink only includes provider modules that are
+        // reachable through a requires edge (without this, FullServer fails with "No Server ALPNProcessors!").
+        requires("org.eclipse.jetty.alpn.java.server")
         // java.desktop is auto-derived by the jlink plugin; re-declaring it breaks
         // the merged module-info compilation with "duplicate requires".
     }
@@ -200,13 +206,13 @@ jlink {
         name = "JRomManager"
         moduleName = "jrm.merged.module"
         mainClass = "jrm.fx.JRomManagerMulti"
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED", "--add-opens=javafx.controls/javafx.scene.control.skin=jrm.merged.module", "--enable-native-access=javafx.graphics,jrm.merged.module")
+        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=javafx.graphics,jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManager.aot")
     }
     secondaryLauncher {
         name = "JRomManagerSwing"
         moduleName = "jrm.merged.module"
         mainClass = "jrm.JRomManagerMulti"
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED", "--enable-native-access=jrm.merged.module")
+        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManagerSwing.aot")
     }
     secondaryLauncher {
         name = "JRomManagerCLI"
@@ -215,14 +221,14 @@ jlink {
         isWinConsole = true
         // Note: no org.jline.terminal.ffm entry: jline is merged into jrm.merged.module,
         // so there is no such module in the image and naming it only prints an "Unknown module" warning.
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=jrm.merged.module", "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED")
+        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManagerCLI.aot")
     }
     secondaryLauncher {
         name = "JRomManagerServer"
         moduleName = "jrm.merged.module"
         mainClass = "jrm.server.Server"
         isWinConsole = true
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED")
+        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "-XX:AOTCache=\$APPDIR/aot/JRomManagerServer.aot")
         args = mutableListOf("--workpath", "%HOMEPATH%/.jrommanager")
     }
     secondaryLauncher {
@@ -230,7 +236,7 @@ jlink {
         moduleName = "jrm.merged.module"
         mainClass = "jrm.fullserver.FullServer"
         isWinConsole = true
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED")
+        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "-XX:AOTCache=\$APPDIR/aot/JRomManagerFullServer.aot")
         args = mutableListOf("--workpath", "%HOMEPATH%/.jrommanager")
     }
     jpackage {
@@ -267,6 +273,125 @@ jlink {
 
 tasks.named("prepareMergedJarsDir") {
     dependsOn("jar")
+}
+
+// AOT cache training (JEP 483/514): one .aot file per launcher, trained with the jlink image's own
+// java after `jlink` and before `jpackage`, then shipped at $APPDIR/aot/<Launcher>.aot.
+// Only runs when `jpackage` is in the task graph, so plain build/test never trains.
+// Caches are written outside the jlink image (build/aot-caches) because jpackage copies
+// build/image/app into <app-image>/runtime/app, not into $APPDIR; aotCachesIntoImage then
+// places them at <app-image>/app/aot after jpackageImage.
+val aotFixtureDir = file("dist/aot-fixture")
+val aotCachesDir = layout.buildDirectory.dir("aot-caches")
+tasks.register("aotCaches") {
+    dependsOn("jlink")
+    onlyIf { gradle.taskGraph.hasTask(":jpackage") }
+    doLast {
+        val imageDir = project.layout.buildDirectory.dir("image").get().asFile
+        val osName = System.getProperty("os.name").lowercase()
+        val isWindows = osName.contains("win")
+        val isLinux = osName.contains("linux")
+        val javaBin = File(imageDir, "bin/java" + if (isWindows) ".exe" else "")
+        val appDir = File(imageDir, "app")
+        val outDir = aotCachesDir.get().asFile.apply { deleteRecursively(); mkdirs() }
+        val jlinkExt = project.extensions.getByType<org.beryx.jlink.data.JlinkPluginExtension>()
+        val primary = jlinkExt.launcherData.get()
+        val launchers = listOf(
+            Triple(primary.name, jlinkExt.moduleName.get() + "/" + jlinkExt.mainClass.get(), primary.jvmArgs)
+        ) + jlinkExt.secondaryLaunchers.get().map { Triple(it.name, it.moduleName + "/" + it.mainClass, it.jvmArgs) }
+        for ((name, main, rawJvmArgs) in launchers) {
+            val jvmArgs = if (rawJvmArgs == org.beryx.jlink.data.LauncherData.UNDEFINED_ARGS)
+                emptyList()
+            else
+                rawJvmArgs.filter { !it.startsWith("-XX:AOTCache=") }
+            val out = File(outDir, "$name.aot")
+            val trainDir = project.layout.buildDirectory.dir("aot-train/$name").get().asFile.apply { deleteRecursively(); mkdirs() }
+            val isServer = name.endsWith("Server")
+            // Servers take --work <dir>; desktop launchers are multi-user and resolve their work
+            // path from user.home, so point -Duser.home at the temp dir (work path = <dir>/.jrommanager).
+            val workPath = if (isServer) trainDir else File(trainDir, ".jrommanager")
+            File(workPath, "roms").mkdirs()
+            project.copy {
+                from(aotFixtureDir)
+                into(workPath)
+            }
+            val fixture = File(workPath, "aot-fixture.dat").absolutePath
+            val cmd = mutableListOf<String>()
+            if (isLinux && !isServer && name != "JRomManagerCLI")
+                cmd += listOf("xvfb-run", "-a")
+            cmd += javaBin.absolutePath
+            cmd += jvmArgs
+            cmd += listOf(
+                "-XX:AOTCacheOutput=${out.absolutePath}",
+                "-Djrm.aot.train=true",
+                "-Djrm.aot.fixture=$fixture"
+            )
+            if (!isServer)
+                cmd += "-Duser.home=${trainDir.absolutePath}"
+            cmd += listOf("-p", appDir.absolutePath, "-m", main)
+            if (isServer) {
+                val port = ServerSocket(0).use { it.localPort }
+                cmd += listOf("--bind", "127.0.0.1", "--http", port.toString(), "--work", trainDir.absolutePath)
+                if (name == "JRomManagerFullServer") {
+                    // exercise the HTTPS/HTTP2 (ALPN) connector during training as well
+                    val httpsPort = ServerSocket(0).use { it.localPort }
+                    cmd += listOf("--https", httpsPort.toString())
+                }
+            }
+            project.logger.lifecycle("AOT training $name")
+            val proc = ProcessBuilder(cmd).directory(trainDir).redirectErrorStream(true).start()
+            if (name == "JRomManagerCLI") {
+                proc.outputStream.use { os ->
+                    os.write("load \"$fixture\"\nscan\nexit\n".toByteArray(Charsets.UTF_8))
+                    os.flush()
+                }
+            } else {
+                // EOF on stdin: the servers' interactive stop loop must not block on hasNextLine()
+                proc.outputStream.close()
+            }
+            val pump = Thread {
+                try {
+                    proc.inputStream.transferTo(System.out)
+                } catch (_: java.io.IOException) {
+                    // process ended
+                }
+            }
+            pump.isDaemon = true
+            pump.start()
+            if (!proc.waitFor(10, TimeUnit.MINUTES)) {
+                proc.destroyForcibly()
+                throw GradleException("AOT training for $name timed out")
+            }
+            if (proc.exitValue() != 0)
+                throw GradleException("AOT training for $name exited with code ${proc.exitValue()}")
+            if (!out.isFile)
+                throw GradleException("AOT training for $name produced no cache at $out")
+            project.logger.lifecycle("AOT cache $name: ${out.length()} bytes")
+        }
+    }
+}
+
+// Copies the trained caches into the jpackage app image at $APPDIR/aot after jpackageImage
+// (which wipes its output dir, so this must run after it).
+tasks.register("aotCachesIntoImage") {
+    dependsOn("jpackageImage", "aotCaches")
+    onlyIf { gradle.taskGraph.hasTask(":jpackage") }
+    doLast {
+        // jpackage app image output dir convention: build/jpackage/<imageName>, imageName defaults
+        // to the primary launcher name (not overridden in this build script).
+        val jlinkExt = project.extensions.getByType<org.beryx.jlink.data.JlinkPluginExtension>()
+        val imageName = jlinkExt.launcherData.get().name ?: project.name
+        val dest = project.layout.buildDirectory.dir("jpackage/$imageName/app/aot").get().asFile
+        project.copy {
+            from(aotCachesDir)
+            into(dest)
+        }
+        project.logger.lifecycle("AOT caches installed into ${dest.absolutePath}")
+    }
+}
+
+tasks.named("jpackage") {
+    dependsOn("aotCachesIntoImage")
 }
 
 

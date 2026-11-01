@@ -21,6 +21,7 @@ import jrm.fx.ui.profile.ProfileViewer;
 import jrm.fx.ui.profile.report.ReportFrame;
 import jrm.fx.ui.progress.ProgressTask;
 import jrm.locale.Messages;
+import jrm.misc.AotTrainer;
 import jrm.misc.BreakException;
 import jrm.misc.Log;
 import jrm.profile.data.ExportMode;
@@ -138,6 +139,24 @@ public class MainFrame extends Application {
                 Log.err("Error occurred while starting the application", e);
             }
             loading.hide();
+            if (AotTrainer.isTraining()) {
+                final var trainThread = new Thread(() -> {
+                    try {
+                        AotTrainer.train(session);
+                    } catch (final Throwable e) {
+                        Log.err("AOT training failed", e);
+                        System.exit(1);
+                    }
+                    Platform.runLater(() -> {
+                        // Platform.exit() does not fire the close-request handler, so stop the
+                        // non-daemon memory monitor scheduler here or the JVM would never exit.
+                        controller.getSettingsPanelController().getMemoryMonitor().shutdown();
+                        Platform.exit();
+                    });
+                }, "aot-train");
+                trainThread.setDaemon(true);
+                trainThread.start();
+            }
         });
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
             if (Sessions.getSingleSession().getCurrProfile() != null)

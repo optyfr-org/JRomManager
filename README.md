@@ -4,7 +4,7 @@
 
 ![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/optyfr/JRomManager?label=Stable%20Release) ![GitHub Release Date](https://img.shields.io/github/release-date/optyfr/JRomManager?label=Date) ![GitHub release (latest by SemVer)](https://img.shields.io/github/downloads/optyfr/JRomManager/latest/total?label=Downloads)
 
-![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/optyfr/JRomManager?include_prereleases&label=Latest%20Release) ![GitHub (Pre-)Release Date](https://img.shields.io/github/release-date-pre/optyfr/JRomManager?label=Date) ![GitHub release (latest by SemVer including pre-releases)](https://img.shields.io/github/downloads-pre/optyfr/JRomManager/latest/total?label=Downloads)
+![GitHub release (latest SemVer including pre-releases)](https://img.shields.io/github/v/release/optyfr/JRomManager?include_prereleases&label=Latest%20Release) ![GitHub (Pre-)Release Date](https://img.shields.io/github/release-date-pre/optyfr/JRomManager?label=Date) ![GitHub release (latest by SemVer including pre-releases)](https://img.shields.io/github/downloads-pre/optyfr/JRomManager/latest/total?label=Downloads) ![Docker Pulls](https://img.shields.io/docker/pulls/optyfr/jrommanager)
 
 # JRomManager
 
@@ -43,31 +43,23 @@ A Rom Manager entirely written in Java and released under GPL-2
 
 ## Technical
 _Minimal development requirements_:
-- Eclipse Oxygen for Java with WindowBuilder feature and Gradle Buildship
-- Java 21
-- Gradle dependencies (via Maven repositories)
-    - Apache Commons Codec 1.+ 
-    - Apache Commons CLI 1.+ 
-    - Apache Commons IO 2.+
-    - Apache Commons Lang3 3.+
-    - Apache Commons Text 1.+
-    - Apache Commons Compress 1.+ (used solely to list 7zip content)
-    - StreamEx 0.8.+
-    - Zip4J
-    - SevenZipJBinding 16.02-2.01 (faster than using 7z cmd line)
-    - JCommander 1.+
-    - Minimal JSON 0.9.5
-    - Google GSON
-    - Jetty 10.+ (server mode)
-    - H2 Database (full server mode)
+- A JDK 25 (any distribution), with all java jdk binaries accessible from your current $PATH or %PATH%
+- Any IDE with Gradle support (e.g. Eclipse with Buildship), or none at all
+- Gradle dependencies (via Maven repositories and JitPack), all versions centralized and locked in `gradle/libs.versions.toml`:
+    - Apache Commons Codec / IO / Lang3 / Text / Compress
+    - Apache Fory (cache, report and NFO serialization)
+    - StreamEx, Zip4J, SevenZipJBinding 23.01-2.2, Jtrrntzip (via JitPack)
+    - JCommander, JLine, minimal-json, GSON
+    - Jetty 12.1.x (server mode), H2 Database (full server mode)
+    - JavaFX 25 (desktop interface), GWT 2.13 + SmartGWT 14.1 (web client)
+    - Logback, JNA, BouncyCastle, Argon2, commons-daemon / dbutils, jbcrypt
     - *and various others dependencies...*
-- Git submodules dependencies
-    - [Jtrrntzip](https://github.com/optyfr/Jtrrntzip)
+- Git submodule dependency
     - [JRomManager-WebClient](https://github.com/optyfr/JRomManager-WebClient)
 
 _Minimal usage requirements_:
 - 1GB Free Ram (2GB or more with Software Lists, MultiCore feature, 7z ultra compression, ...)
-- Any OS with Java 21 runtime if not already bundled (a 64 bits version is required to get more than 1GB)
+- Any OS with a Java 25 runtime if not already bundled (a 64 bits version is required to get more than 1GB); the packaged installers, AppImages, native binaries and the Docker image bundle their own runtime and need no Java installation
 - ~~(optional) 7zip or p7zip cmdline program if you need 7z format and only if SevenZipJBinding doesn't work on your platform~~
 - ~~(optional) trrntzip cmdline program if you want to torrentzip your files~~ *(now integrated with Jtrrntzip)*
 
@@ -76,21 +68,17 @@ _Behavior compared to other Rom managers_
 
 _Minimal instructions for cmdline compilation_:  
 
-If you just want to recompile sources without using an IDE (Eclipse), here are the steps to follow...
-- First, you need OpenJDK 11 installed from your system package manager or from the official installer, or at least take care that all java jdk binaries are accessible from your current $PATH or %PATH%
+If you just want to recompile sources without using an IDE, here are the steps to follow...
+- First, you need a JDK 25 installed from your system package manager or from the official installer, or at least take care that all java jdk binaries are accessible from your current $PATH or %PATH%
     - [Optional] If your are on Windows, and you want to build the MSI installer, you'll need
-       - the latest WIX Toolset to be installed and its bin/ folder added in your %PATH% 
-       - OpenJDK 14 installed (for jpackage)
+        - the latest WIX Toolset to be installed and its bin/ folder added in your %PATH% 
 - Download code using `git clone --recursive https://github.com/optyfr/JRomManager`
 - `cd JRomManager`
-- Set the `GITHUB_TOKEN` environment variable with a GitHub Personal Access Token that has read access to GitHub Packages:
-    - Unix: `export GITHUB_TOKEN=your_token_here`
-    - Windows: `set GITHUB_TOKEN=your_token_here`
-    - Note: This token is required to access the Jtrrntzip dependency from GitHub Packages
 - run
     - Unix: `sh ./gradlew build`
     - Windows: `.\gradlew.bat build`
 - This is the included gradle-wrapper, it will download the right gradle binaries package version, then compile and package all (see build subdirs)
+- Release artifacts (jpackage installers per role, Linux AppImages, GraalVM native binaries, Docker image) are built by the release workflows through the `jpackage` and native-image tasks; the jpackage launchers also get their JDK 25 AOT caches trained automatically during `jpackage`
 
 ## Current Features
 - Mame and Logiqx Dat formats
@@ -111,10 +99,10 @@ If you just want to recompile sources without using an IDE (Eclipse), here are t
 - TorrentZip support using [Jtrrntzip](https://github.com/optyfr/Jtrrntzip)
 - Samples support (with separate Dest dir that may be eventually a subdir of Roms dir)
 - Multiple Source Dir
-- Dat parsing caching via Java Serialization
+- Dat parsing caching via Apache Fory inside an HMAC-signed envelope
 - Optimized to permit scan over shared network
-- Dir scan caching via Java Serialization based on FileMDate+FileSize, one cache file per romdir, reusable between different Dat Scans if same dir is used
-- Enhanced Gui with Report
+- Dir scan caching via Apache Fory (HMAC-signed) based on FileMDate+FileSize, one cache file per romdir, reusable between different Dat Scans if same dir is used
+- Enhanced Gui with Report (copyable results summary, and export of a fixDAT of the missing/partial sets)
 - Translated to English and French (volunteers needed for other languages)
 - Filtering functionalities (clone, CHDs, systems list, display mode, cabinet type, driver status, ...)
 - Optional Separate Dest dir between Roms, CHDs, Software Roms, Software CHDs
@@ -137,8 +125,9 @@ If you just want to recompile sources without using an IDE (Eclipse), here are t
 - Backup option (per profile)
 - (De)select Game or Software individually, or upon keywords selection (keywords are terms between parenthesis in description), similar to 1G1R mode
 - Launch mode for multiuser environment and for Linux packaging readiness (see `%HOMEPATH%\.jrommanager` or `$HOME/.jrommanager` for working path)
-- Available as installation package for [Gentoo Linux JRomManager Overlay](https://github.com/optyfr/jrommanager-gentoo), [Arch Linux](https://aur.archlinux.org/packages/jrommanager/), as .deb for [Debian / UBuntu](https://github.com/optyfr/JRomManager/releases/latest/), as RPM for [Centos / Fedora / Redhat](https://github.com/optyfr/JRomManager/releases/latest/), as MSI for [Windows](https://github.com/optyfr/JRomManager/releases/latest/)
-- .exe bootstrap for windows version (with MSI installer) that search for available JRE in the system and adjust right memory parameters according 32 or 64 bits jre, can also work with a possible bundled jre
+- Available as installation package for [Gentoo Linux JRomManager Overlay](https://github.com/optyfr/jrommanager-gentoo), [Arch Linux](https://aur.archlinux.org/packages/jrommanager/), as .deb for [Debian / UBuntu](https://github.com/optyfr/JRomManager/releases/latest/), as RPM for [Centos / Fedora / Redhat](https://github.com/optyfr/JRomManager/releases/latest/), as AppImage for [Linux](https://github.com/optyfr/JRomManager/releases/latest/), as MSI for [Windows](https://github.com/optyfr/JRomManager/releases/latest/), as DMG for [macOS](https://github.com/optyfr/JRomManager/releases/latest/), and as a [Docker image](https://hub.docker.com/r/optyfr/jrommanager) (server mode, with a bundled AOT cache)
+- Packaged installers bundle their own Java 25 runtime (jlink image), and their launchers ship a JDK 25 AOT cache (`-XX:AOTCache=$APPDIR/aot/<Launcher>.aot`, JEP 483/514) trained at build time, so startup skips the Fory serializer warmup
+- ~~.exe bootstrap for windows version (with MSI installer) that search for available JRE in the system and adjust right memory parameters according 32 or 64 bits jre, can also work with a possible bundled jre~~ *(replaced by jpackage installers with bundled runtime)*
 - Documented source and javadoc available
 - Dir2Dat
 - Batch Tools
@@ -152,25 +141,27 @@ If you just want to recompile sources without using an IDE (Eclipse), here are t
     - This feature is for basic usage, it means that :
         - It has not been tested over the internet => the purpose is to access from intranet
         - It's a simple web server => no encrypted connection (https/wss), no protection against DDOS, no connection limitations, ...
-        - There is currently no multiuser support nor access control implemented => you can break your server easily if you don't know what you're doing
+        - It binds to loopback by default and unauthenticated session/action requests return 401; local admin is granted only to loopback clients (containers set `JRM_SERVER_BIND=0.0.0.0` to expose it)
 - Full Server mode, include all features from Simple server mode plus the following:
     - Made for a "community or family usage" over the Internet **provided that each one own the original games for the shared roms, or that the roms are copyleft (see [disclaimer](#disclaimer) above)**
     - Jetty is used
     - Multi-user with access rights, and separated workdir, a shared read-only space, and no access to entire FileSystem
     - Totally secured (separate accounts with login/password, HTTPS with TLS 1.3, server certificate handling and auto reload, ...)
-    - HTTP2 support (only with TLS 1.2) which permit long polling request usage in place of websockets without loosing too much network performance
+    - HTTP/2 over TLS via the JDK ALPN provider (also works in the packaged jlink image), plus a WebSocket endpoint (`/ws`) as an alternative to long-polling
     - This mode is still **experimental**, work still need to be made on disk/thread quotas, and a firewall with IP filtering may be required to get full control on who is attempting to connect 
 - Install as a service (Server mode)
     - See [Server Mode](https://github.com/optyfr/JRomManager/wiki/Server-mode#server-mode) in the wiki
 - RAR4 and RAR5 decompression
 - Multi-volume decompression (RAR and 7Zip)
 - Command Line Mode with access to all functionalities and environment variable support
+- WebSocket endpoint (`/ws`) for server actions as an alternative to long-polling
+- GraalVM native binaries for the CLI, the JavaFX desktop, the server and the full server: instant startup with no JVM installation required
 - Copy to clipboard and search on the web functions 
 - "Single file" compression mode : to store single rom games without directories nor compression, this mode will work correctly only if:
     - There is only 1 rom per game and no relationship between games (parent/clone)
     - The name of the game is the same than the name of the rom (minus the rom file extension)
-- Java 21 as minimal (since 3.0.0)
-- JavaFX 21 for standalone interface (replace Swing since 3.0.0)
+- Java 25 as minimal
+- JavaFX 25 for standalone interface (replace Swing since 3.0.0)
 - Use Zip4J which is faster for adding/removing files into existing zip archives (since 3.0.0)
 
 ## Short Term Planned Features

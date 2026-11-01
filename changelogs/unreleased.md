@@ -5,6 +5,8 @@
 - WebSocket endpoint (`/ws`) for server actions as an alternative to long-polling
 - Report view shows a copyable results summary and can export a fixDAT of the missing/partial sets ("Create fixDAT"), in the JavaFX interface and the web client
 - MAME launch arguments are sanitized to prevent option injection
+- JDK 25 AOT caches (JEP 483/514) for all five jpackage launchers (JavaFX, Swing, CLI, Server, FullServer): each ships a build-time-trained `.aot` cache at `$APPDIR/aot/<Launcher>.aot` and starts with `-XX:AOTCache=...`, so startup no longer pays the Fory serializer warmup; caches are trained by the new `aotCaches` Gradle task from a tiny fixture DAT and only when `jpackage` runs
+- Docker image now ships a server AOT cache: the build is multi-stage and trains the cache inside the pinned Temurin base image, and the container starts with `-XX:AOTCache=/app/aot/JRomManagerServer.aot`
 - Cache, report and NFO persistence now uses Apache Fory serialization (faster loads and saves) inside an HMAC-signed envelope; legacy unsigned caches are rejected once and transparently rebuilt (breaking: the pre-Fory cache format is no longer readable)
 - Configurable deserialization depth limit for persisted data
 
@@ -16,6 +18,7 @@
 - Toolchain upgrades: Java 25, Gradle 9.x, Jetty 12.1.12
 - CLI: piped stdin is streamed directly without a missing-terminal warning, and backspace works on Git Bash/MSYS2
 - Packaged launchers allow unsafe memory access (no more Fory `Unsafe` warning) and prefer the bundled terminfo database
+- Packaged launchers no longer pass `--add-opens` JVM flags: Fory serialization works without them on JDK 25, and the JavaFX control-skin access was already guarded in code
 - Scan performance: indexed sample lookups, less redundant UI work, Fory serializers kept warm in a shared pool, and best-effort progress pushes throttled
 - Progress reporting: freed worker slots are marked idle, finished container names stay visible while remaining tasks run, and scan/fix progress stays bound to the operation that created it
 - Robustness guardrails against pathological inputs: depth caps on folder/tree/archive traversal and bencoding nesting, capped placeholder recursion
@@ -32,6 +35,7 @@
 - Settings: auto-save on change so a crash loses nothing, AppImage portable home honored for desktop config, invalid boolean properties fall back to defaults, and `Log.init` honors the supplied limit/count parameters
 - Stabilization of the new native binaries: single-threaded SevenZip compression in-image, JavaFX hardware pipeline with bundled shaders and libraries, Fory round-trip for report subjects, WebSocket reflection entries, and trntchk serializer init cost drastically reduced
 - CLI `set`/`settings` alias collision resolved
+- FullServer HTTPS/HTTP/2 in the jlink image: the `org.eclipse.jetty.alpn.java.server` ALPN provider module is now included, fixing the "No Server ALPNProcessors!" startup failure
 
 ### Security
 - Authenticated report-cache poisoning blocked via class allowlisting and refusal of uploads targeting the reports cache directory
