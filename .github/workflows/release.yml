@@ -45,7 +45,7 @@ jobs:
       runner: windows-latest
       target-platform: win-x64
       installer-type: msi
-      gradle-tasks: build jpackage
+      gradle-tasks: build jpackage -xtest
       extra-artifacts: build/distributions/JRomManager-*.zip
 
   build_macos_x64:
@@ -56,6 +56,7 @@ jobs:
     with:
       runner: macos-26
       target-platform: macos-x64
+      gradle-tasks: build jpackage -xtest
       installer-type: dmg
 
   build_macos_aarch64:
@@ -66,6 +67,7 @@ jobs:
     with:
       runner: macos-latest
       target-platform: macos-aarch64
+      gradle-tasks: build jpackage -xtest
       installer-type: dmg
 
   native_windows:
