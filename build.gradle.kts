@@ -277,8 +277,9 @@ jlink {
         // JPackageData uses plain Strings (only image/installerOptions are ListProperty).
         installerType = project.findProperty("installerType") as String?
         targetPlatformName = project.findProperty("targetPlatform") as String?
-        // RPM Version fields forbid '-' and MSI ProductVersion must be numeric:
-        // map e.g. 4.0.0-beta.1 to 4.0.0~beta.1 (rpm) / 4.0.0 (msi).
+        // RPM Version fields forbid '-' and MSI ProductVersion / macOS
+        // CFBundleVersion must be numeric: map e.g. 4.0.0-beta.1 to
+        // 4.0.0~beta.1 (rpm) / 4.0.0 (msi, dmg) via JrmRelease.
         appVersion = JrmRelease.appVersionFor(version.toString(), installerType)
         // getter returns File but setter takes Object: no Kotlin property, call it explicitly.
         setInstallerOutputDir(file("$buildDir/installer"))
@@ -304,6 +305,9 @@ jlink {
         }
         if (installerType == "dmg") {
             installerName = "JRomManager-$targetPlatformName"
+            // macOS icons must be .icns (.ico only triggers a "not an ICNS
+            // file" warning and falls back to the default icon).
+            imageOptions.set(listOf("--icon", "dist/JRomManager.icns"))
         }
     }
 }

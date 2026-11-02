@@ -70,10 +70,11 @@ val nativeInstallerTypes: List<String> =
         }
 
 // jpackage --app-version for the step-3 installers: RPM forbids '-' and MSI must be
-// numeric (see JrmRelease), so a pre-release like 4.0.0-beta.1 becomes 4.0.0~beta.1
-// when rpm is among the types, or 4.0.0 for msi-only runs; deb/dmg keep it as-is.
+// numeric (see JrmRelease), and macOS CFBundleVersion (dmg/pkg) must be numeric
+// dotted too, so a pre-release like 4.0.0-beta.1 becomes 4.0.0~beta.1
+// when rpm is among the types, or 4.0.0 for msi/dmg-only runs; deb keeps it as-is.
 val nativeAppVersion: String = when {
-    nativeInstallerTypes.contains("msi") -> JrmRelease.appVersionFor(version.toString(), "msi")
+    nativeInstallerTypes.contains("msi") || nativeInstallerTypes.contains("dmg") || nativeInstallerTypes.contains("pkg") -> JrmRelease.appVersionFor(version.toString(), "msi")
     nativeInstallerTypes.contains("rpm") -> JrmRelease.appVersionFor(version.toString(), "rpm")
     else -> version.toString()
 }
@@ -309,7 +310,7 @@ tasks.register<Exec>("nativeServersInstaller") {
             "--linux-menu-group", "Utility",
             "--linux-shortcut")
     } else if (currentOs.isMacOsX) {
-        args("--icon", file("dist/JRomManager.png").absolutePath,
+        args("--icon", file("dist/JRomManager.icns").absolutePath,
             "--mac-package-name", "JRomManager-Servers")
     }
     args(signingArgs())
@@ -391,7 +392,7 @@ tasks.register<Exec>("nativeGuiInstaller") {
             "--linux-menu-group", "Utility",
             "--linux-shortcut")
     } else if (currentOs.isMacOsX) {
-        args("--icon", file("dist/JRomManager.png").absolutePath,
+        args("--icon", file("dist/JRomManager.icns").absolutePath,
             "--mac-package-name", "JRomManager")
     }
     args(signingArgs())
