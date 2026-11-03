@@ -285,6 +285,10 @@ jlink {
         setInstallerOutputDir(file("$buildDir/installer"))
         imageName = "JRomManager"
         icon = "dist/JRomManager.ico"
+        packageName = "jrommanager"
+        packageDescription = "A Mame and Retrogaming Rom Manager, Java alternative to ClrMamePro"
+        appCopyright = "Copyright (C) 2010-2026 optyfr"
+        vendor = "optyfr"
         if (installerType == "msi") {
             imageOptions.set(listOf("--icon", "dist/JRomManager.ico"))
             installerOptions.set(listOf("--win-dir-chooser", "--win-menu", "--win-shortcut"))
@@ -308,6 +312,13 @@ jlink {
             // macOS icons must be .icns (.ico only triggers a "not an ICNS
             // file" warning and falls back to the default icon).
             imageOptions.set(listOf("--icon", "dist/JRomManager.icns"))
+            installerOptions.set(
+                listOf(
+                    "--mac-package-name", "jrommanager",
+                    "--mac-app-category", "public.app-category.utilities",
+                    "--mac-package-identifier", "org.optyfr.jrommanager"
+                )
+            )
         }
     }
 }
