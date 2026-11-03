@@ -252,7 +252,7 @@ jlink {
         name = "JRomManagerCLI"
         moduleName = "jrm.merged.module"
         mainClass = "jrm.cli.JRomManagerCLI"
-        isWinConsole = true
+        winConsole = true
         // Note: no org.jline.terminal.ffm entry: jline is merged into jrm.merged.module,
         // so there is no such module in the image and naming it only prints an "Unknown module" warning.
         jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManagerCLI.aot")
@@ -261,7 +261,7 @@ jlink {
         name = "JRomManagerServer"
         moduleName = "jrm.merged.module"
         mainClass = "jrm.server.Server"
-        isWinConsole = true
+        winConsole = true
         jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "-XX:AOTCache=\$APPDIR/aot/JRomManagerServer.aot")
         args = mutableListOf("--workpath", "%HOMEPATH%/.jrommanager")
     }
@@ -269,7 +269,7 @@ jlink {
         name = "JRomManagerFullServer"
         moduleName = "jrm.merged.module"
         mainClass = "jrm.fullserver.FullServer"
-        isWinConsole = true
+        winConsole = true
         jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "-XX:AOTCache=\$APPDIR/aot/JRomManagerFullServer.aot")
         args = mutableListOf("--workpath", "%HOMEPATH%/.jrommanager")
     }
