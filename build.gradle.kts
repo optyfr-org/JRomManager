@@ -285,10 +285,6 @@ jlink {
         setInstallerOutputDir(file("$buildDir/installer"))
         imageName = "JRomManager"
         icon = "dist/JRomManager.ico"
-        packageName = "jrommanager"
-        packageDescription = "A Mame and Retrogaming Rom Manager, Java alternative to ClrMamePro"
-        appCopyright = "Copyright (C) 2010-2026 optyfr"
-        vendor = "optyfr"
         if (installerType == "msi") {
             imageOptions.set(listOf("--icon", "dist/JRomManager.ico"))
             installerOptions.set(listOf("--win-dir-chooser", "--win-menu", "--win-shortcut"))
