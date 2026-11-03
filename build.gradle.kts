@@ -240,7 +240,7 @@ jlink {
         name = "JRomManager"
         moduleName = "jrm.merged.module"
         mainClass = "jrm.fx.JRomManagerMulti"
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=javafx.graphics,jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManager.aot")
+        jvmArgs = mutableListOf("-Xlog:aot", "-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=javafx.graphics,jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManager.aot")
     }
     secondaryLauncher {
         name = "JRomManagerSwing"
@@ -327,8 +327,8 @@ tasks.named("prepareMergedJarsDir") {
 // java after `jlink` and before `jpackage`, then shipped at $APPDIR/aot/<Launcher>.aot.
 // Only runs when `jpackage` is in the task graph, so plain build/test never trains.
 // Caches are written outside the jlink image (build/aot-caches) because jpackage copies
-// build/image/app into <app-image>/runtime/app, not into $APPDIR; aotCachesIntoImage then
-// places them at <app-image>/app/aot after jpackageImage.
+// build/image/app into the runtime, not into $APPDIR; aotCachesIntoImage then places them
+// at $APPDIR/aot: lib/app on Linux, Contents/app on macOS, app on Windows.
 val aotFixtureDir = file("dist/aot-fixture")
 val aotCachesDir = layout.buildDirectory.dir("aot-caches")
 tasks.register("aotCaches") {
@@ -425,11 +425,45 @@ tasks.register("aotCachesIntoImage") {
     dependsOn("jpackageImage", "aotCaches")
     onlyIf { gradle.taskGraph.hasTask(":jpackage") }
     doLast {
-        // jpackage app image output dir convention: build/jpackage/<imageName>, imageName defaults
-        // to the primary launcher name (not overridden in this build script).
+        // JDK 25 jpackage $APPDIR (ApplicationLayoutUtils / packaging overview):
+        //   Linux  <image>/lib/app
+        //   macOS  <image>.app/Contents/app
+        //   Windows <image>/app
+        // badass-jlink prefers <imageName> over <imageName>.app when that directory exists,
+        // so creating <imageName>/ on macOS hides the bundle and jpackage reports
+        // "Missing .jpackage.xml". The same mistake on Linux creates <image>/app instead of
+        // <image>/lib/app. Create the app directory itself, then aot inside it.
         val jlinkExt = project.extensions.getByType<org.beryx.jlink.data.JlinkPluginExtension>()
         val imageName = jlinkExt.launcherData.get().name ?: project.name
-        val dest = project.layout.buildDirectory.dir("jpackage/$imageName/app/aot").get().asFile
+        val osName = System.getProperty("os.name").lowercase()
+        val isMac = osName.contains("mac")
+        val isWindows = osName.contains("win")
+        val imageRoot = project.layout.buildDirectory.dir("jpackage").get().asFile
+        val macBundle = File(imageRoot, "$imageName.app")
+        val plain = File(imageRoot, imageName)
+        if (isMac && macBundle.isDirectory && plain.isDirectory)
+            plain.deleteRecursively()
+        val appImage = when {
+            isMac && macBundle.isDirectory -> macBundle
+            plain.isDirectory -> plain
+            macBundle.isDirectory -> macBundle
+            else -> throw GradleException("Unable to find the jpackage application image in ${imageRoot.absolutePath}")
+        }
+        val appDir = File(appImage, when {
+            isMac -> "Contents/app"
+            isWindows -> "app"
+            else -> "lib/app"
+        })
+        if (!appDir.isDirectory && !appDir.mkdirs())
+            throw GradleException("cannot create jpackage app directory: ${appDir.absolutePath}")
+        if (!isWindows) {
+            val strayApp = File(appImage, "app")
+            if (strayApp != appDir && strayApp.isDirectory && !File(strayApp, ".jpackage.xml").isFile)
+                strayApp.deleteRecursively()
+        }
+        val dest = File(appDir, "aot")
+        if (!dest.isDirectory && !dest.mkdirs())
+            throw GradleException("cannot create AOT directory: ${dest.absolutePath}")
         project.copy {
             from(aotCachesDir)
             into(dest)
