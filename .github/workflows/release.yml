@@ -54,7 +54,7 @@ jobs:
       contents: write
     uses: ./.github/workflows/jpackage-release.yml
     with:
-      runner: macos-26
+      runner: macos-26-intel
       target-platform: macos-x64
       gradle-tasks: build jpackage -xtest
       installer-type: dmg
@@ -70,7 +70,7 @@ jobs:
       gradle-tasks: build jpackage -xtest
       installer-type: dmg
 
-  native_linux:
+  native_linux_x64:
     needs: prepare
     permissions:
       contents: write
@@ -80,8 +80,18 @@ jobs:
       platform-tag: linux-x64
       installer-types: deb,rpm
 
+  native_linux_aarch64:
+    needs: prepare
+    permissions:
+      contents: write
+    uses: ./.github/workflows/native-release.yml
+    with:
+      runner: ubuntu-24.04-arm
+      platform-tag: linux-aarch64
+      installer-types: deb,rpm
+
   native_windows:
-    needs: native_linux
+    needs: [ native_linux_x64, native_linux_aarch64 ]
     permissions:
       contents: write
     uses: ./.github/workflows/native-release.yml
@@ -91,17 +101,17 @@ jobs:
       installer-types: msi
 
   native_macos_x64:
-    needs: native_linux
+    needs: native_windows
     permissions:
       contents: write
     uses: ./.github/workflows/native-release.yml
     with:
-      runner: macos-26
+      runner: macos-26-intel
       platform-tag: macos-x64
       installer-types: dmg
 
   native_macos_aarch64:
-    needs: native_linux
+    needs: native_windows
     permissions:
       contents: write
     uses: ./.github/workflows/native-release.yml

@@ -179,6 +179,30 @@ tasks.register<Exec>("nativeServersAppImage") {
     serversArgs.forEach { a -> args("--arguments", a) }
 }
 
+// macOS jpackage --type app-image produces "<name>.app" bundles, while
+// Linux/Windows produce a plain "<name>" directory. Resolve accordingly.
+val serversImageDirPath = if (currentOs.isMacOsX) "native-app/servers-image-parent/JRomManager-Servers.app" else "native-app/servers-image-parent/JRomManager-Servers"
+val guiImageDirPath = if (currentOs.isMacOsX) "native-app/gui-image-parent/JRomManager.app" else "native-app/gui-image-parent/JRomManager"
+
+// Inside a macOS bundle launchers live in Contents/MacOS and app resources
+// (.cfg, jars, $APPDIR content) in Contents/app; elsewhere they are directly
+// under the image root (bin/ for launchers on Linux).
+fun nativeLauncherDir(img: java.io.File): java.io.File {
+    val binCandidates = listOf(
+        java.io.File(img, "bin"),
+        java.io.File(img, "Contents/MacOS"),
+        img
+    )
+    return binCandidates.firstOrNull { it.isDirectory }
+        ?: throw GradleException("app-image has no launcher dir under $img")
+}
+
+fun nativeAppResourcesDir(img: java.io.File): java.io.File {
+    val contentsApp = java.io.File(img, "Contents/app")
+    // Only bundles have Contents/app; prefer it when present, else image root.
+    return if (img.name.endsWith(".app") && contentsApp.isDirectory) contentsApp else img
+}
+
 // Step 2: swap java launchers for native binaries, drop adjacent resources.
 tasks.register("stageNativeServersBinaries") {
     group = "native-installer"
@@ -186,17 +210,11 @@ tasks.register("stageNativeServersBinaries") {
     dependsOn("nativeServersAppImage", jrmServerBinary, jrmFullServerBinary, jrmCliBinary, project(":WebClient").tasks.named("jar"))
     // locate the produced app-image (jpackage names it after --name).
     // Launcher layout differs per OS: <image>/bin/<launcher> on linux,
-    // <image>\<launcher>.exe on windows, <image>/Contents/MacOS/<launcher> on macOS.
-    val imageDir = layout.buildDirectory.dir("native-app/servers-image-parent/JRomManager-Servers")
+    // <image>\<launcher>.exe on windows, <image>.app/Contents/MacOS/<launcher> on macOS.
+    val imageDir = layout.buildDirectory.dir(serversImageDirPath)
     doLast {
         val img = imageDir.get().asFile
-        val binCandidates = listOf(
-            java.io.File(img, "bin"),
-            img,
-            java.io.File(img, "Contents/MacOS")
-        )
-        val targetDir = binCandidates.firstOrNull { it.isDirectory }
-            ?: throw GradleException("servers app-image has no launcher dir under $img")
+        val targetDir = nativeLauncherDir(img)
         // -PnativeStubBinaries=true: assembly dry-run without nativeCompile.
         // Copies the java launchers onto themselves (no-op swap) to validate
         // steps 2-3 wiring. Never used for real installers.
@@ -223,10 +241,13 @@ tasks.register("stageNativeServersBinaries") {
             renameNativeExact(targetDir, "jrmserver", "JRomManagerServer")
             renameNativeExact(targetDir, "jrmcli", "JRomManagerCLI")
         }
-        // client content + helper scripts next to the image root (referenced via $APPDIR).
+        // client content + helper scripts next to the app resources (referenced via $APPDIR).
+        // On macOS bundles $APPDIR is Contents/app, so resources go there;
+        // elsewhere they go directly under the image root.
         // Two separate copies with absolute String paths: nested `into` inside
         // `from` mis-resolves the destination on Windows (observed: dest 'D:').
-        val clientDest: String = java.io.File(img, "client").absolutePath
+        val resourcesDir = nativeAppResourcesDir(img)
+        val clientDest: String = java.io.File(resourcesDir, "client").absolutePath
         project.copy {
             from("${rootDir}/WebClient/war")
             into(clientDest)
@@ -237,7 +258,7 @@ tasks.register("stageNativeServersBinaries") {
                 include("JRomManagerFullServer.*")
                 include("JRomManagerCLI.*")
             }
-            into(img.absolutePath)
+            into(resourcesDir.absolutePath)
         }
     }
 }
@@ -284,7 +305,7 @@ tasks.register<Exec>("nativeServersInstaller") {
     description = "Step 3: servers-role native installer(s) $nativeInstallerTypes for $nativeClassifier."
     dependsOn("stageNativeServersBinaries")
     onlyIf { !serversAppImageOnly }
-    val imageDir = layout.buildDirectory.dir("native-app/servers-image-parent/JRomManager-Servers")
+    val imageDir = layout.buildDirectory.dir(serversImageDirPath)
     val outDir = layout.buildDirectory.dir("installer-native/servers")
     doFirst { project.delete(outDir.get().asFile); outDir.get().asFile.mkdirs() }
     commandLine(
@@ -341,16 +362,10 @@ tasks.register("stageNativeGuiBinaries") {
     group = "native-installer"
     description = "Step 2: replaces app-image java launcher with the GraalVM jrmfx binary."
     dependsOn("nativeGuiAppImage", jrmFxBinary)
-    val imageDir = layout.buildDirectory.dir("native-app/gui-image-parent/JRomManager")
+    val imageDir = layout.buildDirectory.dir(guiImageDirPath)
     doLast {
         val img = imageDir.get().asFile
-        val binCandidates = listOf(
-            java.io.File(img, "bin"),
-            img,
-            java.io.File(img, "Contents/MacOS")
-        )
-        val targetDir = binCandidates.firstOrNull { it.isDirectory }
-            ?: throw GradleException("gui app-image has no launcher dir under $img")
+        val targetDir = nativeLauncherDir(img)
         val fxOut: java.io.File = jrmFxOut().get().asFile
         project.copy {
             from(fxOut) { include("jrmfx*") }
@@ -366,7 +381,7 @@ tasks.register<Exec>("nativeGuiInstaller") {
     description = "Step 3: gui-role native installer(s) $nativeInstallerTypes for $nativeClassifier."
     dependsOn("stageNativeGuiBinaries")
     onlyIf { !guiAppImageOnly }
-    val imageDir = layout.buildDirectory.dir("native-app/gui-image-parent/JRomManager")
+    val imageDir = layout.buildDirectory.dir(guiImageDirPath)
     val outDir = layout.buildDirectory.dir("installer-native/gui")
     doFirst { project.delete(outDir.get().asFile); outDir.get().asFile.mkdirs() }
     commandLine(
