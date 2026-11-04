@@ -70,18 +70,8 @@ jobs:
       gradle-tasks: build jpackage -xtest
       installer-type: dmg
 
-  native_windows:
-    needs: build_macos_aarch64
-    permissions:
-      contents: write
-    uses: ./.github/workflows/native-release.yml
-    with:
-      runner: windows-latest
-      platform-tag: win-x64
-      installer-types: msi
-
   native_linux:
-    needs: native_windows
+    needs: prepare
     permissions:
       contents: write
     uses: ./.github/workflows/native-release.yml
@@ -89,6 +79,16 @@ jobs:
       runner: ubuntu-24.04
       platform-tag: linux-x64
       installer-types: deb,rpm
+
+  native_windows:
+    needs: native_linux
+    permissions:
+      contents: write
+    uses: ./.github/workflows/native-release.yml
+    with:
+      runner: windows-latest
+      platform-tag: win-x64
+      installer-types: msi
 
   native_macos_x64:
     needs: native_linux

@@ -284,7 +284,15 @@ jlink {
         // getter returns File but setter takes Object: no Kotlin property, call it explicitly.
         setInstallerOutputDir(file("$buildDir/installer"))
         imageName = "JRomManager"
-        icon = "dist/JRomManager.ico"
+        // Per-OS icon: jpackage validates the top-level --icon against the
+        // target bundler (dmg requires .icns, deb/rpm want .png, msi/exe
+        // want .ico). A single .ico here makes the Mac DMG bundler warn
+        // 'not an ICNS file' and fall back to the default icon.
+        icon = when (installerType) {
+            "dmg" -> "dist/JRomManager.icns"
+            "deb", "rpm" -> "dist/JRomManager.png"
+            else -> "dist/JRomManager.ico"
+        }
         if (installerType == "msi") {
             imageOptions.set(listOf("--icon", "dist/JRomManager.ico"))
             installerOptions.set(listOf("--win-dir-chooser", "--win-menu", "--win-shortcut"))
