@@ -42,7 +42,7 @@ jobs:
           persist-credentials: false
 
       - name: Set up JDK
-        uses: optyfr-org/composite-actions/setup-java-gradle@92860d490a78124539f877e76694c0dc69444e5a
+        uses: optyfr-org/composite-actions/setup-java-gradle@f60bfcbcd50db29418641ce5d3e655479ce565ae
         with:
           java-distribution: ${{ runner.os == 'macOS' && 'liberica' || 'graalvm' }}
           java-version: 25
