@@ -91,7 +91,7 @@ jobs:
       installer-types: deb,rpm
 
   native_windows:
-    needs: [ native_linux_x64, native_linux_aarch64 ]
+    needs: native_linux_x64
     permissions:
       contents: write
     uses: ./.github/workflows/native-release.yml
@@ -101,7 +101,7 @@ jobs:
       installer-types: msi
 
   native_macos_x64:
-    needs: native_windows
+    needs: native_linux_x64
     permissions:
       contents: write
     uses: ./.github/workflows/native-release.yml
@@ -111,7 +111,7 @@ jobs:
       installer-types: dmg
 
   native_macos_aarch64:
-    needs: native_windows
+    needs: native_linux_aarch64
     permissions:
       contents: write
     uses: ./.github/workflows/native-release.yml
@@ -119,3 +119,6 @@ jobs:
       runner: macos-latest
       platform-tag: macos-aarch64
       installer-types: dmg
+      # Hypothesis test: Oracle GraalVM + OpenJFX links on aarch64 where
+      # Liberica Standard fails on x64. Explicit, not auto.
+      java-distribution: graalvm

@@ -19,8 +19,9 @@ graalvmNative {
     binaries.all {
         buildArgs.addAll(JrmNative.commonBuildArgs)
     }
-    // Experimental. Stock native-image cannot statically link OpenJFX natives;
-    // ship the JavaFX SDK platform libraries next to the binary.
+    // macOS-x64 native disabled by default (Liberica NIK Standard + Xcode 26
+    // link fails with undefined _JNI_OnLoad_glass / glass/prism/font/iio
+    // symbols); Windows/Linux/macOS-aarch64 stay enabled. See jrm.packaging-native.
     // javafx.web is on the default UI path (WebviewCellFactory). javafx.swing is unused
     // in main sources and stays in the JVM module set.
     agent {

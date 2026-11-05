@@ -1,9 +1,13 @@
 name: Native Release
 
-# Builds GraalVM native binaries + per-role platform installers
-# (servers MSI/DEB/RPM/DMG, gui MSI/DEB/RPM/DMG) on each OS and uploads
-# them to the tag release. Installers are UNSIGNED (see
-# buildSrc jrm.packaging-native signing hooks for the wiring points).
+# Builds GraalVM native binaries + platform installer(s) on each OS.
+# Windows/Linux/macOS-aarch64: servers + GUI native. macOS-x64: servers native
+# only (GUI native link broken on Liberica NIK Standard + Xcode 26: missing
+# _JNI_OnLoad_glass / glass/prism/font/iio symbols, observed on macos-x64) —
+# macOS-x64 desktop users keep the JVM jpackage DMG. Manual retry with
+# -PnativeGui still possible. macOS-aarch64 uses Oracle GraalVM per hypothesis
+# that GraalVM + OpenJFX links where Liberica Standard does not.
+# Installers are UNSIGNED (see buildSrc jrm.packaging-native signing hooks).
 
 on:
   workflow_call:
@@ -20,6 +24,11 @@ on:
         description: jpackage installer types for this OS
         required: true
         type: string
+      java-distribution:
+        description: "Override JDK distribution (default auto: liberica on macOS-x64, graalvm elsewhere)"
+        required: false
+        type: string
+        default: ''
       lfs:
         description: Fetch Git LFS files on checkout
         required: false
@@ -44,7 +53,9 @@ jobs:
       - name: Set up JDK
         uses: optyfr-org/composite-actions/setup-java-gradle@f60bfcbcd50db29418641ce5d3e655479ce565ae
         with:
-          java-distribution: ${{ runner.os == 'macOS' && 'liberica' || 'graalvm' }}
+          # Empty input = auto: liberica on macOS-x64 (servers-only flow),
+          # graalvm elsewhere (incl. macOS-aarch64 hypothesis test).
+          java-distribution: ${{ inputs.java-distribution != '' && inputs.java-distribution || (inputs.platform-tag == 'macos-x64' && 'liberica' || 'graalvm') }}
           java-version: 25
           native: true
 
@@ -87,7 +98,20 @@ jobs:
           file: build/installer-native/servers/*
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Check for GUI native installer
+        id: check-gui
+        shell: bash
+        run: |
+          if compgen -G "build/installer-native/gui/*" > /dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "No GUI native installer (expected on macOS: GUI native disabled by default)."
+          fi
+
       - name: Release GUI installer
+        # Present on Windows/Linux; absent on macOS default flow.
+        if: steps.check-gui.outputs.exists == 'true'
         uses: optyfr-org/composite-actions/upload-release-asset@5d5db305592dd78357c2980b4482d9dc3b692311 # v1
         with:
           tag: ${{ github.ref_name }}

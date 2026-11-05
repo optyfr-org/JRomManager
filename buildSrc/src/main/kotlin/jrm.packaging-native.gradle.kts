@@ -23,11 +23,12 @@
 //   -PnativeMacSignIdentity=<name> -PnativeMacNotarizeProfile=<profile>
 // When set, the flags are appended to the step-3 jpackage command lines.
 //
-// CI: .github/workflows/native-release.yml builds the four OS jobs with
-// GraalVM 25 and calls :nativeServersInstaller / :nativeGuiInstaller.
+// CI: .github/workflows/native-release.yml builds the OS jobs with
+// GraalVM 25 and calls :nativeInstallers (servers only; gui is opt-in).
 // Local build (same OS as host):
-//   ./gradlew nativeServersInstaller   (or nativeGuiInstaller)
-//   ./gradlew nativeInstallers         (both roles)
+//   ./gradlew nativeServersInstaller            (default release path)
+//   ./gradlew nativeGuiInstaller -PnativeGui    (experimental JavaFX only)
+//   ./gradlew nativeInstallers                  (servers; + gui with -PnativeGui)
 //
 // Precompiled replacement for gradle/packaging-native.gradle.kts (verbatim).
 
@@ -338,8 +339,17 @@ tasks.register<Exec>("nativeServersInstaller") {
 }
 
 // ---------------------------------------------------------------------------
-// GUI role: jrmfx (experimental native JavaFX)
+// GUI role: jrmfx (native JavaFX; macOS-x64 disabled by default).
+// Windows/Linux native GUI builds pass with Oracle GraalVM + Maven OpenJFX.
+// macOS-x64 (Liberica NIK Standard, Xcode 26) fails at link time: undefined
+// _JNI_OnLoad_glass / Java_com_sun_glass_ui_mac_* / Java_com_sun_prism_es2_*
+// (observed on 4.0.0-beta.1). macOS-aarch64 hypothesis: Oracle GraalVM +
+// OpenJFX links where Liberica Standard does not, so keep it enabled there.
+// Override any macOS with -PnativeGui. macOS-x64 desktop users keep the JVM
+// jpackage DMG.
 // ---------------------------------------------------------------------------
+// Default: disabled only on macOS-x64 unless -PnativeGui.
+val nativeGuiEnabled = !(currentOs.isMacOsX && currentArch.isAmd64) || project.hasProperty("nativeGui")
 tasks.register<Exec>("nativeGuiAppImage") {
     group = "native-installer"
     description = "Step 1: stock jpackage app-image scaffolding for the gui role."
@@ -415,6 +425,9 @@ tasks.register<Exec>("nativeGuiInstaller") {
 
 tasks.register("nativeInstallers") {
     group = "native-installer"
-    description = "Builds both native-role installers for the current OS."
-    dependsOn("nativeServersInstaller", "nativeGuiInstaller")
+    description = "Builds native-role installer(s) for the current OS (servers + GUI; macOS-x64 GUI only with -PnativeGui)."
+    dependsOn("nativeServersInstaller")
+    // macOS-x64 link is known-broken (Liberica NIK Standard + Xcode 26).
+    // macOS-aarch64 stays enabled to test the GraalVM + OpenJFX hypothesis.
+    if (nativeGuiEnabled) dependsOn("nativeGuiInstaller")
 }

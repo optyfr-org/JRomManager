@@ -155,7 +155,7 @@ If you just want to recompile sources without using an IDE, here are the steps t
 - Multi-volume decompression (RAR and 7Zip)
 - Command Line Mode with access to all functionalities and environment variable support
 - WebSocket endpoint (`/ws`) for server actions as an alternative to long-polling
-- GraalVM native binaries for the CLI, the JavaFX desktop, the server and the full server: instant startup with no JVM installation required
+- GraalVM native binaries for the CLI, the server and the full server on all OS, plus the JavaFX desktop native on Windows/Linux/macOS-aarch64: instant startup with no JVM installation required (macOS-x64 desktop native disabled by default — link broken on Liberica NIK Standard + Xcode 26; macOS-x64 desktop users use the bundled-runtime jpackage DMG)
 - Copy to clipboard and search on the web functions 
 - "Single file" compression mode : to store single rom games without directories nor compression, this mode will work correctly only if:
     - There is only 1 rom per game and no relationship between games (parent/clone)
