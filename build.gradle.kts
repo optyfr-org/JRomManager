@@ -137,6 +137,7 @@ val daemonVersion = JrmProps.daemonVersion(rootDir)
 tasks.register<Download>("downloadDaemonWin") {
     src("https://archive.apache.org/dist/commons/daemon/binaries/windows/commons-daemon-$daemonVersion-bin-windows.zip")
     dest(layout.buildDirectory.file("commons-daemon-$daemonVersion-bin-windows.zip"))
+    retries(3)
     onlyIfModified(true)
 }
 
@@ -154,6 +155,7 @@ tasks.register<Copy>("extractDaemonWin") {
 tasks.register<Download>("downloadDaemonLinux") {
     src("https://archive.apache.org/dist/commons/daemon/source/commons-daemon-$daemonVersion-native-src.tar.gz")
     dest(layout.buildDirectory.file("commons-daemon-$daemonVersion-native-src.tar.gz"))
+    retries(3)
     onlyIfModified(true)
 }
 
