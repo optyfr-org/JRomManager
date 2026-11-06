@@ -60,6 +60,16 @@ fun nativePlatformClassifier(): String {
 val nativeClassifier = nativePlatformClassifier()
 val jpackageBin = "${System.getProperty("java.home")}/bin/jpackage"
 
+// Installer/launcher naming: every native artifact includes `native` plus
+// os-arch (e.g. JRomManager-Servers-native-win-x64-4.0.0.msi,
+// jrommanager-native-servers-linux-x64_4.0.0_amd64.deb). The rpm already
+// encoded arch via jpackage; msi/deb/dmg did not, and colliding bare names
+// (JRomManager-Servers, JRomManager) are ambiguous next to the JVM installers.
+val serversBaseName = "JRomManager-Servers-native-$nativeClassifier"
+val guiBaseName = "JRomManager-native-$nativeClassifier"
+val serversLinuxPkg = "jrommanager-native-servers-$nativeClassifier"
+val guiLinuxPkg = "jrommanager-native-$nativeClassifier"
+
 // Per-OS default installer types, overridable with -PnativeInstallerTypes=msi,exe ...
 val nativeInstallerTypes: List<String> =
     (project.findProperty("nativeInstallerTypes") as String?)?.split(",")?.map { it.trim() }?.filter { it.isNotEmpty() }
@@ -171,7 +181,7 @@ tasks.register<Exec>("nativeServersAppImage") {
         "--type", "app-image",
         "--input", ".",
         "--dest", out.get().asFile.absolutePath,
-        "--name", "JRomManager-Servers",
+        "--name", serversBaseName,
         "--main-jar", "stub.jar",
         "--java-options", "-Dfile.encoding=UTF-8",
         "--add-launcher", "JRomManagerServer=jrmserver-launcher.properties",
@@ -182,8 +192,8 @@ tasks.register<Exec>("nativeServersAppImage") {
 
 // macOS jpackage --type app-image produces "<name>.app" bundles, while
 // Linux/Windows produce a plain "<name>" directory. Resolve accordingly.
-val serversImageDirPath = if (currentOs.isMacOsX) "native-app/servers-image-parent/JRomManager-Servers.app" else "native-app/servers-image-parent/JRomManager-Servers"
-val guiImageDirPath = if (currentOs.isMacOsX) "native-app/gui-image-parent/JRomManager.app" else "native-app/gui-image-parent/JRomManager"
+val serversImageDirPath = if (currentOs.isMacOsX) "native-app/servers-image-parent/$serversBaseName.app" else "native-app/servers-image-parent/$serversBaseName"
+val guiImageDirPath = if (currentOs.isMacOsX) "native-app/gui-image-parent/$guiBaseName.app" else "native-app/gui-image-parent/$guiBaseName"
 
 // Inside a macOS bundle launchers live in Contents/MacOS and app resources
 // (.cfg, jars, $APPDIR content) in Contents/app; elsewhere they are directly
@@ -202,6 +212,34 @@ fun nativeAppResourcesDir(img: java.io.File): java.io.File {
     val contentsApp = java.io.File(img, "Contents/app")
     // Only bundles have Contents/app; prefer it when present, else image root.
     return if (img.name.endsWith(".app") && contentsApp.isDirectory) contentsApp else img
+}
+
+// Native binaries are self-contained: the stock jpackage runtime + stub jar/cfg
+// only bloat the installer (observed: GUI MSI shipped a full JRE under runtime/
+// plus app/stub.jar). Strip them after the swap; keep .jpackage.xml so step 3
+// still recognises the directory as an app-image.
+fun stripNativeJavaLeftovers(img: java.io.File) {
+    listOf(
+        java.io.File(img, "runtime"),
+        java.io.File(img, "lib/runtime"),
+        java.io.File(img, "Contents/runtime"),
+        java.io.File(img, "Contents/Home/runtime")
+    ).forEach {
+        if (it.isDirectory) {
+            project.logger.lifecycle("Removing stock JRE from native image: $it")
+            project.delete(it)
+        }
+    }
+    listOf(
+        java.io.File(img, "app"),
+        java.io.File(img, "lib/app"),
+        java.io.File(img, "Contents/app")
+    ).filter { it.isDirectory }.forEach { appDir ->
+        appDir.listFiles { f -> f.isFile && (f.name.endsWith(".jar") || f.name.endsWith(".cfg")) }?.forEach {
+            project.logger.lifecycle("Removing stock Java artifact from native image: $it")
+            removeReadOnly(it)
+        }
+    }
 }
 
 // Step 2: swap java launchers for native binaries, drop adjacent resources.
@@ -227,13 +265,14 @@ tasks.register("stageNativeServersBinaries") {
             val srvOut: java.io.File = jrmServerOut().get().asFile
             val cliOut: java.io.File = jrmCliOut().get().asFile
             logger.lifecycle("native stage sources: $fullOut, $srvOut, $cliOut")
-            // Copy executables only: nativeCompile also emits jrm*.sbom.json
-            // which must not land in Contents/MacOS (jpackage codesign fails
-            // on the extra unsigned subcomponent, observed on macOS-aarch64).
+            // Copy executables + companion JDK shims (awt.dll, jvm.dll, ...).
+            // Exclude jrm*.sbom.json: it must not land in Contents/MacOS
+            // (jpackage codesign fails on the extra unsigned subcomponent,
+            // observed on macOS-aarch64).
             project.copy {
-                from(fullOut) { include("jrmfullserver", "jrmfullserver.exe") }
-                from(srvOut) { include("jrmserver", "jrmserver.exe") }
-                from(cliOut) { include("jrmcli", "jrmcli.exe") }
+                from(fullOut) { include("jrmfullserver", "jrmfullserver.exe", "*.dll", "*.so", "*.dylib") }
+                from(srvOut) { include("jrmserver", "jrmserver.exe", "*.dll", "*.so", "*.dylib") }
+                from(cliOut) { include("jrmcli", "jrmcli.exe", "*.dll", "*.so", "*.dylib") }
                 into(targetDir)
             }
         }
@@ -241,7 +280,7 @@ tasks.register("stageNativeServersBinaries") {
         // Order matters: 'jrmserver*' prefix also matches 'jrmservers...' — the
         // fullserver rename runs first, then exact basename matching avoids collisions.
         if (!stubBinaries) {
-            renameNativeExact(targetDir, "jrmfullserver", "JRomManager-Servers")
+            renameNativeExact(targetDir, "jrmfullserver", serversBaseName)
             renameNativeExact(targetDir, "jrmserver", "JRomManagerServer")
             renameNativeExact(targetDir, "jrmcli", "JRomManagerCLI")
         }
@@ -264,6 +303,9 @@ tasks.register("stageNativeServersBinaries") {
             }
             into(resourcesDir.absolutePath)
         }
+        // Native launchers ignore the stock runtime/jar/cfg; drop them so the
+        // installer ships only natives + client/scripts.
+        if (!stubBinaries) stripNativeJavaLeftovers(img)
     }
 }
 
@@ -314,7 +356,7 @@ tasks.register<Exec>("nativeServersInstaller") {
     doFirst { project.delete(outDir.get().asFile); outDir.get().asFile.mkdirs() }
     commandLine(
         jpackageBin,
-        "--name", "JRomManager-Servers",
+        "--name", serversBaseName,
         "--app-version", nativeAppVersion,
         "--vendor", "optyfr",
         "--description", "JRomManager servers (native): FullServer, Server, CLI",
@@ -330,13 +372,13 @@ tasks.register<Exec>("nativeServersInstaller") {
             "--win-menu", "--win-shortcut", "--win-dir-chooser")
     } else if (currentOs.isLinux) {
         args("--icon", file("dist/JRomManager.png").absolutePath,
-            "--linux-package-name", "jrommanager-native-servers",
+            "--linux-package-name", serversLinuxPkg,
             "--linux-app-category", "utils",
             "--linux-menu-group", "Utility",
             "--linux-shortcut")
     } else if (currentOs.isMacOsX) {
         args("--icon", file("dist/JRomManager.icns").absolutePath,
-            "--mac-package-name", "JRomManager-Servers")
+            "--mac-package-name", serversBaseName)
     }
     args(signingArgs())
 }
@@ -365,7 +407,7 @@ tasks.register<Exec>("nativeGuiAppImage") {
         "--type", "app-image",
         "--input", ".",
         "--dest", out.get().asFile.absolutePath,
-        "--name", "JRomManager",
+        "--name", guiBaseName,
         "--main-jar", "stub.jar",
         "--java-options", "-Dfile.encoding=UTF-8 -Dprism.maxvram=1G"
     )
@@ -380,12 +422,13 @@ tasks.register("stageNativeGuiBinaries") {
         val img = imageDir.get().asFile
         val targetDir = nativeLauncherDir(img)
         val fxOut: java.io.File = jrmFxOut().get().asFile
-        // Executable only: exclude jrmfx.sbom.json (breaks macOS codesign).
+        // Executable + companion JDK shims; exclude jrmfx.sbom.json (breaks macOS codesign).
         project.copy {
-            from(fxOut) { include("jrmfx", "jrmfx.exe") }
+            from(fxOut) { include("jrmfx", "jrmfx.exe", "*.dll", "*.so", "*.dylib") }
             into(targetDir)
         }
-        renameNativeExact(targetDir, "jrmfx", "JRomManager")
+        renameNativeExact(targetDir, "jrmfx", guiBaseName)
+        stripNativeJavaLeftovers(img)
     }
 }
 
@@ -400,7 +443,7 @@ tasks.register<Exec>("nativeGuiInstaller") {
     doFirst { project.delete(outDir.get().asFile); outDir.get().asFile.mkdirs() }
     commandLine(
         jpackageBin,
-        "--name", "JRomManager",
+        "--name", guiBaseName,
         "--app-version", nativeAppVersion,
         "--vendor", "optyfr",
         "--description", "JRomManager desktop (native, JavaFX)",
@@ -416,13 +459,13 @@ tasks.register<Exec>("nativeGuiInstaller") {
             "--win-menu", "--win-shortcut", "--win-dir-chooser")
     } else if (currentOs.isLinux) {
         args("--icon", file("dist/JRomManager.png").absolutePath,
-            "--linux-package-name", "jrommanager-native",
+            "--linux-package-name", guiLinuxPkg,
             "--linux-app-category", "utils",
             "--linux-menu-group", "Utility",
             "--linux-shortcut")
     } else if (currentOs.isMacOsX) {
         args("--icon", file("dist/JRomManager.icns").absolutePath,
-            "--mac-package-name", "JRomManager")
+            "--mac-package-name", guiBaseName)
     }
     args(signingArgs())
 }
