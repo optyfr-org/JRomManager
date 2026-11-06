@@ -270,6 +270,9 @@ tasks.register("stageNativeServersBinaries") {
             // (jpackage codesign fails on the extra unsigned subcomponent,
             // observed on macOS-aarch64).
             project.copy {
+                // The three native outputs share companion shims (libawt.so,
+                // jvm.dll, ...): identical files, first wins.
+                duplicatesStrategy = org.gradle.api.file.DuplicatesStrategy.EXCLUDE
                 from(fullOut) { include("jrmfullserver", "jrmfullserver.exe", "*.dll", "*.so", "*.dylib") }
                 from(srvOut) { include("jrmserver", "jrmserver.exe", "*.dll", "*.so", "*.dylib") }
                 from(cliOut) { include("jrmcli", "jrmcli.exe", "*.dll", "*.so", "*.dylib") }
