@@ -3,7 +3,7 @@
 // freefair plugin + TOML version via the subproject builds).
 tasks.named("javadoc", Javadoc::class.java) {
     dependsOn("delombok")
-    source(fileTree("$buildDir/generated/sources/delombok/java/main") {
+    source(fileTree(layout.buildDirectory.dir("generated/sources/delombok/java/main")) {
         include("**/*.java")
     })
     (options as StandardJavadocDocletOptions).apply {

@@ -136,36 +136,36 @@ apply(plugin = "jrm.packaging-ospackage")
 val daemonVersion = JrmProps.daemonVersion(rootDir)
 tasks.register<Download>("downloadDaemonWin") {
     src("https://archive.apache.org/dist/commons/daemon/binaries/windows/commons-daemon-$daemonVersion-bin-windows.zip")
-    dest(file("$buildDir/commons-daemon-$daemonVersion-bin-windows.zip"))
+    dest(layout.buildDirectory.file("commons-daemon-$daemonVersion-bin-windows.zip"))
     onlyIfModified(true)
 }
 
 tasks.register<Copy>("extractDaemonWin") {
     dependsOn("downloadDaemonWin")
-    from(zipTree(file("$buildDir/commons-daemon-$daemonVersion-bin-windows.zip")))
+    from(zipTree(layout.buildDirectory.file("commons-daemon-$daemonVersion-bin-windows.zip")))
     include("amd64/*.exe", "prunmgr.exe")
     eachFile {
         path = name
     }
     includeEmptyDirs = false
-    into("$buildDir/commons-daemon-$daemonVersion-bin-windows")
+    into(layout.buildDirectory.dir("commons-daemon-$daemonVersion-bin-windows"))
 }
 
 tasks.register<Download>("downloadDaemonLinux") {
     src("https://archive.apache.org/dist/commons/daemon/source/commons-daemon-$daemonVersion-native-src.tar.gz")
-    dest(file("$buildDir/commons-daemon-$daemonVersion-native-src.tar.gz"))
+    dest(layout.buildDirectory.file("commons-daemon-$daemonVersion-native-src.tar.gz"))
     onlyIfModified(true)
 }
 
 tasks.register<Copy>("extractDaemonLinux") {
     dependsOn("downloadDaemonLinux")
-    from(tarTree(file("$buildDir/commons-daemon-$daemonVersion-native-src.tar.gz")))
-    into("$buildDir/jsvc")
+    from(tarTree(layout.buildDirectory.file("commons-daemon-$daemonVersion-native-src.tar.gz")))
+    into(layout.buildDirectory.dir("jsvc"))
 }
 
 tasks.register<Exec>("configureDaemonLinux") {
     dependsOn("extractDaemonLinux")
-    workingDir("$buildDir/jsvc/commons-daemon-$daemonVersion-native-src/unix")
+    workingDir(layout.buildDirectory.dir("jsvc/commons-daemon-$daemonVersion-native-src/unix"))
     commandLine("./configure", "--silent", "--with-java=" + System.getProperty("java.home"))
     standardOutput = ByteArrayOutputStream()
     doLast {
@@ -175,7 +175,7 @@ tasks.register<Exec>("configureDaemonLinux") {
 
 tasks.register<Exec>("compileDaemonLinux") {
     dependsOn("configureDaemonLinux")
-    workingDir("$buildDir/jsvc/commons-daemon-$daemonVersion-native-src/unix")
+    workingDir(layout.buildDirectory.dir("jsvc/commons-daemon-$daemonVersion-native-src/unix"))
     commandLine("make", "--silent")
     standardOutput = ByteArrayOutputStream()
     doLast {
@@ -281,8 +281,8 @@ jlink {
         // CFBundleVersion must be numeric: map e.g. 4.0.0-beta.1 to
         // 4.0.0~beta.1 (rpm) / 4.0.0 (msi, dmg) via JrmRelease.
         appVersion = JrmRelease.appVersionFor(version.toString(), installerType)
-        // getter returns File but setter takes Object: no Kotlin property, call it explicitly.
-        setInstallerOutputDir(file("$buildDir/installer"))
+        // getter returns File but setter takes Object: pass the lazy Directory provider.
+        setInstallerOutputDir(layout.buildDirectory.dir("installer"))
         imageName = "JRomManager"
         // Per-OS icon: jpackage validates the top-level --icon against the
         // target bundler (dmg requires .icns, deb/rpm want .png, msi/exe
@@ -347,6 +347,13 @@ tasks.register("aotCaches") {
         val osName = System.getProperty("os.name").lowercase()
         val isWindows = osName.contains("win")
         val isLinux = osName.contains("linux")
+        val isMac = osName.contains("mac") || osName.contains("darwin")
+        // JavaFX/Swing training needs a display (xvfb-run on Linux). macos-x64 CI
+        // hangs on CGLChoosePixelFormat until the 10 min timeout, while macos-aarch64
+        // trains fine, so skip the GUI trainers only on Intel macOS.
+        val arch = System.getProperty("os.arch").lowercase()
+        val isMacX64 = isMac && !arch.contains("aarch64") && !arch.contains("arm64")
+        val guiLaunchers = setOf("JRomManager", "JRomManagerSwing")
         val javaBin = File(imageDir, "bin/java" + if (isWindows) ".exe" else "")
         val appDir = File(imageDir, "app")
         val outDir = aotCachesDir.get().asFile.apply { deleteRecursively(); mkdirs() }
@@ -356,6 +363,10 @@ tasks.register("aotCaches") {
             Triple(primary.name, jlinkExt.moduleName.get() + "/" + jlinkExt.mainClass.get(), primary.jvmArgs)
         ) + jlinkExt.secondaryLaunchers.get().map { Triple(it.name, it.moduleName + "/" + it.mainClass, it.jvmArgs) }
         for ((name, main, rawJvmArgs) in launchers) {
+            if (isMacX64 && name in guiLaunchers) {
+                project.logger.warn("Skipping AOT training for $name on macOS-x64 (no display); launcher will run without AOT cache")
+                continue
+            }
             val jvmArgs = if (rawJvmArgs == org.beryx.jlink.data.LauncherData.UNDEFINED_ARGS)
                 emptyList()
             else
@@ -416,12 +427,28 @@ tasks.register("aotCaches") {
             pump.start()
             if (!proc.waitFor(10, TimeUnit.MINUTES)) {
                 proc.destroyForcibly()
+                if (name in guiLaunchers) {
+                    project.logger.warn("AOT training for $name timed out; continuing without its cache")
+                    out.delete()
+                    continue
+                }
                 throw GradleException("AOT training for $name timed out")
             }
-            if (proc.exitValue() != 0)
+            if (proc.exitValue() != 0) {
+                if (name in guiLaunchers) {
+                    project.logger.warn("AOT training for $name exited with code ${proc.exitValue()}; continuing without its cache")
+                    out.delete()
+                    continue
+                }
                 throw GradleException("AOT training for $name exited with code ${proc.exitValue()}")
-            if (!out.isFile)
+            }
+            if (!out.isFile) {
+                if (name in guiLaunchers) {
+                    project.logger.warn("AOT training for $name produced no cache; continuing without it")
+                    continue
+                }
                 throw GradleException("AOT training for $name produced no cache at $out")
+            }
             project.logger.lifecycle("AOT cache $name: ${out.length()} bytes")
         }
     }
@@ -477,6 +504,25 @@ tasks.register("aotCachesIntoImage") {
             into(dest)
         }
         project.logger.lifecycle("AOT caches installed into ${dest.absolutePath}")
+        // Launchers whose training was skipped (macOS GUI) still ship
+        // -XX:AOTCache=$APPDIR/aot/<Launcher>.aot in their .cfg. A missing cache
+        // makes the JVM fail at startup, so strip the flag when the file is absent.
+        val launcherNames = listOf(jlinkExt.launcherData.get().name) + jlinkExt.secondaryLaunchers.get().map { it.name }
+        for (launcherName in launcherNames) {
+            val cache = File(dest, "$launcherName.aot")
+            if (cache.isFile) continue
+            val cfg = File(appDir, "$launcherName.cfg")
+            if (!cfg.isFile) {
+                project.logger.warn("AOT cache missing for $launcherName but no ${cfg.absolutePath} to patch")
+                continue
+            }
+            val lines = cfg.readLines()
+            val kept = lines.filterNot { it.trim().startsWith("java-options=-XX:AOTCache=") || it.trim() == "-XX:AOTCache=" || it.contains("-XX:AOTCache=") }
+            if (kept.size != lines.size) {
+                cfg.writeText(kept.joinToString("\n") + "\n")
+                project.logger.warn("Stripped dangling -XX:AOTCache for $launcherName (no cache trained)")
+            }
+        }
     }
 }
 

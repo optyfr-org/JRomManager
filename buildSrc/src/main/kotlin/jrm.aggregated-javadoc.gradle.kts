@@ -2,7 +2,7 @@
 tasks.register<Javadoc>("aggregatedJavadocs") {
     description = "Generate javadocs from all child projects as if it was a single project"
     group = "Documentation"
-    destinationDir = file("$buildDir/docs/javadoc")
+    destinationDir = layout.buildDirectory.dir("docs/javadoc").get().asFile
     title = "${project.name} $version API"
     (options as StandardJavadocDocletOptions).apply {
         author(true)
@@ -26,7 +26,7 @@ tasks.register<Zip>("docZip") {
     from(tasks.named("javadoc", Javadoc::class.java).map { it.outputs.files })
     into("docs")
     archiveFileName.set(project.name + "-" + project.version + "-apidocs.zip")
-    destinationDirectory.set(file("$buildDir/distributions/"))
+    destinationDirectory.set(layout.buildDirectory.dir("distributions"))
 }
 
 tasks.named("build") {

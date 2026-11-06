@@ -227,10 +227,13 @@ tasks.register("stageNativeServersBinaries") {
             val srvOut: java.io.File = jrmServerOut().get().asFile
             val cliOut: java.io.File = jrmCliOut().get().asFile
             logger.lifecycle("native stage sources: $fullOut, $srvOut, $cliOut")
+            // Copy executables only: nativeCompile also emits jrm*.sbom.json
+            // which must not land in Contents/MacOS (jpackage codesign fails
+            // on the extra unsigned subcomponent, observed on macOS-aarch64).
             project.copy {
-                from(fullOut) { include("jrmfullserver*") }
-                from(srvOut) { include("jrmserver*") }
-                from(cliOut) { include("jrmcli*") }
+                from(fullOut) { include("jrmfullserver", "jrmfullserver.exe") }
+                from(srvOut) { include("jrmserver", "jrmserver.exe") }
+                from(cliOut) { include("jrmcli", "jrmcli.exe") }
                 into(targetDir)
             }
         }
@@ -377,8 +380,9 @@ tasks.register("stageNativeGuiBinaries") {
         val img = imageDir.get().asFile
         val targetDir = nativeLauncherDir(img)
         val fxOut: java.io.File = jrmFxOut().get().asFile
+        // Executable only: exclude jrmfx.sbom.json (breaks macOS codesign).
         project.copy {
-            from(fxOut) { include("jrmfx*") }
+            from(fxOut) { include("jrmfx", "jrmfx.exe") }
             into(targetDir)
         }
         renameNativeExact(targetDir, "jrmfx", "JRomManager")

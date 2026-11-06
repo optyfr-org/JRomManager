@@ -23,12 +23,12 @@ distributions {
             }
             from(tasks.named("jar"))
             if (os.isLinux) {
-                from("$buildDir/jsvc/commons-daemon-$daemonVersion-native-src/unix") {
+                from(layout.buildDirectory.dir("jsvc/commons-daemon-$daemonVersion-native-src/unix")) {
                     include("jsvc")
                     filePermissions { unix("0755") }
                 }
             }
-            from("$buildDir/commons-daemon-$daemonVersion-bin-windows") {
+            from(layout.buildDirectory.dir("commons-daemon-$daemonVersion-bin-windows")) {
                 filePermissions { unix("0755") }
             }
             from("dist/logs") {
@@ -61,7 +61,7 @@ distributions {
                 include("*.jar")
             }
             from(tasks.named("jar"))
-            from("$buildDir/commons-daemon-$daemonVersion-bin-windows") {
+            from(layout.buildDirectory.dir("commons-daemon-$daemonVersion-bin-windows")) {
                 filePermissions { unix("0755") }
             }
             from("dist/logs") {
@@ -97,7 +97,7 @@ distributions {
                 include("*.jar")
             }
             from(tasks.named("jar"))
-            from("$buildDir/jsvc/commons-daemon-$daemonVersion-native-src/unix") {
+            from(layout.buildDirectory.dir("jsvc/commons-daemon-$daemonVersion-native-src/unix")) {
                 include("jsvc")
                 filePermissions { unix("0755") }
             }
