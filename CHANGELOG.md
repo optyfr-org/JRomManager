@@ -13,6 +13,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [4.0.0-beta.2]
+### Changed
+- Native installer and launcher names now embed `native` plus OS/arch (e.g. `JRomManager-Servers-native-win-x64-4.0.0.msi`, `jrommanager-native-servers-linux-x64`), so native artifacts no longer collide with the JVM installers or across architectures
+- Native installers no longer ship the stock Java runtime, stub jar or launcher configs: the self-contained executables come with only their companion libraries plus client/scripts, making the MSI/DMG/DEB/RPM much smaller
+- macOS-x64 CI skips GUI AOT training (it hangs on `CGLChoosePixelFormat` with no display); macOS-aarch64 still trains, with a warn-and-continue fallback for GUI launchers
+
+### Fixed
+- Packaged (JVM) startup with AOT cache: compressed oops is pinned and the heap capped at 8G, so the build-time trained cache maps on any machine (fixes the `Unable to use AOT cache` / `Unable to map shared spaces` fallback on large-RAM hosts)
+- AOT training and launchers now agree on `jdk.internal.vm.ci` (`--add-modules`), so the cache keeps optimized module handling and AOT-linked classes instead of logging an addmods mismatch
+- Native staging excludes `jrm*.sbom.json`, which broke macOS codesign inside `Contents/MacOS`
+
 ## [4.0.0-beta.1]
 ### Added
 - Java FX interface is now fully compliant with variable font size and has now a setting for choosing a font size from XXS to XXL, the interface will dynamically accomodate as soon as the setting is changed
@@ -591,7 +602,8 @@ dir but one is not present (should be green)
 Initial release
 
 
-[Unreleased]: https://github.com/optyfr/JRomManager/compare/4.0.0-beta.1...HEAD
+[Unreleased]: https://github.com/optyfr/JRomManager/compare/4.0.0-beta.2...HEAD
+[4.0.0-beta.2]: https://github.com/optyfr/JRomManager/compare/4.0.0-beta.1...4.0.0-beta.2
 [4.0.0-beta.1]: https://github.com/optyfr/JRomManager/compare/3.0.5...4.0.0-beta.1
 [3.0.5]: https://github.com/optyfr/JRomManager/compare/3.0.4...3.0.5
 [3.0.4]: https://github.com/optyfr/JRomManager/compare/3.0.3...3.0.4
