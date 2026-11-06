@@ -166,6 +166,7 @@ tasks.register<Copy>("extractDaemonLinux") {
 tasks.register<Exec>("configureDaemonLinux") {
     dependsOn("extractDaemonLinux")
     workingDir(layout.buildDirectory.dir("jsvc/commons-daemon-$daemonVersion-native-src/unix"))
+    environment("CFLAGS", "-std=gnu17")
     commandLine("./configure", "--silent", "--with-java=" + System.getProperty("java.home"))
     standardOutput = ByteArrayOutputStream()
     doLast {
@@ -176,6 +177,7 @@ tasks.register<Exec>("configureDaemonLinux") {
 tasks.register<Exec>("compileDaemonLinux") {
     dependsOn("configureDaemonLinux")
     workingDir(layout.buildDirectory.dir("jsvc/commons-daemon-$daemonVersion-native-src/unix"))
+    environment("CFLAGS", "-std=gnu17")
     commandLine("make", "--silent")
     standardOutput = ByteArrayOutputStream()
     doLast {
