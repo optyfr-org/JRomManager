@@ -236,22 +236,27 @@ jlink {
     // --sun-misc-unsafe-memory-access=allow on every launcher: Fory calls the terminally
     // deprecated sun.misc.Unsafe::staticFieldOffset, and without this flag every start prints a
     // warning that cannot be silenced from code.
-    // AOT portability (JEP 483/514): the cache records UseCompressedOops /
-    // UseCompressedClassPointers. MaxRAMPercentage alone makes the heap (and thus
-    // the oops mode) machine-dependent: CI trains at ~5G, a 64G desktop runs at
-    // 48G with oops off -> "Unable to map shared spaces". Pin the oops mode
-    // explicitly and cap the heap so it stays in the compressed range everywhere.
+    // AOT portability (JEP 483/514): the cache records UseCompressedOops.
+    // MaxRAMPercentage alone makes the heap (and thus the oops mode)
+    // machine-dependent: CI trains at ~5G, a 64G desktop runs at 48G with oops
+    // off -> "Unable to map shared spaces". Pin oops explicitly and cap the heap
+    // so it stays in the compressed range everywhere. (UseCompressedClassPointers
+    // is deprecated in 25, so only UseCompressedOops is pinned.)
+    // --add-modules=jdk.internal.vm.ci is explicit so training (which reuses
+    // these jvmArgs) and the jlink-generated runtime launchers agree; otherwise
+    // the cache reports "Mismatched values for jdk.module.addmods" and disables
+    // optimized module handling / AOT-linked classes.
     launcher {
         name = "JRomManager"
         moduleName = "jrm.merged.module"
         mainClass = "jrm.fx.JRomManagerMulti"
-        jvmArgs = mutableListOf("-Xlog:aot", "-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "-XX:+UseCompressedClassPointers", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=javafx.graphics,jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManager.aot")
+        jvmArgs = mutableListOf("-Xlog:aot", "-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "--add-modules=jdk.internal.vm.ci", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=javafx.graphics,jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManager.aot")
     }
     secondaryLauncher {
         name = "JRomManagerSwing"
         moduleName = "jrm.merged.module"
         mainClass = "jrm.JRomManagerMulti"
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "-XX:+UseCompressedClassPointers", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManagerSwing.aot")
+        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "--add-modules=jdk.internal.vm.ci", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManagerSwing.aot")
     }
     secondaryLauncher {
         name = "JRomManagerCLI"
@@ -260,14 +265,14 @@ jlink {
         winConsole = true
         // Note: no org.jline.terminal.ffm entry: jline is merged into jrm.merged.module,
         // so there is no such module in the image and naming it only prints an "Unknown module" warning.
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "-XX:+UseCompressedClassPointers", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManagerCLI.aot")
+        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "--add-modules=jdk.internal.vm.ci", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManagerCLI.aot")
     }
     secondaryLauncher {
         name = "JRomManagerServer"
         moduleName = "jrm.merged.module"
         mainClass = "jrm.server.Server"
         winConsole = true
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "-XX:+UseCompressedClassPointers", "--sun-misc-unsafe-memory-access=allow", "-XX:AOTCache=\$APPDIR/aot/JRomManagerServer.aot")
+        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "--add-modules=jdk.internal.vm.ci", "--sun-misc-unsafe-memory-access=allow", "-XX:AOTCache=\$APPDIR/aot/JRomManagerServer.aot")
         args = mutableListOf("--workpath", "%HOMEPATH%/.jrommanager")
     }
     secondaryLauncher {
@@ -275,7 +280,7 @@ jlink {
         moduleName = "jrm.merged.module"
         mainClass = "jrm.fullserver.FullServer"
         winConsole = true
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "-XX:+UseCompressedClassPointers", "--sun-misc-unsafe-memory-access=allow", "-XX:AOTCache=\$APPDIR/aot/JRomManagerFullServer.aot")
+        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "--add-modules=jdk.internal.vm.ci", "--sun-misc-unsafe-memory-access=allow", "-XX:AOTCache=\$APPDIR/aot/JRomManagerFullServer.aot")
         args = mutableListOf("--workpath", "%HOMEPATH%/.jrommanager")
     }
     jpackage {
