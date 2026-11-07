@@ -215,19 +215,40 @@ fun nativeAppResourcesDir(img: java.io.File): java.io.File {
 }
 
 // Native binaries are self-contained: the stock jpackage runtime + stub jar/cfg
-// only bloat the installer (observed: GUI MSI shipped a full JRE under runtime/
+// only bloats the installer (observed: GUI MSI shipped a full JRE under runtime/
 // plus app/stub.jar). Strip them after the swap; keep .jpackage.xml so step 3
 // still recognises the directory as an app-image.
+// macOS is the exception: step-3 jpackage signs Contents/runtime and fails
+// with "No codesigner for .../Contents/runtime path" when it is absent, so the
+// stock JRE stays in macOS bundles (only jar/cfg are stripped there).
 fun stripNativeJavaLeftovers(img: java.io.File) {
-    listOf(
+    // macOS jpackage signs Contents/runtime during step 3 and fails with
+    // "No codesigner for .../Contents/runtime path" when it is absent, so the
+    // directory itself must stay — but it can be emptied, since the native
+    // launchers never touch the stock JRE. Windows (WiX) and Linux (deb/rpm)
+    // just archive files, so the runtime is removed there entirely.
+    // (Unverified against jpackage internals: if signing still fails on the
+    // empty dir, fall back to keeping the full runtime on macOS.)
+    val runtimeDirs = listOf(
         java.io.File(img, "runtime"),
         java.io.File(img, "lib/runtime"),
         java.io.File(img, "Contents/runtime"),
         java.io.File(img, "Contents/Home/runtime")
-    ).forEach {
-        if (it.isDirectory) {
-            project.logger.lifecycle("Removing stock JRE from native image: $it")
-            project.delete(it)
+    )
+    if (!currentOs.isMacOsX) {
+        runtimeDirs.forEach {
+            if (it.isDirectory || java.nio.file.Files.isSymbolicLink(it.toPath())) {
+                project.logger.lifecycle("Removing stock JRE from native image: $it")
+                project.delete(it)
+            }
+        }
+    } else {
+        runtimeDirs.forEach {
+            if (it.isDirectory || java.nio.file.Files.isSymbolicLink(it.toPath())) {
+                project.logger.lifecycle("Emptying stock JRE in native macOS bundle (dir must stay for jpackage signing): $it")
+                project.delete(it)
+                it.mkdirs()
+            }
         }
     }
     listOf(
