@@ -78,14 +78,13 @@ jobs:
 
       - name: Smoke-test servers binary
         shell: bash
-        env:
-          PLATFORM_TAG: ${{ inputs.platform-tag }}
         run: |
           # Exact launcher name only: 'JRomManager-Servers*' also matches
           # app/*.cfg (observed on Windows) and would try to execute the config.
-          # Native main launcher is JRomManager-Servers-native-<platform-tag>.
-          # macOS nests the binary at Contents/MacOS/ (depth 4), so allow depth 5.
-          BASE="JRomManager-Servers-native-$PLATFORM_TAG"
+          # Installed launchers keep short names; only installer FILES carry
+          # native+os+arch. macOS nests the binary at Contents/MacOS/ (depth 4),
+          # so allow depth 5.
+          BASE="JRomManager-Servers"
           BIN=$(find build/native-app/servers-image-parent -maxdepth 5 -type f \( -name "$BASE" -o -name "$BASE.exe" \) | head -n 1)
           echo "smoke binary: $BIN"
           test -n "$BIN" || { echo 'smoke FAILED: binary not found'; exit 1; }

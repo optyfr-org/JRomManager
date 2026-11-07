@@ -371,7 +371,12 @@ jlink {
         if (installerType == "msi") {
             imageOptions.set(listOf("--icon", "dist/JRomManager.ico"))
             installerOptions.set(listOf("--win-dir-chooser", "--win-menu", "--win-shortcut"))
-            installerName = "JRomManager-$targetPlatformName"
+            // NOTE: installerName intentionally left at the default (== imageName,
+            // "JRomManager") so install folder + launchers keep short names with
+            // their .cfg files. Setting it to a different value makes beryx copy
+            // <imageName>.exe to <installerName>.exe with NO corresponding .cfg
+            // (workaround for beryx#169). The platform-tagged FILE name is
+            // restored by renaming the msi below in tasks.named("jpackage").
         }
         if (installerType == "deb" || installerType == "rpm") {
             imageOptions.set(listOf("--icon", "dist/JRomManager.png"))
@@ -387,7 +392,10 @@ jlink {
             )
         }
         if (installerType == "dmg") {
-            installerName = "JRomManager-$targetPlatformName"
+            // NOTE: installerName intentionally left at the default (== imageName,
+            // "JRomManager") so the .app bundle keeps its short name. The
+            // platform-tagged FILE name is restored by renaming the dmg below
+            // in tasks.named("jpackage").
             // macOS icons must be .icns (.ico only triggers a "not an ICNS
             // file" warning and falls back to the default icon).
             imageOptions.set(listOf("--icon", "dist/JRomManager.icns"))
@@ -609,6 +617,25 @@ tasks.register("aotCachesIntoImage") {
 
 tasks.named("jpackage") {
     dependsOn("aotCachesIntoImage")
+    doLast {
+        // beryx names the installer file from --name (== imageName, short);
+        // restore the platform-tagged FILE names without touching the
+        // installed folder/launcher names.
+        val platform = project.findProperty("targetPlatform") as String?
+        val type = project.findProperty("installerType") as String?
+        if (platform != null && (type == "msi" || type == "dmg")) {
+            val dir = layout.buildDirectory.dir("installer").get().asFile
+            val ver = JrmRelease.appVersionFor(project.version.toString(), type)
+            val ext = if (type == "msi") "msi" else "dmg"
+            val src = File(dir, "JRomManager-$ver.$ext")
+            val dst = File(dir, "JRomManager-$platform-$ver.$ext")
+            if (src.isFile && src.absolutePath != dst.absolutePath) {
+                project.logger.lifecycle("Renaming installer ${src.name} -> ${dst.name}")
+                if (dst.exists()) dst.delete()
+                src.renameTo(dst)
+            }
+        }
+    }
 }
 
 

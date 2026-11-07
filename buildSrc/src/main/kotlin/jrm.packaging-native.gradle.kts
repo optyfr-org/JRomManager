@@ -60,13 +60,14 @@ fun nativePlatformClassifier(): String {
 val nativeClassifier = nativePlatformClassifier()
 val jpackageBin = "${System.getProperty("java.home")}/bin/jpackage"
 
-// Installer/launcher naming: every native artifact includes `native` plus
-// os-arch (e.g. JRomManager-Servers-native-win-x64-4.0.0.msi,
-// jrommanager-native-servers-linux-x64_4.0.0_amd64.deb). The rpm already
-// encoded arch via jpackage; msi/deb/dmg did not, and colliding bare names
-// (JRomManager-Servers, JRomManager) are ambiguous next to the JVM installers.
-val serversBaseName = "JRomManager-Servers-native-$nativeClassifier"
-val guiBaseName = "JRomManager-native-$nativeClassifier"
+// Naming split: installed layout (folder + launchers, each with its .cfg)
+// uses SHORT names; only installer FILE names carry `native` plus os-arch
+// (e.g. JRomManager-Servers-native-win-x64-4.0.0.msi,
+// jrommanager-native-servers-linux-x64_4.0.0_amd64.deb).
+val serversBaseName = "JRomManager-Servers"
+val guiBaseName = "JRomManager"
+val serversFileBase = "JRomManager-Servers-native-$nativeClassifier"
+val guiFileBase = "JRomManager-native-$nativeClassifier"
 val serversLinuxPkg = "jrommanager-native-servers-$nativeClassifier"
 val guiLinuxPkg = "jrommanager-native-$nativeClassifier"
 
@@ -221,13 +222,12 @@ fun nativeAppResourcesDir(img: java.io.File): java.io.File {
     return if (img.name.endsWith(".app") && contentsApp.isDirectory) contentsApp else img
 }
 
-// Native binaries are self-contained: the stock jpackage runtime + stub jar/cfg
+// Native binaries are self-contained: the stock jpackage runtime + stub jar
 // only bloats the installer (observed: GUI MSI shipped a full JRE under runtime/
-// plus app/stub.jar). Strip them after the swap; keep .jpackage.xml so step 3
-// still recognises the directory as an app-image.
-// Stripped on every OS: macOS native installers no longer use jpackage
-// (manual .app + hdiutil DMG below), which was the only consumer requiring
-// Contents/runtime.
+// plus app/stub.jar). Strip them after the swap; keep .jpackage.xml so a
+// jpackage-based step 3 still recognises the directory as an app-image.
+// .cfg files are intentionally kept: every launcher exe ships with its
+// corresponding config, as in the JVM installers.
 fun stripNativeJavaLeftovers(img: java.io.File) {
     listOf(
         java.io.File(img, "runtime"),
@@ -240,12 +240,14 @@ fun stripNativeJavaLeftovers(img: java.io.File) {
             project.delete(it)
         }
     }
+    // Only the stub jar is removed: every launcher (native or java) keeps its
+    // .cfg, so no exe is left without its corresponding config file.
     listOf(
         java.io.File(img, "app"),
         java.io.File(img, "lib/app"),
         java.io.File(img, "Contents/app")
     ).filter { it.isDirectory }.forEach { appDir ->
-        appDir.listFiles { f -> f.isFile && (f.name.endsWith(".jar") || f.name.endsWith(".cfg")) }?.forEach {
+        appDir.listFiles { f -> f.isFile && f.name.endsWith(".jar") }?.forEach {
             project.logger.lifecycle("Removing stock Java artifact from native image: $it")
             removeReadOnly(it)
         }
@@ -374,7 +376,7 @@ fun runCmd(vararg args: String) {
     if (code != 0) throw GradleException("command failed (exit $code): ${args.joinToString(" ")}")
 }
 
-fun packageMacNativeDmg(stagedApp: java.io.File, outDir: java.io.File, baseName: String) {
+fun packageMacNativeDmg(stagedApp: java.io.File, outDir: java.io.File, dmgFileBase: String) {
     val dmgRoot = java.io.File(outDir, "dmgroot").apply { deleteRecursively(); mkdirs() }
     runCmd("cp", "-R", stagedApp.absolutePath, dmgRoot.absolutePath)
     val bundledApp = java.io.File(dmgRoot, stagedApp.name)
@@ -382,11 +384,12 @@ fun packageMacNativeDmg(stagedApp: java.io.File, outDir: java.io.File, baseName:
     runCmd("codesign", "--deep", "--force", "-s", "-", bundledApp.absolutePath)
     runCmd("codesign", "--verify", "--deep", bundledApp.absolutePath)
     runCmd("ln", "-s", "/Applications", java.io.File(dmgRoot, "Applications").absolutePath)
-    val dmg = java.io.File(outDir, "$baseName-$nativeAppVersion.dmg")
+    // Short volume name (bundle name); LONG file name (native + os-arch).
+    val dmg = java.io.File(outDir, "$dmgFileBase-$nativeAppVersion.dmg")
     if (dmg.exists()) dmg.delete()
     runCmd(
         "hdiutil", "create",
-        "-volname", baseName,
+        "-volname", stagedApp.nameWithoutExtension,
         "-srcfolder", dmgRoot.absolutePath,
         "-ov", "-format", "UDZO",
         dmg.absolutePath
@@ -414,7 +417,7 @@ if (currentOs.isMacOsX) {
         outputs.dir(outDir)
         doLast {
             val out = outDir.get().asFile.apply { mkdirs() }
-            packageMacNativeDmg(imageDir.get().asFile, out, serversBaseName)
+            packageMacNativeDmg(imageDir.get().asFile, out, serversFileBase)
         }
     }
 } else {
@@ -459,6 +462,21 @@ if (currentOs.isMacOsX) {
             )
         }
         args(signingArgs())
+        doLast {
+            // Stock jpackage names the file from --name (short); restore the
+            // platform-tagged file name without touching folder/launcher names.
+            outDir.get().asFile.listFiles()
+                ?.filter { it.isFile && (it.name.endsWith(".msi") || it.name.endsWith(".exe")) }
+                ?.forEach { f ->
+                    val ext = if (f.name.endsWith(".msi")) ".msi" else ".exe"
+                    val target = java.io.File(outDir.get().asFile, "$serversFileBase-$nativeAppVersion$ext")
+                    if (f.absolutePath != target.absolutePath) {
+                        project.logger.lifecycle("Renaming installer ${f.name} -> ${target.name}")
+                        if (target.exists()) target.delete()
+                        f.renameTo(target)
+                    }
+                }
+        }
     }
 }
 
@@ -526,7 +544,7 @@ if (currentOs.isMacOsX) {
         outputs.dir(outDir)
         doLast {
             val out = outDir.get().asFile.apply { mkdirs() }
-            packageMacNativeDmg(imageDir.get().asFile, out, guiBaseName)
+            packageMacNativeDmg(imageDir.get().asFile, out, guiFileBase)
         }
     }
 } else {
@@ -571,6 +589,21 @@ if (currentOs.isMacOsX) {
             )
         }
         args(signingArgs())
+        doLast {
+            // Stock jpackage names the file from --name (short); restore the
+            // platform-tagged file name without touching folder/launcher names.
+            outDir.get().asFile.listFiles()
+                ?.filter { it.isFile && (it.name.endsWith(".msi") || it.name.endsWith(".exe")) }
+                ?.forEach { f ->
+                    val ext = if (f.name.endsWith(".msi")) ".msi" else ".exe"
+                    val target = java.io.File(outDir.get().asFile, "$guiFileBase-$nativeAppVersion$ext")
+                    if (f.absolutePath != target.absolutePath) {
+                        project.logger.lifecycle("Renaming installer ${f.name} -> ${target.name}")
+                        if (target.exists()) target.delete()
+                        f.renameTo(target)
+                    }
+                }
+        }
     }
 }
 
