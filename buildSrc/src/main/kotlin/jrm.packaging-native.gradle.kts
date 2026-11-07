@@ -85,7 +85,11 @@ val nativeInstallerTypes: List<String> =
 // dotted too, so a pre-release like 4.0.0-beta.1 becomes 4.0.0~beta.1
 // when rpm is among the types, or 4.0.0 for msi/dmg-only runs; deb keeps it as-is.
 val nativeAppVersion: String = when {
-    nativeInstallerTypes.contains("msi") || nativeInstallerTypes.contains("dmg") || nativeInstallerTypes.contains("pkg") -> JrmRelease.appVersionFor(version.toString(), "msi")
+    nativeInstallerTypes.contains("msi") || nativeInstallerTypes.contains("dmg") || nativeInstallerTypes.contains("pkg") -> JrmRelease.appVersionFor(
+        version.toString(),
+        "msi"
+    )
+
     nativeInstallerTypes.contains("rpm") -> JrmRelease.appVersionFor(version.toString(), "rpm")
     else -> version.toString()
 }
@@ -102,6 +106,7 @@ val jrmServerBinary = ":jrmserver:nativeCompile"
 val jrmFullServerBinary = ":jrmserver:nativeFullServerCompile"
 val jrmCliBinary = ":jrmcli:nativeCompile"
 val jrmFxBinary = ":jrmfx:nativeCompile"
+
 // Output dirs of the native binaries (imageName per build.gradle).
 fun jrmServerOut() = project(":jrmserver").layout.buildDirectory.dir("native/nativeCompile")
 fun jrmFullServerOut() = project(":jrmserver").layout.buildDirectory.dir("native/nativeFullServerCompile")
@@ -192,8 +197,10 @@ tasks.register<Exec>("nativeServersAppImage") {
 
 // macOS jpackage --type app-image produces "<name>.app" bundles, while
 // Linux/Windows produce a plain "<name>" directory. Resolve accordingly.
-val serversImageDirPath = if (currentOs.isMacOsX) "native-app/servers-image-parent/$serversBaseName.app" else "native-app/servers-image-parent/$serversBaseName"
-val guiImageDirPath = if (currentOs.isMacOsX) "native-app/gui-image-parent/$guiBaseName.app" else "native-app/gui-image-parent/$guiBaseName"
+val serversImageDirPath =
+    if (currentOs.isMacOsX) "native-app/servers-image-parent/$serversBaseName.app" else "native-app/servers-image-parent/$serversBaseName"
+val guiImageDirPath =
+    if (currentOs.isMacOsX) "native-app/gui-image-parent/$guiBaseName.app" else "native-app/gui-image-parent/$guiBaseName"
 
 // Inside a macOS bundle launchers live in Contents/MacOS and app resources
 // (.cfg, jars, $APPDIR content) in Contents/app; elsewhere they are directly
@@ -218,37 +225,19 @@ fun nativeAppResourcesDir(img: java.io.File): java.io.File {
 // only bloats the installer (observed: GUI MSI shipped a full JRE under runtime/
 // plus app/stub.jar). Strip them after the swap; keep .jpackage.xml so step 3
 // still recognises the directory as an app-image.
-// macOS is the exception: step-3 jpackage signs Contents/runtime and fails
-// with "No codesigner for .../Contents/runtime path" when it is absent, so the
-// stock JRE stays in macOS bundles (only jar/cfg are stripped there).
+// Stripped on every OS: macOS native installers no longer use jpackage
+// (manual .app + hdiutil DMG below), which was the only consumer requiring
+// Contents/runtime.
 fun stripNativeJavaLeftovers(img: java.io.File) {
-    // macOS jpackage signs Contents/runtime during step 3 and fails with
-    // "No codesigner for .../Contents/runtime path" when it is absent, so the
-    // directory itself must stay — but it can be emptied, since the native
-    // launchers never touch the stock JRE. Windows (WiX) and Linux (deb/rpm)
-    // just archive files, so the runtime is removed there entirely.
-    // (Unverified against jpackage internals: if signing still fails on the
-    // empty dir, fall back to keeping the full runtime on macOS.)
-    val runtimeDirs = listOf(
+    listOf(
         java.io.File(img, "runtime"),
         java.io.File(img, "lib/runtime"),
         java.io.File(img, "Contents/runtime"),
         java.io.File(img, "Contents/Home/runtime")
-    )
-    if (!currentOs.isMacOsX) {
-        runtimeDirs.forEach {
-            if (it.isDirectory || java.nio.file.Files.isSymbolicLink(it.toPath())) {
-                project.logger.lifecycle("Removing stock JRE from native image: $it")
-                project.delete(it)
-            }
-        }
-    } else {
-        runtimeDirs.forEach {
-            if (it.isDirectory || java.nio.file.Files.isSymbolicLink(it.toPath())) {
-                project.logger.lifecycle("Emptying stock JRE in native macOS bundle (dir must stay for jpackage signing): $it")
-                project.delete(it)
-                it.mkdirs()
-            }
+    ).forEach {
+        if (it.isDirectory || java.nio.file.Files.isSymbolicLink(it.toPath())) {
+            project.logger.lifecycle("Removing stock JRE from native image: $it")
+            project.delete(it)
         }
     }
     listOf(
@@ -267,7 +256,13 @@ fun stripNativeJavaLeftovers(img: java.io.File) {
 tasks.register("stageNativeServersBinaries") {
     group = "native-installer"
     description = "Step 2: replaces app-image java launchers with GraalVM native binaries."
-    dependsOn("nativeServersAppImage", jrmServerBinary, jrmFullServerBinary, jrmCliBinary, project(":WebClient").tasks.named("jar"))
+    dependsOn(
+        "nativeServersAppImage",
+        jrmServerBinary,
+        jrmFullServerBinary,
+        jrmCliBinary,
+        project(":WebClient").tasks.named("jar")
+    )
     // locate the produced app-image (jpackage names it after --name).
     // Launcher layout differs per OS: <image>/bin/<launcher> on linux,
     // <image>\<launcher>.exe on windows, <image>.app/Contents/MacOS/<launcher> on macOS.
@@ -365,46 +360,106 @@ fun removeReadOnly(f: java.io.File) {
     }
 }
 
+// Manual macOS DMG for native .app bundles (no jpackage): ad-hoc codesign +
+// hdiutil. jpackage --app-image cannot be used here: its macOS signer
+// hard-requires Contents/runtime (absent → "No codesigner", empty → "bundle
+// format unrecognized"), and slim runtime-free bundles are the whole point.
+// DMG filename follows the jpackage convention <name>-<version>.dmg so the
+// release upload globs keep working.
+// ProcessBuilder-based runner (Gradle 9 removed Project.exec; task-type Exec
+// is only usable per-task, not for multi-step flows like this one).
+fun runCmd(vararg args: String) {
+    val proc = ProcessBuilder(*args).inheritIO().start()
+    val code = proc.waitFor()
+    if (code != 0) throw GradleException("command failed (exit $code): ${args.joinToString(" ")}")
+}
+
+fun packageMacNativeDmg(stagedApp: java.io.File, outDir: java.io.File, baseName: String) {
+    val dmgRoot = java.io.File(outDir, "dmgroot").apply { deleteRecursively(); mkdirs() }
+    runCmd("cp", "-R", stagedApp.absolutePath, dmgRoot.absolutePath)
+    val bundledApp = java.io.File(dmgRoot, stagedApp.name)
+    java.io.File(bundledApp, "Contents/MacOS").listFiles()?.forEach { it.setExecutable(true) }
+    runCmd("codesign", "--deep", "--force", "-s", "-", bundledApp.absolutePath)
+    runCmd("codesign", "--verify", "--deep", bundledApp.absolutePath)
+    runCmd("ln", "-s", "/Applications", java.io.File(dmgRoot, "Applications").absolutePath)
+    val dmg = java.io.File(outDir, "$baseName-$nativeAppVersion.dmg")
+    if (dmg.exists()) dmg.delete()
+    runCmd(
+        "hdiutil", "create",
+        "-volname", baseName,
+        "-srcfolder", dmgRoot.absolutePath,
+        "-ov", "-format", "UDZO",
+        dmg.absolutePath
+    )
+    project.logger.lifecycle("native DMG: ${dmg.absolutePath}")
+    dmgRoot.deleteRecursively()
+}
+
 // Step 3: platform installer(s) from the native app-image.
 // 'app-image' in nativeInstallerTypes means repackaging validation only
 // (--app-image cannot combine with --type app-image): the staged image is
 // copied to the installer dir. Used for local wiring tests without WiX/dpkg.
 val serversAppImageOnly = nativeInstallerTypes == listOf("app-image")
-tasks.register<Exec>("nativeServersInstaller") {
-    group = "native-installer"
-    description = "Step 3: servers-role native installer(s) $nativeInstallerTypes for $nativeClassifier."
-    dependsOn("stageNativeServersBinaries")
-    onlyIf { !serversAppImageOnly }
-    val imageDir = layout.buildDirectory.dir(serversImageDirPath)
-    val outDir = layout.buildDirectory.dir("installer-native/servers")
-    doFirst { project.delete(outDir.get().asFile); outDir.get().asFile.mkdirs() }
-    commandLine(
-        jpackageBin,
-        "--name", serversBaseName,
-        "--app-version", nativeAppVersion,
-        "--vendor", "optyfr",
-        "--description", "JRomManager servers (native): FullServer, Server, CLI",
-        "--copyright", "GPL-2.0",
-        "--app-image", imageDir.get().asFile.absolutePath,
-        "--dest", outDir.get().asFile.absolutePath
-    )
-    nativeInstallerTypes.forEach { t ->
-        if (t != "app-image") args("--type", t)
+if (currentOs.isMacOsX) {
+    // Manual path (see packageMacNativeDmg): jpackage --app-image cannot sign
+    // runtime-free bundles. Produces a DMG regardless of installer types.
+    tasks.register("nativeServersInstaller") {
+        group = "native-installer"
+        description = "Step 3: servers-role native DMG (manual .app + hdiutil) for $nativeClassifier."
+        dependsOn("stageNativeServersBinaries")
+        onlyIf { !serversAppImageOnly }
+        val imageDir = layout.buildDirectory.dir(serversImageDirPath)
+        val outDir = layout.buildDirectory.dir("installer-native/servers")
+        inputs.dir(imageDir)
+        outputs.dir(outDir)
+        doLast {
+            val out = outDir.get().asFile.apply { mkdirs() }
+            packageMacNativeDmg(imageDir.get().asFile, out, serversBaseName)
+        }
     }
-    if (currentOs.isWindows) {
-        args("--icon", file("dist/JRomManager.ico").absolutePath,
-            "--win-menu", "--win-shortcut", "--win-dir-chooser")
-    } else if (currentOs.isLinux) {
-        args("--icon", file("dist/JRomManager.png").absolutePath,
-            "--linux-package-name", serversLinuxPkg,
-            "--linux-app-category", "utils",
-            "--linux-menu-group", "Utility",
-            "--linux-shortcut")
-    } else if (currentOs.isMacOsX) {
-        args("--icon", file("dist/JRomManager.icns").absolutePath,
-            "--mac-package-name", serversBaseName)
+} else {
+    tasks.register<Exec>("nativeServersInstaller") {
+        group = "native-installer"
+        description = "Step 3: servers-role native installer(s) $nativeInstallerTypes for $nativeClassifier."
+        dependsOn("stageNativeServersBinaries")
+        onlyIf { !serversAppImageOnly }
+        val imageDir = layout.buildDirectory.dir(serversImageDirPath)
+        val outDir = layout.buildDirectory.dir("installer-native/servers")
+        doFirst { project.delete(outDir.get().asFile); outDir.get().asFile.mkdirs() }
+        commandLine(
+            jpackageBin,
+            "--name", serversBaseName,
+            "--app-version", nativeAppVersion,
+            "--vendor", "optyfr",
+            "--description", "JRomManager servers (native): FullServer, Server, CLI",
+            "--copyright", "GPL-2.0",
+            "--app-image", imageDir.get().asFile.absolutePath,
+            "--dest", outDir.get().asFile.absolutePath
+        )
+        nativeInstallerTypes.forEach { t ->
+            if (t != "app-image") args("--type", t)
+        }
+        if (currentOs.isWindows) {
+            args(
+                "--icon", file("dist/JRomManager.ico").absolutePath,
+                "--win-menu", "--win-shortcut", "--win-dir-chooser"
+            )
+        } else if (currentOs.isLinux) {
+            args(
+                "--icon", file("dist/JRomManager.png").absolutePath,
+                "--linux-package-name", serversLinuxPkg,
+                "--linux-app-category", "utils",
+                "--linux-menu-group", "Utility",
+                "--linux-shortcut"
+            )
+        } else if (currentOs.isMacOsX) {
+            args(
+                "--icon", file("dist/JRomManager.icns").absolutePath,
+                "--mac-package-name", serversBaseName
+            )
+        }
+        args(signingArgs())
     }
-    args(signingArgs())
 }
 
 // ---------------------------------------------------------------------------
@@ -457,46 +512,72 @@ tasks.register("stageNativeGuiBinaries") {
 }
 
 val guiAppImageOnly = nativeInstallerTypes == listOf("app-image")
-tasks.register<Exec>("nativeGuiInstaller") {
-    group = "native-installer"
-    description = "Step 3: gui-role native installer(s) $nativeInstallerTypes for $nativeClassifier."
-    dependsOn("stageNativeGuiBinaries")
-    onlyIf { !guiAppImageOnly }
-    val imageDir = layout.buildDirectory.dir(guiImageDirPath)
-    val outDir = layout.buildDirectory.dir("installer-native/gui")
-    doFirst { project.delete(outDir.get().asFile); outDir.get().asFile.mkdirs() }
-    commandLine(
-        jpackageBin,
-        "--name", guiBaseName,
-        "--app-version", nativeAppVersion,
-        "--vendor", "optyfr",
-        "--description", "JRomManager desktop (native, JavaFX)",
-        "--copyright", "GPL-2.0",
-        "--app-image", imageDir.get().asFile.absolutePath,
-        "--dest", outDir.get().asFile.absolutePath
-    )
-    nativeInstallerTypes.forEach { t ->
-        if (t != "app-image") args("--type", t)
+if (currentOs.isMacOsX) {
+    // Manual path (see packageMacNativeDmg): jpackage --app-image cannot sign
+    // runtime-free bundles. Produces a DMG regardless of installer types.
+    tasks.register("nativeGuiInstaller") {
+        group = "native-installer"
+        description = "Step 3: gui-role native DMG (manual .app + hdiutil) for $nativeClassifier."
+        dependsOn("stageNativeGuiBinaries")
+        onlyIf { !guiAppImageOnly }
+        val imageDir = layout.buildDirectory.dir(guiImageDirPath)
+        val outDir = layout.buildDirectory.dir("installer-native/gui")
+        inputs.dir(imageDir)
+        outputs.dir(outDir)
+        doLast {
+            val out = outDir.get().asFile.apply { mkdirs() }
+            packageMacNativeDmg(imageDir.get().asFile, out, guiBaseName)
+        }
     }
-    if (currentOs.isWindows) {
-        args("--icon", file("dist/JRomManager.ico").absolutePath,
-            "--win-menu", "--win-shortcut", "--win-dir-chooser")
-    } else if (currentOs.isLinux) {
-        args("--icon", file("dist/JRomManager.png").absolutePath,
-            "--linux-package-name", guiLinuxPkg,
-            "--linux-app-category", "utils",
-            "--linux-menu-group", "Utility",
-            "--linux-shortcut")
-    } else if (currentOs.isMacOsX) {
-        args("--icon", file("dist/JRomManager.icns").absolutePath,
-            "--mac-package-name", guiBaseName)
+} else {
+    tasks.register<Exec>("nativeGuiInstaller") {
+        group = "native-installer"
+        description = "Step 3: gui-role native installer(s) $nativeInstallerTypes for $nativeClassifier."
+        dependsOn("stageNativeGuiBinaries")
+        onlyIf { !guiAppImageOnly }
+        val imageDir = layout.buildDirectory.dir(guiImageDirPath)
+        val outDir = layout.buildDirectory.dir("installer-native/gui")
+        doFirst { project.delete(outDir.get().asFile); outDir.get().asFile.mkdirs() }
+        commandLine(
+            jpackageBin,
+            "--name", guiBaseName,
+            "--app-version", nativeAppVersion,
+            "--vendor", "optyfr",
+            "--description", "JRomManager desktop (native, JavaFX)",
+            "--copyright", "GPL-2.0",
+            "--app-image", imageDir.get().asFile.absolutePath,
+            "--dest", outDir.get().asFile.absolutePath
+        )
+        nativeInstallerTypes.forEach { t ->
+            if (t != "app-image") args("--type", t)
+        }
+        if (currentOs.isWindows) {
+            args(
+                "--icon", file("dist/JRomManager.ico").absolutePath,
+                "--win-menu", "--win-shortcut", "--win-dir-chooser"
+            )
+        } else if (currentOs.isLinux) {
+            args(
+                "--icon", file("dist/JRomManager.png").absolutePath,
+                "--linux-package-name", guiLinuxPkg,
+                "--linux-app-category", "utils",
+                "--linux-menu-group", "Utility",
+                "--linux-shortcut"
+            )
+        } else if (currentOs.isMacOsX) {
+            args(
+                "--icon", file("dist/JRomManager.icns").absolutePath,
+                "--mac-package-name", guiBaseName
+            )
+        }
+        args(signingArgs())
     }
-    args(signingArgs())
 }
 
 tasks.register("nativeInstallers") {
     group = "native-installer"
-    description = "Builds native-role installer(s) for the current OS (servers + GUI; macOS-x64 GUI only with -PnativeGui)."
+    description =
+        "Builds native-role installer(s) for the current OS (servers + GUI; macOS-x64 GUI only with -PnativeGui)."
     dependsOn("nativeServersInstaller")
     // macOS-x64 link is known-broken (Liberica NIK Standard + Xcode 26).
     // macOS-aarch64 stays enabled to test the GraalVM + OpenJFX hypothesis.

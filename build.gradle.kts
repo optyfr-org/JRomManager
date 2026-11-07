@@ -52,7 +52,10 @@ sonar {
         property("sonar.log.level", "WARNING")
         property("sonar.verbose", "false")
         property("sonar.scm.provider", "git")
-        property("sonar.coverage.jacoco.xmlReportPaths", "${rootDir}/build/reports/jacoco/codeCoverageReport/codeCoverageReport.xml")
+        property(
+            "sonar.coverage.jacoco.xmlReportPaths",
+            "${rootDir}/build/reports/jacoco/codeCoverageReport/codeCoverageReport.xml"
+        )
     }
 }
 
@@ -263,13 +266,34 @@ jlink {
         name = "JRomManager"
         moduleName = "jrm.merged.module"
         mainClass = "jrm.fx.JRomManagerMulti"
-        jvmArgs = mutableListOf("-Xlog:aot", "-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "-XX:+UnlockExperimentalVMOptions", "-XX:-EnableJVMCI", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=javafx.graphics,jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManager.aot")
+        jvmArgs = mutableListOf(
+            "-Xlog:aot",
+            "-Dfile.encoding=UTF-8",
+            "-XX:MaxRAMPercentage=75",
+            "-XX:MaxHeapSize=8G",
+            "-XX:+UseCompressedOops",
+            "-XX:+UnlockExperimentalVMOptions",
+            "-XX:-EnableJVMCI",
+            "--sun-misc-unsafe-memory-access=allow",
+            "--enable-native-access=javafx.graphics,jrm.merged.module",
+            "-XX:AOTCache=\$APPDIR/aot/JRomManager.aot"
+        )
     }
     secondaryLauncher {
         name = "JRomManagerSwing"
         moduleName = "jrm.merged.module"
         mainClass = "jrm.JRomManagerMulti"
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "-XX:+UnlockExperimentalVMOptions", "-XX:-EnableJVMCI", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManagerSwing.aot")
+        jvmArgs = mutableListOf(
+            "-Dfile.encoding=UTF-8",
+            "-XX:MaxRAMPercentage=75",
+            "-XX:MaxHeapSize=8G",
+            "-XX:+UseCompressedOops",
+            "-XX:+UnlockExperimentalVMOptions",
+            "-XX:-EnableJVMCI",
+            "--sun-misc-unsafe-memory-access=allow",
+            "--enable-native-access=jrm.merged.module",
+            "-XX:AOTCache=\$APPDIR/aot/JRomManagerSwing.aot"
+        )
     }
     secondaryLauncher {
         name = "JRomManagerCLI"
@@ -278,14 +302,33 @@ jlink {
         winConsole = true
         // Note: no org.jline.terminal.ffm entry: jline is merged into jrm.merged.module,
         // so there is no such module in the image and naming it only prints an "Unknown module" warning.
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "-XX:+UnlockExperimentalVMOptions", "-XX:-EnableJVMCI", "--sun-misc-unsafe-memory-access=allow", "--enable-native-access=jrm.merged.module", "-XX:AOTCache=\$APPDIR/aot/JRomManagerCLI.aot")
+        jvmArgs = mutableListOf(
+            "-Dfile.encoding=UTF-8",
+            "-XX:MaxRAMPercentage=75",
+            "-XX:MaxHeapSize=8G",
+            "-XX:+UseCompressedOops",
+            "-XX:+UnlockExperimentalVMOptions",
+            "-XX:-EnableJVMCI",
+            "--sun-misc-unsafe-memory-access=allow",
+            "--enable-native-access=jrm.merged.module",
+            "-XX:AOTCache=\$APPDIR/aot/JRomManagerCLI.aot"
+        )
     }
     secondaryLauncher {
         name = "JRomManagerServer"
         moduleName = "jrm.merged.module"
         mainClass = "jrm.server.Server"
         winConsole = true
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "-XX:+UnlockExperimentalVMOptions", "-XX:-EnableJVMCI", "--sun-misc-unsafe-memory-access=allow", "-XX:AOTCache=\$APPDIR/aot/JRomManagerServer.aot")
+        jvmArgs = mutableListOf(
+            "-Dfile.encoding=UTF-8",
+            "-XX:MaxRAMPercentage=75",
+            "-XX:MaxHeapSize=8G",
+            "-XX:+UseCompressedOops",
+            "-XX:+UnlockExperimentalVMOptions",
+            "-XX:-EnableJVMCI",
+            "--sun-misc-unsafe-memory-access=allow",
+            "-XX:AOTCache=\$APPDIR/aot/JRomManagerServer.aot"
+        )
         args = mutableListOf("--workpath", "%HOMEPATH%/.jrommanager")
     }
     secondaryLauncher {
@@ -293,7 +336,16 @@ jlink {
         moduleName = "jrm.merged.module"
         mainClass = "jrm.fullserver.FullServer"
         winConsole = true
-        jvmArgs = mutableListOf("-Dfile.encoding=UTF-8", "-XX:MaxRAMPercentage=75", "-XX:MaxHeapSize=8G", "-XX:+UseCompressedOops", "-XX:+UnlockExperimentalVMOptions", "-XX:-EnableJVMCI", "--sun-misc-unsafe-memory-access=allow", "-XX:AOTCache=\$APPDIR/aot/JRomManagerFullServer.aot")
+        jvmArgs = mutableListOf(
+            "-Dfile.encoding=UTF-8",
+            "-XX:MaxRAMPercentage=75",
+            "-XX:MaxHeapSize=8G",
+            "-XX:+UseCompressedOops",
+            "-XX:+UnlockExperimentalVMOptions",
+            "-XX:-EnableJVMCI",
+            "--sun-misc-unsafe-memory-access=allow",
+            "-XX:AOTCache=\$APPDIR/aot/JRomManagerFullServer.aot"
+        )
         args = mutableListOf("--workpath", "%HOMEPATH%/.jrommanager")
     }
     jpackage {
@@ -395,7 +447,8 @@ tasks.register("aotCaches") {
             else
                 rawJvmArgs.filter { !it.startsWith("-XX:AOTCache=") }
             val out = File(outDir, "$name.aot")
-            val trainDir = project.layout.buildDirectory.dir("aot-train/$name").get().asFile.apply { deleteRecursively(); mkdirs() }
+            val trainDir = project.layout.buildDirectory.dir("aot-train/$name")
+                .get().asFile.apply { deleteRecursively(); mkdirs() }
             val isServer = name.endsWith("Server")
             // Servers take --work <dir>; desktop launchers are multi-user and resolve their work
             // path from user.home, so point -Duser.home at the temp dir (work path = <dir>/.jrommanager).
@@ -507,11 +560,13 @@ tasks.register("aotCachesIntoImage") {
             macBundle.isDirectory -> macBundle
             else -> throw GradleException("Unable to find the jpackage application image in ${imageRoot.absolutePath}")
         }
-        val appDir = File(appImage, when {
-            isMac -> "Contents/app"
-            isWindows -> "app"
-            else -> "lib/app"
-        })
+        val appDir = File(
+            appImage, when {
+                isMac -> "Contents/app"
+                isWindows -> "app"
+                else -> "lib/app"
+            }
+        )
         if (!appDir.isDirectory && !appDir.mkdirs())
             throw GradleException("cannot create jpackage app directory: ${appDir.absolutePath}")
         if (!isWindows) {
@@ -540,7 +595,10 @@ tasks.register("aotCachesIntoImage") {
                 continue
             }
             val lines = cfg.readLines()
-            val kept = lines.filterNot { it.trim().startsWith("java-options=-XX:AOTCache=") || it.trim() == "-XX:AOTCache=" || it.contains("-XX:AOTCache=") }
+            val kept = lines.filterNot {
+                it.trim()
+                    .startsWith("java-options=-XX:AOTCache=") || it.trim() == "-XX:AOTCache=" || it.contains("-XX:AOTCache=")
+            }
             if (kept.size != lines.size) {
                 cfg.writeText(kept.joinToString("\n") + "\n")
                 project.logger.warn("Stripped dangling -XX:AOTCache for $launcherName (no cache trained)")
