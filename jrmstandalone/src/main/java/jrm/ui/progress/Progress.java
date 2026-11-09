@@ -273,22 +273,25 @@ public class Progress extends JDialog {
         if (lblInfo == null || lblInfo.length == threadCnt)
             return;
 
-        if (Boolean.TRUE.equals(multipleSubInfos) && lblSubInfo == null)
+        final var multi = Boolean.TRUE.equals(multipleSubInfos);
+        if (multi && lblSubInfo == null)
             return;
 
         final var oldThreadCnt = lblInfo.length;
 
         lblInfo = Arrays.copyOf(lblInfo, threadCnt);
-        if (Boolean.TRUE.equals(multipleSubInfos))
+        if (multi)
             lblSubInfo = Arrays.copyOf(lblSubInfo, threadCnt);
+        // Hoist to a local so the null check below dominates every use.
+        final var subInfos = lblSubInfo;
 
         for (int i = oldThreadCnt; i < threadCnt; i++) {
             lblInfo[i] = buildLabel(rowColor(i));
             panel.add(lblInfo[i]);
 
-            if (Boolean.TRUE.equals(multipleSubInfos)) {
-                lblSubInfo[i] = buildLabel(rowColor(i));
-                panel.add(lblSubInfo[i]);
+            if (multi && subInfos != null) {
+                subInfos[i] = buildLabel(rowColor(i));
+                panel.add(subInfos[i]);
             }
         }
 

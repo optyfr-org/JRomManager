@@ -32,7 +32,7 @@ import lombok.Setter;
  *
  * @author optyfr
  */
-public class Container implements Serializable, Comparable<Container> {
+public class Container implements Serializable {
     /**
      * File representing the physical location of the container.
      */
@@ -284,33 +284,28 @@ public class Container implements Serializable, Comparable<Container> {
     }
 
     /**
-     * Compares this container with another container based on their physical sizes.
-     *
-     * @param o the other container to compare with
-     * 
-     * @return a negative integer, zero, or a positive integer as this container size is less than, equal to, or greater than the
-     *         specified container's size
-     */
-    @Override
-    public int compareTo(Container o) {
-        return Long.compare(this.size, o.size);
-    }
-
-    /**
-     * Creates and returns a standard comparator comparing containers by size.
+     * Creates and returns a standard comparator comparing containers by size, tie-broken by file path for a deterministic order.
+     * <p>
+     * This ordering is a scheduling priority and is intentionally not consistent with equals: it must only be used for sorting,
+     * never in sorted sets or maps.
      *
      * @return a {@link Comparator} for Container sorting
      */
     public static Comparator<Container> comparator() {
-        return Comparable::compareTo;
+        return (o1, o2) -> {
+            final var cmp = Long.compare(o1.size, o2.size);
+            return cmp != 0 ? cmp : String.valueOf(o1.file).compareTo(String.valueOf(o2.file));
+        };
     }
 
     /**
      * Creates and returns a reverse comparator comparing containers by size in descending order.
+     * <p>
+     * Same contract as {@link #comparator()}: sorting only, not consistent with equals.
      *
      * @return a reverse {@link Comparator} for Container sorting
      */
     public static Comparator<Container> rcomparator() {
-        return (o1, o2) -> o2.compareTo(o1);
+        return comparator().reversed();
     }
 }

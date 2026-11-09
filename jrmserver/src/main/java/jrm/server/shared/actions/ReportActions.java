@@ -98,7 +98,9 @@ public class ReportActions {
     public void setFilter(JsonObject jso, boolean lite) {
         final JsonObject pjso = jso.get(PARAMS).asObject();
         final Report report = lite ? ws.getSession().getTmpReport() : ws.getSession().getReport();
-        Set<FilterOptions> options = ((EnumSet<FilterOptions>) report.getHandler().getFilterOptions()).clone();
+        final var current = report.getHandler().getFilterOptions();
+        // Copy without downcasting: the handler contract only guarantees a Set.
+        final EnumSet<FilterOptions> options = current.isEmpty() ? EnumSet.noneOf(FilterOptions.class) : EnumSet.copyOf(current);
         for (Member m : pjso) {
             try {
                 final var option = FilterOptions.valueOf(m.getName());

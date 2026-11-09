@@ -102,13 +102,15 @@ public class Archive7ZOpenVolumeCallback implements IArchiveOpenVolumeCallback {
      * Archive7ZOpenVolumeCallback. By using a custom exception, it allows for more specific error handling and messaging related to
      * 7-Zip archive volume processing, while still providing the underlying cause of the error through the wrapped exception.
      */
-    class Archive7ZVolCBException extends RuntimeException {
+    static class Archive7ZVolCBException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
         /**
-         * Constructs a new Archive7ZVolCBException instance with the specified cause. This constructor allows for wrapping an
-         * underlying exception that may have occurred during the operations of the Archive7ZOpenVolumeCallback, providing a more
-         * specific context for the error while still retaining the original exception information for debugging and error handling
+         * Constructs a new Archive7ZVolCBException instance with the specified cause. This exception is used to
+         * wrap an underlying exception that may have occurred during the operations of the Archive7ZOpenVolumeCallback, providing a more
+         * specific context for the error while still retaining the underlying exception information for debugging and error handling
          * purposes.
-         * 
+         *
          * @param e the underlying exception that caused this Archive7ZVolCBException to be thrown
          */
         public Archive7ZVolCBException(Throwable e) {

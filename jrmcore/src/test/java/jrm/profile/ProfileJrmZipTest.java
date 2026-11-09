@@ -605,8 +605,8 @@ class ProfileJrmZipTest {
                 }
             }
             
-            // Call internalLoad for SL DAT
-            if (slFile != null && slFile.exists()) {
+            // Call internalLoad for SL DAT (slFile is a `new File`, never null)
+            if (slFile.exists()) {
                 java.lang.reflect.Method internalLoadMethod = Profile.class.getDeclaredMethod("internalLoad", File.class, ProgressHandler.class);
                 internalLoadMethod.setAccessible(true);
                 boolean success = (Boolean) internalLoadMethod.invoke(profile, slFile, handler);

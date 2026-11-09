@@ -115,12 +115,14 @@ public class ArchiveRAROpenVolumeCallback implements IArchiveOpenVolumeCallback,
      * ArchiveRAROpenVolumeCallback. By using a custom exception, it allows for more specific error handling and messaging related
      * to RAR archive processing, while still providing the underlying cause of the error through the wrapped exception.
      */
-    private class RARException extends RuntimeException {
+    private static class RARException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+
         /**
-         * Constructs a new RARException instance with the specified cause. This constructor allows for wrapping an underlying
+         * Constructs a new RARException instance with the specified cause. This exception is used to wrap an underlying
          * exception that may have occurred during RAR archive operations, providing a more specific context for the error while
-         * still retaining the original exception information for debugging purposes.
-         * 
+         * still retaining the underlying exception information for debugging purposes.
+         *
          * @param e the underlying exception that caused this RARException to be thrown
          */
         public RARException(Throwable e) {

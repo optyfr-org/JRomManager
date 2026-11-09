@@ -40,7 +40,7 @@ import net.lingala.zip4j.model.enums.CompressionMethod;
  * 
  * @since 1.0
  */
-public abstract class ContainerAction implements StatusRendererFactory, Comparable<ContainerAction> {
+public abstract class ContainerAction implements StatusRendererFactory {
     /**
      * Error log message template for entry action failures.
      */
@@ -132,42 +132,35 @@ public abstract class ContainerAction implements StatusRendererFactory, Comparab
     }
 
     /**
-     * Compares this action with another container action for task scheduling priority, prioritizing smaller sizes and lower counts.
-     * 
-     * @param other the other container action to compare
-     * 
-     * @return a negative integer, zero, or a positive integer as this action is less than, equal to, or greater than the specified
-     *         action
-     */
-    @Override
-    public int compareTo(ContainerAction other) {
-        if (estimatedSize() < other.estimatedSize())
-            return -1;
-        if (estimatedSize() > other.estimatedSize())
-            return 1;
-        if (count() < other.count())
-            return -1;
-        if (count() > other.count())
-            return 1;
-        return 0;
-    }
-
-    /**
-     * Returns a standard ascending priority sorting comparator.
+     * Returns a standard ascending priority sorting comparator, prioritizing smaller sizes and lower counts, tie-broken by
+     * container file for a deterministic order.
+     * <p>
+     * This ordering is a scheduling priority and is intentionally not consistent with equals: it must only be used for sorting,
+     * never in sorted sets or maps.
      * 
      * @return a {@link Comparator} for sorting container actions
      */
     public static Comparator<ContainerAction> comparator() {
-        return Comparable::compareTo;
+        return (o1, o2) -> {
+            var cmp = Long.compare(o1.estimatedSize(), o2.estimatedSize());
+            if (cmp != 0)
+                return cmp;
+            cmp = Integer.compare(o1.count(), o2.count());
+            if (cmp != 0)
+                return cmp;
+            return String.valueOf(o1.container.getFile()).compareTo(String.valueOf(o2.container.getFile()));
+        };
     }
 
     /**
      * Returns a reverse descending priority sorting comparator (e.g., executing largest tasks first).
+     * <p>
+     * Same contract as {@link #comparator()}: sorting only, not consistent with equals.
      * 
      * @return a descending {@link Comparator} for sorting container actions
      */
     public static Comparator<ContainerAction> rcomparator() {
-        return (o1, o2) -> o2.compareTo(o1);
+        return comparator().reversed();
     }
 
     /**

@@ -460,7 +460,7 @@ public class Machine extends Anyware {
                 new SimpleAttribute("sampleof", sampleof) //$NON-NLS-1$
         );
         writer.writeElement("description", description); //$NON-NLS-1$
-        if (year != null && !year.isEmpty())
+        if (!year.isEmpty())
             writer.writeElement("year", year); //$NON-NLS-1$
         if (!manufacturer.isEmpty())
             writer.writeElement("manufacturer", manufacturer); //$NON-NLS-1$
@@ -509,7 +509,7 @@ public class Machine extends Anyware {
                 new SimpleAttribute("sampleof", sampleof) //$NON-NLS-1$
         );
         writer.writeElement("description", description); //$NON-NLS-1$
-        if (year != null && !year.isEmpty())
+        if (!year.isEmpty())
             writer.writeElement("year", year); //$NON-NLS-1$
         if (!manufacturer.isEmpty())
             writer.writeElement("manufacturer", manufacturer); //$NON-NLS-1$

@@ -53,13 +53,13 @@ public class ActionSocket {
             return;
         }
         webSession.setLastAction(Instant.now());
-        if (httpSession != null) {
-            try {
-                // setAttribute does not refresh lastAccessedTime; this no-op write does.
-                httpSession.setMaxInactiveInterval(httpSession.getMaxInactiveInterval());
-            } catch (final Exception e) {
-                Log.debug(() -> "ws open touch failed: " + e.getMessage());
-            }
+        // httpSession is provably non-null here: a null httpSession yields a null
+        // webSession, which returned early above.
+        try {
+            // setAttribute does not refresh lastAccessedTime; this no-op write does.
+            httpSession.setMaxInactiveInterval(httpSession.getMaxInactiveInterval());
+        } catch (final Exception e) {
+            Log.debug(() -> "ws open touch failed: " + e.getMessage());
         }
         final var mgr = new WsActionMgr(webSession, wsSession, httpSession);
         // Single-socket policy: replace + close previous.

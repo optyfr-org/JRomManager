@@ -39,17 +39,24 @@ final class EntryUpdater {
 	}
 
 	void updateEntry(Entry entry, ZipFile zipf, FileHeader hdr, ScanOptions options) {
-		if (entry.getSize() == 0 && entry.getCrc() == null) {
+		// hdr is null when entries were already loaded (DirScan re-scan path): resolve it
+		// up-front so the size/crc fill below cannot dereference null (ZipException is an IOException).
+		if (hdr == null) {
+			try {
+				hdr = zipf.getFileHeader(ZipTools.toZipEntry(entry.getFile()));
+			} catch (final IOException e) {
+				Log.err(e.getMessage(), e);
+			}
+		}
+		if (hdr != null && entry.getSize() == 0 && entry.getCrc() == null) {
 			entry.setSize(hdr.getUncompressedSize()); // $NON-NLS-1$
 			entry.setCrc(String.format("%08x", hdr.getCrc())); //$NON-NLS-1$ //$NON-NLS-2$
 		}
 		ds.entriesByCrc.put(entry.getCrc() + "." + entry.getSize(), entry); //$NON-NLS-1$
 		if (options.needSha1OrMd5 || entry.getCrc() == null || ds.isSuspiciousCRC(entry.getCrc())) {
 			List<Algo> algorithms = getAlgorithms(entry, options);
-			if (!algorithms.isEmpty())
+			if (!algorithms.isEmpty() && hdr != null)
 				try {
-					if (hdr == null)
-						hdr = zipf.getFileHeader(ZipTools.toZipEntry(entry.getFile()));
 					MDigest[] digests = HashComputer.computeHash(zipf.getInputStream(hdr), algorithms);
 					updateEntryFromHashes(entry, digests);
 				} catch (IOException | NoSuchAlgorithmException e) {

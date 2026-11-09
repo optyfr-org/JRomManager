@@ -52,9 +52,10 @@ class ProfileHandler extends DefaultHandler {
 	}
 
 	/**
-	 * Exception thrown during parsing errors inside the SAX parser pipeline.
+	 * Exception thrown during parsing errors inside the SAX parser pipeline. Static so it
+	 * does not capture the (non-serializable) outer handler instance.
 	 */
-	private class ProfileHandlerException extends RuntimeException {
+	private static class ProfileHandlerException extends RuntimeException {
 		private static final long serialVersionUID = 1L;
 
 		public ProfileHandlerException(String message, Exception e) {
