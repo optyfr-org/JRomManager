@@ -1,7 +1,7 @@
 #### Builder stage ####
 
 #FROM dhi.io/eclipse-temurin:25-alpine
-FROM dhi.io/eclipse-temurin@sha256:8994131351999f5bb8d54917d3d5ea9db503ab587724a56a5674bba9283d4d17 AS aot-train
+FROM dhi.io/eclipse-temurin@sha256:ac4532028c964814ac5835e7880a9d3f63ebf9089d0ab6ba238276ca5fcf0c9e AS aot-train
 
 # The base image defaults to nonroot and has no root entry in /etc/passwd;
 # the builder stage needs to write /train/work, so use numeric UID 0.
@@ -23,7 +23,7 @@ RUN ["java", "--enable-native-access=ALL-UNNAMED", "-XX:AOTCacheOutput=/train/JR
 #### Final image ####
 
 #FROM dhi.io/eclipse-temurin:25-alpine
-FROM dhi.io/eclipse-temurin@sha256:8994131351999f5bb8d54917d3d5ea9db503ab587724a56a5674bba9283d4d17
+FROM dhi.io/eclipse-temurin@sha256:ac4532028c964814ac5835e7880a9d3f63ebf9089d0ab6ba238276ca5fcf0c9e
 
 LABEL org.opencontainers.image.title="JRomManager"
 LABEL org.opencontainers.image.description="Docker image of JRomManager (with JRE 25)"
