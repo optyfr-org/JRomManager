@@ -837,5 +837,129 @@
         "allDeclaredMethods":  true,
         "allPublicFields":  true,
         "allDeclaredFields":  true
+    },
+    {
+        "name":  "com.beust.jcommander.validators.NoValidator",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.validators.NoValueValidator",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.validators.PositiveInteger",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.BigDecimalConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.BooleanConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.ByteOrderConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.CharArrayConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.CharsetConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.CommaParameterSplitter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.DefaultListConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.DoubleConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.EnumConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.FileConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.FloatConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.ISO8601DateConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.InetAddressConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.InstantConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.IntegerConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.JavaTimeConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.LocalDateConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.LocalDateTimeConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.LocalTimeConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.LongConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.NoConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.OffsetDateTimeConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.OffsetTimeConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.PathConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.StringConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.URIConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.URLConverter",
+        "allDeclaredConstructors":  true
+    },
+    {
+        "name":  "com.beust.jcommander.converters.ZonedDateTimeConverter",
+        "allDeclaredConstructors":  true
     }
 ]

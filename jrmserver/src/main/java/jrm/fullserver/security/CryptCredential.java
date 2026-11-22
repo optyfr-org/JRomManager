@@ -1,14 +1,18 @@
 package jrm.fullserver.security;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.sql.SQLException;
+import java.util.Arrays;
+import java.util.Base64;
 
 import org.apache.commons.dbutils.handlers.BeanHandler;
+import org.bouncycastle.crypto.generators.Argon2BytesGenerator;
+import org.bouncycastle.crypto.params.Argon2Parameters;
 import org.eclipse.jetty.util.security.Credential;
 import org.mindrot.jbcrypt.BCrypt;
 
-import de.mkammerer.argon2.Argon2;
-import de.mkammerer.argon2.Argon2Factory;
-import de.mkammerer.argon2.Argon2Factory.Argon2Types;
 import jrm.fullserver.db.SQL;
 import jrm.misc.Log;
 import lombok.Getter;
@@ -16,6 +20,7 @@ import lombok.Getter;
 /**
  * CryptCredential is a custom implementation of the Credential class that provides functionality for checking user credentials
  * against stored password hashes. It supports both BCrypt and Argon2 hashing algorithms for secure password storage.
+ * Argon2 runs on BouncyCastle's pure-Java implementation so it also works in native images (no JNI/JNA native library).
  * <p>
  * The class retrieves user credentials from a database using the provided SQL object and checks the provided credentials against
  * the stored password hash. It also provides static methods for hashing passwords and verifying credentials against stored hashes.
@@ -155,17 +160,11 @@ public class CryptCredential extends Credential {
      */
     public static boolean check(String credentials, String password) {
         if (password.startsWith("$argon2")) {
-            Argon2 argon2;
-            if (password.startsWith("$argon2id$"))
-                argon2 = Argon2Factory.create(Argon2Types.ARGON2id);
-            else if (password.startsWith("$argon2i$"))
-                argon2 = Argon2Factory.create(Argon2Types.ARGON2i);
-            else if (password.startsWith("$argon2d$"))
-                argon2 = Argon2Factory.create(Argon2Types.ARGON2d);
-            else
-                argon2 = Argon2Factory.create();
-            if (argon2.verify(password, credentials.toCharArray()))
-                return true;
+            try {
+                return verifyArgon2(credentials, password);
+            } catch (RuntimeException | LinkageError e) {
+                Log.err("Argon2 verification failed, denying login: " + e.getMessage());
+            }
         } else if (BCrypt.checkpw(credentials, password)) // si le hash bcrypt matche
             return true;
         return false;
@@ -197,11 +196,116 @@ public class CryptCredential extends Credential {
         if (password.startsWith("$2a$") || password.startsWith("$argon2"))
             return password;
         try {
-            password = Argon2Factory.create(Argon2Types.ARGON2id).hash(40, 65536, 4, password.toCharArray());
-        } catch (Exception _) {
-            password = BCrypt.hashpw(password, BCrypt.gensalt());
+            return hashArgon2(password, 40, 65536, 4);
+        } catch (RuntimeException | LinkageError e) {
+            Log.err("Argon2 hashing unavailable, falling back to BCrypt: " + e.getMessage());
+            return BCrypt.hashpw(password, BCrypt.gensalt());
         }
-        return password;
+    }
+
+    /** Argon2id iterations, memory (KiB) and parallelism used for new hashes. */
+    private static final int ARGON2_ITERATIONS = 40;
+    private static final int ARGON2_MEMORY_KIB = 65536;
+    private static final int ARGON2_PARALLELISM = 4;
+    private static final int ARGON2_VERSION = 0x13;
+    private static final int SALT_LENGTH = 16;
+    private static final int HASH_LENGTH = 32;
+
+    /**
+     * Hashes a password with Argon2id and encodes the result in Modular Crypt Format
+     * ({@code $argon2id$v=19$m=...,t=...,p=...$salt$hash}, standard Base64 without padding),
+     * compatible with hashes previously produced by argon2-jvm.
+     *
+     * @param password the plaintext password
+     * @param iterations the time cost
+     * @param memoryKib the memory cost in KiB
+     * @param parallelism the parallelism
+     * @return the MCF-encoded hash
+     */
+    static String hashArgon2(final String password, final int iterations, final int memoryKib, final int parallelism) {
+        final var salt = new byte[SALT_LENGTH];
+        new SecureRandom().nextBytes(salt);
+        final var out = runArgon2(Argon2Parameters.ARGON2_id, ARGON2_VERSION, iterations, memoryKib, parallelism, salt,
+                password, HASH_LENGTH);
+        return "$argon2id$v=19$m=" + memoryKib + ",t=" + iterations + ",p=" + parallelism + '$' + encodeB64(salt) + '$'
+                + encodeB64(out);
+    }
+
+    /**
+     * Verifies a plaintext password against an MCF-encoded Argon2 hash
+     * ({@code $argon2id$v=19$m=...,t=...,p=...$salt$hash}).
+     *
+     * @param password the plaintext password to check
+     * @param mcf the stored MCF hash
+     * @return true if the password matches
+     * @throws IllegalArgumentException if the MCF string is malformed
+     */
+    static boolean verifyArgon2(final String password, final String mcf) {
+        final String[] parts = mcf.split("\\$", -1);
+        if (parts.length != 6 || !parts[0].isEmpty())
+            throw new IllegalArgumentException("Malformed Argon2 MCF hash");
+        final int type = switch (parts[1]) {
+            case "argon2d" -> Argon2Parameters.ARGON2_d;
+            case "argon2i" -> Argon2Parameters.ARGON2_i;
+            case "argon2id" -> Argon2Parameters.ARGON2_id;
+            default -> throw new IllegalArgumentException("Unknown Argon2 type: " + parts[1]);
+        };
+        if (!"v=19".equals(parts[2]))
+            throw new IllegalArgumentException("Unsupported Argon2 version: " + parts[2]);
+        int iterations = -1;
+        int memoryKib = -1;
+        int parallelism = -1;
+        for (final String param : parts[3].split(",", -1)) {
+            final int eq = param.indexOf('=');
+            if (eq < 0)
+                throw new IllegalArgumentException("Malformed Argon2 params: " + parts[3]);
+            final int value = Integer.parseInt(param.substring(eq + 1));
+            switch (param.substring(0, eq)) {
+                case "m" -> memoryKib = value;
+                case "t" -> iterations = value;
+                case "p" -> parallelism = value;
+                default -> throw new IllegalArgumentException("Unknown Argon2 param: " + param);
+            }
+        }
+        if (iterations < 0 || memoryKib < 0 || parallelism < 0)
+            throw new IllegalArgumentException("Incomplete Argon2 params: " + parts[3]);
+        final var salt = decodeB64(parts[4]);
+        final var expected = decodeB64(parts[5]);
+        final var actual = runArgon2(type, ARGON2_VERSION, iterations, memoryKib, parallelism, salt, password,
+                expected.length);
+        return MessageDigest.isEqual(expected, actual);
+    }
+
+    /**
+     * Runs BouncyCastle's pure-Java Argon2.
+     *
+     * @return the raw hash bytes
+     */
+    private static byte[] runArgon2(final int type, final int version, final int iterations, final int memoryKib,
+            final int parallelism, final byte[] salt, final String password, final int outLength) {
+        final var parameters = new Argon2Parameters.Builder(type).withVersion(version).withIterations(iterations)
+                .withMemoryAsKB(memoryKib).withParallelism(parallelism).withSalt(salt).build();
+        final var generator = new Argon2BytesGenerator();
+        generator.init(parameters);
+        final var pwd = password.getBytes(StandardCharsets.UTF_8);
+        try {
+            final var out = new byte[outLength];
+            generator.generateBytes(pwd, out);
+            return out;
+        } finally {
+            Arrays.fill(pwd, (byte) 0);
+        }
+    }
+
+    /** Standard Base64 without padding, as used by MCF. */
+    private static String encodeB64(final byte[] data) {
+        return Base64.getEncoder().withoutPadding().encodeToString(data);
+    }
+
+    /** Decodes unpadded standard Base64, restoring padding first. */
+    private static byte[] decodeB64(final String data) {
+        final var padded = data + "=".repeat((4 - data.length() % 4) % 4);
+        return Base64.getDecoder().decode(padded);
     }
 
 }

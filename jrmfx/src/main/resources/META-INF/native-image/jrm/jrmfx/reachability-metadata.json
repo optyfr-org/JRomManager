@@ -2494,10 +2494,13 @@
                           "glob":  "Linux-amd64/.*"
                       },
                       {
-                          "glob":  "Linux-aarch64/.*"
+                          "glob":  "Linux-arm64/.*"
                       },
                       {
-                          "glob":  "Mac-x86_64/.*"
+                          "glob":  "Windows-arm64/.*"
+                      },
+                      {
+                          "glob":  "AllMac/.*"
                       }
                   ]
 }

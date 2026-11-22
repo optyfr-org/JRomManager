@@ -61,12 +61,45 @@ class CryptCredentialTest {
     @Nested
     @DisplayName("check (Argon2)")
     class CheckArgon2Test {
+        /**
+         * Real argon2-jvm 2.12 output for the plaintext "correct" (t=2, m=1024, p=1): proves hashes created by the
+         * previous native implementation still verify with the pure-Java one.
+         */
+        private static final String ARGON2JVM_VECTOR = "$argon2id$v=19$m=1024,t=2,p=1$SU0rjdR0y37FAaPh9GQaIA$u6X5E9WxZIu4ueRGEGx0flefSho/uIav1/r0RobfzY0";
+
+        @Test
+        @DisplayName("hash produced by argon2-jvm verifies with correct password")
+        void argon2JvmInterop() {
+            assertThat(CryptCredential.check("correct", ARGON2JVM_VECTOR)).isTrue();
+        }
+
+        @Test
+        @DisplayName("hash produced by argon2-jvm rejects wrong password")
+        void argon2JvmInteropWrongPassword() {
+            assertThat(CryptCredential.check("wrongpassword", ARGON2JVM_VECTOR)).isFalse();
+        }
+
         @Test
         @DisplayName("Argon2-prefixed hash with wrong password returns false without throwing")
         void argon2WrongPassword() {
             // A syntactically valid Argon2id hash string; verification will return false for wrong password
             final String argon2Hash = "$argon2id$v=19$m=65536,t=4,p=1$c29tZXNhbHQ$RdescudXJCJt1BsdQdKZ9r1mJGZ9ZJGZ9ZJG9ZJG9ZJG";
             assertThat(CryptCredential.check("wrongpassword", argon2Hash)).isFalse();
+        }
+
+        @Test
+        @DisplayName("malformed Argon2 hash returns false without throwing")
+        void argon2Malformed() {
+            assertThat(CryptCredential.check("password", "$argon2id$v=19$m=65536,t=4,p=1$abc$def")).isFalse();
+        }
+
+        @Test
+        @DisplayName("round-trip: fresh hash verifies and rejects wrong password")
+        void argon2RoundTrip() {
+            final String hashed = CryptCredential.hash("s3cr3t");
+            assertThat(hashed).startsWith("$argon2id$v=19$m=65536,t=40,p=4$");
+            assertThat(CryptCredential.check("s3cr3t", hashed)).isTrue();
+            assertThat(CryptCredential.check("wrong", hashed)).isFalse();
         }
     }
 }

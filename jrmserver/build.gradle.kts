@@ -37,6 +37,8 @@ graalvmNative {
                 "-J--add-opens=java.base/java.util=ALL-UNNAMED",
                 // Builder JVM only; not a runtime image argument.
                 "-J--enable-native-access=ALL-UNNAMED",
+                // Runtime image argument: allows JNI (SevenZip, Argon2 via JNA) in the native image.
+                "--enable-native-access=ALL-UNNAMED",
                 "--enable-url-protocols=http,https"
             )
             runtimeArgs.addAll("--ws", "-d", "-c", "$rootDir/WebClient/war", "-w", "%HOMEPATH%/.jrommanager")
@@ -54,6 +56,8 @@ graalvmNative {
                 "-J--add-opens=java.base/java.util=ALL-UNNAMED",
                 // Builder JVM only; not a runtime image argument.
                 "-J--enable-native-access=ALL-UNNAMED",
+                // Runtime image argument: allows JNI (SevenZip, Argon2 via JNA) in the native image.
+                "--enable-native-access=ALL-UNNAMED",
                 "--enable-url-protocols=http,https"
             )
             runtimeArgs.addAll("--ws", "-c", "$rootDir/WebClient/war", "-d", "-w", "%HOMEPATH%/.jrommanager")
@@ -82,8 +86,7 @@ dependencies {
     "implementation"(libs.commons.dbutils)
     "implementation"(libs.h2)
     "implementation"(libs.jbcrypt)
-    "implementation"(libs.jna)
-    "implementation"(libs.argon2.jvm)
+    "implementation"(libs.bcprov.jdk18on)
     "implementation"(libs.bundles.logging)
     "implementation"(files(wcjar))
     "runtimeOnly"(libs.jspecify)

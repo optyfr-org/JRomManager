@@ -18,9 +18,10 @@
       {"pattern": "jrm/resources/dtd/.*\\.dtd"},
       {"pattern": "sevenzipjbinding-platforms.properties"},
       {"pattern": "Windows-amd64/.*"},
+      {"pattern": "Windows-arm64/.*"},
       {"pattern": "Linux-amd64/.*"},
-      {"pattern": "Linux-aarch64/.*"},
-      {"pattern": "Mac-x86_64/.*"}
+      {"pattern": "Linux-arm64/.*"},
+      {"pattern": "AllMac/.*"}
     ],
     "excludes": [
       {"pattern": ".*\\.bss$"}
