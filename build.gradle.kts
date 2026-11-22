@@ -116,6 +116,8 @@ repositories {
 
 configurations.all {
     resolutionStrategy.cacheChangingModulesFor(0, "seconds")
+    // Transitive via jetty-annotations / jacoco: pin asm to the patched release.
+    resolutionStrategy.force("org.ow2.asm:asm:9.11")
 }
 
 subprojects {
