@@ -7,6 +7,8 @@ FROM dhi.io/eclipse-temurin@sha256:8994131351999f5bb8d54917d3d5ea9db503ab587724a
 # the builder stage needs to write /train/work, so use numeric UID 0.
 USER 0
 
+RUN apk upgrade --no-cache
+
 # Train the server AOT cache (JEP 483/514) with the exact JVM of the final image,
 # so the cache is accepted at runtime. The jrm.aot.train hook loads the fixture DAT,
 # runs one scan, then stops the server so the JVM exits and writes the cache.
@@ -28,6 +30,10 @@ FROM dhi.io/eclipse-temurin@sha256:8994131351999f5bb8d54917d3d5ea9db503ab587724a
 LABEL org.opencontainers.image.title="JRomManager"
 LABEL org.opencontainers.image.description="Docker image of JRomManager (with JRE 25)"
 LABEL org.opencontainers.image.source="https://github.com/optyfr/JRomManager"
+
+USER 0
+
+RUN apk upgrade --no-cache
 
 WORKDIR /app
 
