@@ -62,7 +62,7 @@ public class ProfilesListXMLResponse extends XMLResponse {
         writer.writeElement(STATUS, "0");
         writer.writeElement("startRow", "0");
         writer.writeElement("parent", pathAbstractor.getRelativePath(dir).toString());
-        writer.writeElement("endRow", Integer.toString(rows.size() - 1));
+        writer.writeElement("endRow", Integer.toString(Math.max(rows.size() - 1, 0)));
         writer.writeElement("totalRows", Integer.toString(rows.size()));
         writer.writeStartElement("data");
         for (var i = 0; i < rows.size(); i++)
@@ -179,21 +179,31 @@ public class ProfilesListXMLResponse extends XMLResponse {
             try {
                 Path dir = resolveParentDir(operation);
                 final var dst = resolveContainedFile(dir, operation.getData(FILE));
-                if (Files.isRegularFile(dst)) {
-                    final var cache = resolveContainedFile(dir, operation.getData(FILE) + ".cache");
-                    try {
-                        Files.deleteIfExists(cache);
-                        success();
-                    } catch (IOException e) {
-                        failure("Can't delete " + cache);
-                    }
-                } else
+                if (Files.isRegularFile(dst))
+                    deleteCacheFile(resolveContainedFile(dir, operation.getData(FILE) + ".cache"));
+                else
                     failure("Can't find " + dst);
             } catch (SecurityException ex) {
                 failure(ex.getMessage());
             }
         } else
             super.custom(operation);
+    }
+
+    /**
+     * Deletes a profile cache file, reporting success or failure to the client.
+     *
+     * @param cache the cache file to delete
+     *
+     * @throws XMLStreamException if an error occurs while writing the XML response
+     */
+    private void deleteCacheFile(final Path cache) throws XMLStreamException {
+        try {
+            Files.deleteIfExists(cache);
+            success();
+        } catch (IOException _) {
+            failure("Can't delete " + cache);
+        }
     }
 
     /**

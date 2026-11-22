@@ -14,7 +14,7 @@ public class Progress implements ProgressHandler {
     /**
      * A list to store error messages encountered during processing.
      */
-    private List<String> errors = new ArrayList<>();
+    private final List<String> errors = new ArrayList<>();
     /**
      * The maximum value for progress tracking, initialized to null.
      */

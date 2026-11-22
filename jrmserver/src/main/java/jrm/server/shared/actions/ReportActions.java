@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.EnumSet;
-import java.util.Set;
 
 import com.eclipsesource.json.Json;
 import com.eclipsesource.json.JsonObject;

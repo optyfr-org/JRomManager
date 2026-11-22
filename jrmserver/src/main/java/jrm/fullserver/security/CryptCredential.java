@@ -165,8 +165,13 @@ public class CryptCredential extends Credential {
             } catch (RuntimeException | LinkageError e) {
                 Log.err("Argon2 verification failed, denying login: " + e.getMessage());
             }
-        } else if (BCrypt.checkpw(credentials, password)) // si le hash bcrypt matche
-            return true;
+        } else
+            try {
+                if (BCrypt.checkpw(credentials, password)) // si le hash bcrypt matche
+                    return true;
+            } catch (RuntimeException e) {
+                Log.err("BCrypt verification failed, denying login: " + e.getMessage());
+            }
         return false;
     }
 
@@ -203,6 +208,13 @@ public class CryptCredential extends Credential {
         }
     }
 
+    /**
+     * Shared entropy source for salts. SecureRandom is thread-safe, and reusing one instance avoids paying (and
+     * potentially blocking on) reseeding for every hash. Initialized at runtime, so native images seed it fresh on
+     * each launch rather than freezing build-time entropy into the image.
+     */
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     /** Argon2id iterations, memory (KiB) and parallelism used for new hashes. */
     private static final int ARGON2_ITERATIONS = 40;
     private static final int ARGON2_MEMORY_KIB = 65536;
@@ -224,7 +236,7 @@ public class CryptCredential extends Credential {
      */
     static String hashArgon2(final String password, final int iterations, final int memoryKib, final int parallelism) {
         final var salt = new byte[SALT_LENGTH];
-        new SecureRandom().nextBytes(salt);
+        SECURE_RANDOM.nextBytes(salt);
         final var out = runArgon2(Argon2Parameters.ARGON2_id, ARGON2_VERSION, iterations, memoryKib, parallelism, salt,
                 password, HASH_LENGTH);
         return "$argon2id$v=19$m=" + memoryKib + ",t=" + iterations + ",p=" + parallelism + '$' + encodeB64(salt) + '$'

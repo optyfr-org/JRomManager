@@ -42,7 +42,7 @@ public class CLIRunner {
     void stream(final CLIArgs cmd) throws IOException {
         /* Plain output without terminal handling: no JLine terminal is created at all, so no
          * "Unable to create a system terminal" warning is emitted when stdin is piped. */
-        cli.out = new PrintWriter(new OutputStreamWriter(System.out, StandardCharsets.UTF_8), true);
+        cli.out = new PrintWriter(new OutputStreamWriter(System.out /*NOSONAR*/, StandardCharsets.UTF_8), true);
         cli.printer = new CLIPrinter(cli.out);
         /* Start processing commands from the input file or standard input */
         final Reader reader = cmd.file != null ? new FileReader(cmd.file, StandardCharsets.UTF_8) : new InputStreamReader(System.in, StandardCharsets.UTF_8);

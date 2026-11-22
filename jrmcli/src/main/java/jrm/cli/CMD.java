@@ -32,7 +32,7 @@ public enum CMD implements CommandNames {
     /**
      * A set of names associated with the command, allowing for multiple aliases.
      */
-    private LinkedHashSet<String> names = new LinkedHashSet<>();
+    private final LinkedHashSet<String> names = new LinkedHashSet<>();
 
     /**
      * Constructs a CMD enum instance with the specified names.

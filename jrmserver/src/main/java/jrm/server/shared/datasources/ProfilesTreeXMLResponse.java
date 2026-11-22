@@ -69,19 +69,31 @@ public class ProfilesTreeXMLResponse extends XMLResponse {
         final var pending = new ArrayDeque<CountPending>();
         pending.add(new CountPending(node, 0));
         final var seen = new IdentityHashMap<Node<Dir>, Boolean>();
-        while (!pending.isEmpty()) {
-            final var current = pending.removeFirst();
-            final var n = current.node();
-            if (n == null || seen.put(n, Boolean.TRUE) != null)
-                continue;
-            if (current.depth() > 0)
-                count++;
-            if (current.depth() >= DirTree.MAX_DIR_DEPTH)
-                continue;
-            for (final var child : n)
-                pending.add(new CountPending(child, current.depth() + 1));
-        }
+        while (!pending.isEmpty())
+            count += visitCountEntry(pending.removeFirst(), pending, seen);
         return count;
+    }
+
+    /**
+     * Visits a single pending count entry: marks the node seen, counts it when it is not the root, and enqueues its
+     * children unless the depth cap is reached.
+     *
+     * @param current the pending entry to visit
+     * @param pending the work queue, appended with the entry's children
+     * @param seen the identity set of already visited nodes (cycle detection)
+     *
+     * @return 1 when the entry's node was counted, 0 otherwise
+     */
+    private int visitCountEntry(final CountPending current, final ArrayDeque<CountPending> pending, final IdentityHashMap<Node<Dir>, Boolean> seen) {
+        final var n = current.node();
+        if (n == null || seen.put(n, Boolean.TRUE) != null)
+            return 0;
+        final var counted = current.depth() > 0 ? 1 : 0;
+        if (current.depth() >= DirTree.MAX_DIR_DEPTH)
+            return counted;
+        for (final var child : n)
+            pending.add(new CountPending(child, current.depth() + 1));
+        return counted;
     }
 
     /**
@@ -154,7 +166,7 @@ public class ProfilesTreeXMLResponse extends XMLResponse {
         writer.writeStartElement(RESPONSE);
         writer.writeElement(STATUS, "0");
         writer.writeElement("startRow", "0");
-        writer.writeElement("endRow", Integer.toString(nodecount - 1));
+        writer.writeElement("endRow", Integer.toString(Math.max(nodecount - 1, 0)));
         writer.writeElement("totalRows", Integer.toString(nodecount));
         writer.writeStartElement("data");
         outputNode(writer, root.getRoot(), null, new AtomicInteger());

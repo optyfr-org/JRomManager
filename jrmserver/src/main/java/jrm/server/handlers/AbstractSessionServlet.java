@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Locale.LanguageRange;
+import java.util.Objects;
 import java.util.ResourceBundle;
 
 import com.eclipsesource.json.JsonObject;
@@ -50,7 +51,10 @@ public abstract class AbstractSessionServlet extends HttpServlet {
         final var msgs = new JsonObject();
         final var acceptLanguage = req.getHeader("accept-language");
         List<LanguageRange> lr = acceptLanguage != null ? LanguageRange.parse(acceptLanguage) : List.of();
-        ws.setMsgs(Messages.loadBundle(!lr.isEmpty() ? Locale.lookup(lr, Arrays.asList(Locale.getAvailableLocales())) : Locale.getDefault()));
+        // Locale.lookup returns null when no range matches: fall back to the default locale instead of NPEing in loadBundle.
+        final var locale = lr.isEmpty() ? Locale.getDefault()
+                : Objects.requireNonNullElse(Locale.lookup(lr, Arrays.asList(Locale.getAvailableLocales())), Locale.getDefault());
+        ws.setMsgs(Messages.loadBundle(locale));
         ResourceBundle rb = ws.getMsgs();
         rb.keySet().forEach(k -> {
             if (k != null && !k.isEmpty())
