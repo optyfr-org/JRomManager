@@ -155,7 +155,7 @@ public class LongPollingReqMgr implements ActionsMgr {
      * registry and invokes setting serialization.
      */
     public static void saveAllSettings() {
-        activeManagers.forEach((_, socket) -> socket.saveSettings());
+        activeManagers.values().forEach(LongPollingReqMgr::saveSettings);
     }
 
 }
