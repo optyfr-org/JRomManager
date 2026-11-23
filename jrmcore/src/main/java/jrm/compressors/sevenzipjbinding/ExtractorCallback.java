@@ -91,20 +91,20 @@ public abstract class ExtractorCallback implements IArchiveExtractCallback {
     public void setOperationResult(ExtractOperationResult extractOperationResult) throws SevenZipException {
         if (skipExtraction)
             return;
-        if (extractOperationResult != ExtractOperationResult.OK)
+        if (extractOperationResult != ExtractOperationResult.OK) {
             Log.err("Extraction error");
-        else {
-            try {
-                randomAccessFiles.get(index).close();
-                String path = (String) this.nArchive.getIInArchive().getProperty(index, PropID.PATH);
-                File tmpfile = tmpfiles.get(index);
-                File dstfile = resolveContainedFile(baseDir, path);
-                FileUtils.forceMkdirParent(dstfile);
-                if (!dstfile.exists())
-                    FileUtils.moveFile(tmpfile, dstfile);
-            } catch (IOException e) {
-                throw new SevenZipException(e.getMessage(), e);
-            }
+            return;
+        }
+        try {
+            randomAccessFiles.get(index).close();
+            String path = (String) this.nArchive.getIInArchive().getProperty(index, PropID.PATH);
+            File tmpfile = tmpfiles.get(index);
+            File dstfile = resolveContainedFile(baseDir, path);
+            FileUtils.forceMkdirParent(dstfile);
+            if (!dstfile.exists())
+                FileUtils.moveFile(tmpfile, dstfile);
+        } catch (IOException e) {
+            throw new SevenZipException(e.getMessage(), e);
         }
     }
 

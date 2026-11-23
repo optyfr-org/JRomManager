@@ -191,22 +191,21 @@ public class Entry implements Serializable {
      * @return the normalized name string
      */
     public String getName() {
-        if (cachedName == null) {
-            final var path = Paths.get(file);
-            if (parent.getType() == Container.Type.DIR) {
-                cachedName = parent.getFile().toPath().relativize(path).toString().replace('\\', '/');
-                return cachedName;
-            }
-            if (type == Type.CHD) {
-                final var fileName = path.getFileName();
-                if (fileName == null)
-                    return null;
-                cachedName = fileName.toString();
-                return cachedName;
-            }
-            cachedName = path.subpath(0, path.getNameCount()).toString().replace('\\', '/');
+        if (cachedName != null)
+            return cachedName;
+        final var path = Paths.get(file);
+        if (parent.getType() == Container.Type.DIR) {
+            cachedName = parent.getFile().toPath().relativize(path).toString().replace('\\', '/');
             return cachedName;
         }
+        if (type == Type.CHD) {
+            final var fileName = path.getFileName();
+            if (fileName == null)
+                return null;
+            cachedName = fileName.toString();
+            return cachedName;
+        }
+        cachedName = path.subpath(0, path.getNameCount()).toString().replace('\\', '/');
         return cachedName;
     }
 

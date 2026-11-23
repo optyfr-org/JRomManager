@@ -27,6 +27,7 @@ import jrm.profile.Profile;
 import jrm.profile.fix.actions.BackupContainer;
 import jrm.profile.fix.actions.ContainerAction;
 import jrm.profile.scan.Scan;
+import jrm.security.Session;
 
 /**
  * Orchestrates the application of fixes, repairs, and container actions determined by a prior scan across the user's ROM and game
@@ -64,13 +65,17 @@ public class Fix {
         /*
          * Initialize global progression
          */
+        // Capture the session once: workers only need this effectively-immutable execution
+        // context (concurrent reads hit Hashtable-backed Settings, never mutated during fix).
+        // Do not capture the mutable Profile itself in the worker lambda.
+        final var session = currProfile.getSession();
         final var counter = new AtomicInteger(0);
         final var max = new AtomicInteger(0);
         currScan.actions.forEach(actions -> {
             max.addAndGet(actions.size());
             actions.forEach(action -> max.addAndGet(action.count() + (int) (action.estimatedSize() >> 20)));
         });
-        progress.setProgress(currProfile.getSession().getMsgs().getString("Fix.Fixing"), counter.get(), max.get()); //$NON-NLS-1$
+        progress.setProgress(session.getMsgs().getString("Fix.Fixing"), counter.get(), max.get()); //$NON-NLS-1$
 
         // foreach ordered action groups
         currScan.actions.forEach(actions -> {
@@ -80,7 +85,7 @@ public class Fix {
                 // two parallel streaming)
                 progress.setInfos(nThreads, useParallelism);
                 final var safeProgress = new SynchronizedProgressHandler(progress);
-                try (final var mt = new MultiThreadingVirtual<ContainerAction>("fix", safeProgress, nThreads, action -> doAction(currProfile, safeProgress, counter, done, action))) {
+                try (final var mt = new MultiThreadingVirtual<ContainerAction>("fix", safeProgress, nThreads, action -> doAction(session, safeProgress, counter, done, action))) {
                     mt.start(actions.stream().sorted(ContainerAction.rcomparator()));
                 }
                 // close all open FS from backup (if the last actions was backup)
@@ -108,20 +113,24 @@ public class Fix {
      * Internal worker method executing a single container action in the multi-threading pool context.
      * <p>
      * The shared progress handler is a {@link SynchronizedProgressHandler} so concurrent progress updates are serialized while
-     * the actual container work still runs in parallel.
+     * the actual container work still runs in parallel. The shared {@link Session} is only read concurrently (settings lookups
+     * backed by synchronized {@link java.util.Properties}); it is never mutated here. Each worker operates on its own
+     * {@link ContainerAction} targeting a distinct container file, and completion is tracked via an {@link AtomicInteger} and a
+     * synchronized list.
      * </p>
-     * 
-     * @param currProfile the active {@link Profile} context
+     *
+     * @param session the active execution context (hoisted outside the worker lambda so the mutable {@link Profile} is not
+     *        shared across threads)
      * @param progress the active UI progress status tracker
      * @param counter global task progression counter
      * @param done thread-safe list storing successfully processed actions
      * @param action the actual container repair task to apply
      */
-    private void doAction(final Profile currProfile, final ProgressHandler progress, final AtomicInteger counter, final List<ContainerAction> done, ContainerAction action) {
+    private void doAction(final Session session, final ProgressHandler progress, final AtomicInteger counter, final List<ContainerAction> done, ContainerAction action) {
         if (progress.isCancel())
             return;
         try {
-            if (!action.doAction(currProfile.getSession(), progress)) // do action...
+            if (!action.doAction(session, progress)) // do action...
             {
                 Log.warn(() -> "Action " + action.toString() + " has failed, remaining actions processing will be cancelled");
                 progress.doCancel(); // ... and cancel all if it failed

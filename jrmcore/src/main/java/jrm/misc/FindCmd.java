@@ -67,12 +67,12 @@ public @UtilityClass class FindCmd {
     private static String searchInDir(final Path dirPath, final String cmd, final String[] exts) {
         // Only search fixed, unwriteable directories — skip writable ones
         // to prevent executable planting attacks
-        if (Files.isDirectory(dirPath) && !Files.isWritable(dirPath)) {
-            for (final var ext : exts) {
-                final var cmdFile = dirPath.resolve(cmd + ext).toFile();
-                if (cmdFile.isFile() && cmdFile.canExecute())
-                    return cmdFile.getAbsolutePath();
-            }
+        if (!Files.isDirectory(dirPath) || Files.isWritable(dirPath))
+            return null;
+        for (final var ext : exts) {
+            final var cmdFile = dirPath.resolve(cmd + ext).toFile();
+            if (cmdFile.isFile() && cmdFile.canExecute())
+                return cmdFile.getAbsolutePath();
         }
         return null;
     }

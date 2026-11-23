@@ -138,13 +138,13 @@ public abstract class Settings extends SettingsImpl {
 
     @Override
     public void loadSettings(final File file) {
-        if (file.exists()) {
-            try (final var is = new BufferedInputStream(new FileInputStream(file))) {
-                properties.clear();
-                properties.loadFromXML(is);
-            } catch (final IOException e) {
-                Log.err("IO", e); //$NON-NLS-1$
-            }
+        if (!file.exists())
+            return;
+        try (final var is = new BufferedInputStream(new FileInputStream(file))) {
+            properties.clear();
+            properties.loadFromXML(is);
+        } catch (final IOException e) {
+            Log.err("IO", e); //$NON-NLS-1$
         }
     }
 
